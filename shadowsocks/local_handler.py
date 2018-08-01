@@ -118,6 +118,14 @@ class LocalHandler(BaseTimeoutHandler):
         else:
             self._logger.warning('unknown stage={}'.format(self._stage))
 
+    def handle_eof_received(self):
+        self._logger.debug('eof received')
+
+    def handle_connection_lost(self, exc):
+        self._logger.debug('lost exc={exc}'.format(exc=exc))
+        if self._remote is not None:
+            self._remote.close()
+
     async def _handle_stage_init(self, data):
         '''
         初始化连接状态(握手后建立链接)
