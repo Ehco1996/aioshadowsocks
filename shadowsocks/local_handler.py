@@ -162,7 +162,7 @@ class LocalHandler(BaseTimeoutHandler):
 
             # 尝试建立tcp连接，成功的话将会返回 (transport,protocol)
             tcp_coro = loop.create_connection(lambda: RemoteTCP(
-                dst_addr, dst_port, payload, self._key, self),
+                dst_addr, dst_port, payload, self._method, self._key, self),
                 dst_addr, dst_port)
             try:
                 remote_transport, remote_instance = await tcp_coro
@@ -186,7 +186,7 @@ class LocalHandler(BaseTimeoutHandler):
 
             # 异步建立udp连接，并存入future对象
             udp_coro = loop.create_datagram_endpoint(lambda: RemoteUDP(
-                dst_addr, dst_port, payload, self._key, self),
+                dst_addr, dst_port, payload, self._method, self._key,  self),
                 remote_addr=(dst_addr, dst_port))
             asyncio.ensure_future(udp_coro)
         else:

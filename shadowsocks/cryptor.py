@@ -18,8 +18,8 @@ class Cryptor:
             if method in methods:
                 if name == 'aes':
                     self._crypto = AESCipher(method, password)
-                else:
-                    raise NotImplementedError
+        else:
+            raise NotImplementedError
 
     def _register_chipher(self):
         '''注册所有的chiper'''

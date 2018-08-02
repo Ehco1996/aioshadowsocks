@@ -1,6 +1,8 @@
+import logging
 import asyncio
 
-from shadowsocks.local_handler import LocalHandler
+from shadowsocks.cryptor import Cryptor
+from shadowsocks import protocol_flag as flag
 from shadowsocks.handlers import BaseTimeoutHandler
 
 
@@ -32,6 +34,7 @@ class LocalTCP(asyncio.Protocol):
     '''
 
     def __init__(self, method, password):
+        from shadowsocks.handlers import LocalHandler  # noqa
         self._handler = LocalHandler(method, password)
 
     def connection_made(self, transport):
@@ -74,5 +77,46 @@ class LocalTCP(asyncio.Protocol):
 
 class RemoteTCP(asyncio.Protocol, BaseTimeoutHandler):
 
-    def __init__(self, addr, port, data, key, local_handler):
-        pass
+    def __init__(self, addr, port, data, method, password, local_handler):
+        BaseTimeoutHandler.__init__(self)
+
+        self._logger = logging.getLogger(
+            '<RemoteTCP{} {}>'.format((addr, port), hex(id(self))))
+        self._data = data
+        self._local = local_handler
+        self._peername = None
+        self._transport = None
+        self._transport_type = flag.TRANSPORT_TCP
+        self._cryptor = Cryptor(method, password)
+
+    def write(self, data):
+        if self._transport is not None:
+            self._transport.write(data)
+
+    def close(self):
+        if self._transport is not None:
+            self._transport.close()
+
+    def connection_made(self, transport):
+        self.keep_alive_active()
+
+        self._transport = transport
+        self._peername = self._transport.get_extra_info('peername')
+        self._logger.debug(
+            'connection made, peername={}'.format(self._peername))
+        self.write(self._data)
+
+    def data_received(self, data):
+        self.keep_alive_active()
+
+        self._logger.debug('received data length: {}'.format(len(data)))
+        data = self._cryptor.encrypt(data)
+        self._local.write(data)
+
+    def eof_received(self):
+        self._logger.debug('eof received')
+
+    def connection_lost(self, exc):
+        self._logger.debug('lost exc={exc}'.format(exc=exc))
+        if self._local is not None:
+            self._local.close()
