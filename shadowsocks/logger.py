@@ -1,7 +1,15 @@
 import logging
 
 
-def init_logger_config():
+def init_logger_config(log_level):
+    '''
+    basic log config
+    '''
+    log_levels = {"ERROR": 40,
+                  "WARNING": 30,
+                  "INFO": 20,
+                  "DEBUG": 10}
+    level = log_levels.get(log_level.upper(), "INFO")
     logging.basicConfig(
         format='[%(levelname)s] %(asctime)s - %(process)d - %(name)s - %(funcName)s() - %(message)s',  # noqa
-        level=logging.INFO)
+        level=level)

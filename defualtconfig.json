@@ -1,0 +1,12 @@
+{
+    "local_adress": "0.0.0.0",
+    "node_id": 1,
+    "users": [
+        {
+            "user_id": 1,
+            "port": 2345,
+            "menthod": "aes-256-cfb",
+            "password": "hellotheworld"
+        }
+    ]
+}
