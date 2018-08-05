@@ -11,14 +11,16 @@ class Cryptor:
     SUPPORT_METHODS = {}
 
     def __init__(self, method, password):
-
+        self._crypto = None
         self._register_chipher()
+
         # 找到指定的cipher
         for name, methods in self.SUPPORT_METHODS.items():
             if method in methods:
                 if name == 'aes':
                     self._crypto = AESCipher(method, password)
-        else:
+
+        if self._crypto is None:
             raise NotImplementedError
 
     def _register_chipher(self):
