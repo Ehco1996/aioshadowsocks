@@ -133,7 +133,6 @@ class LocalHandler(BaseTimeoutHandler):
 
     def handle_data_received(self, data):
         self._logger.debug('received data length: {}'.format(len(data)))
-
         data = self._cryptor.decrypt(data)
 
         if self._stage == self.STAGE_INIT:
@@ -169,7 +168,6 @@ class LocalHandler(BaseTimeoutHandler):
         from shadowsocks.udpreply import RemoteUDP  # noqa
 
         atype = data[0]
-
         if atype == flag.ATYPE_IPV4:
             dst_addr = socket.inet_ntop(socket.AF_INET, data[1:5])
             dst_port = struct.unpack('!H', data[5:7])[0]
@@ -186,7 +184,7 @@ class LocalHandler(BaseTimeoutHandler):
                 '!H', data[domain_index:domain_index + 2])[0]
             payload = data[domain_index + 2]
         else:
-            self._logger.waring('unknown atype: {}'.format(atype))
+            self._logger.warning('unknown atype: {}'.format(atype))
             self.close()
             return
 

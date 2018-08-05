@@ -30,11 +30,10 @@ class AESCipher:
         self._bs = AESCipher.SUPPORT_METHODS[self._method]
         self._key = evp_bytestokey(password.encode(), self._bs)
 
-        self._key_len = 16
-        self._cipher = self._make_cipher()
-
-        self._encryptor = self._cipher.encryptor()
-        self._decryptor = self._cipher.decryptor()
+        self._iv_len = 16
+        self._encryptor = None
+        self._decryptor = None
+        self._first_package = True
 
     def __del__(self):
         '''gc时finalize'''
@@ -44,16 +43,24 @@ class AESCipher:
             self._decryptor.finalize()
 
     def _make_cipher(self):
-        iv = os.urandom(self._key_len)
         cipher = Cipher(
             algorithms.AES(self._key),
-            modes.CFB(iv),
+            modes.CFB(self._iv),
             backend=default_backend()
         )
         return cipher
 
     def encrypt(self, data):
+        if self._first_package:
+            self._first_package = False
+            self._iv = os.urandom(self._iv_len)
+            self._encryptor = self._make_cipher().encryptor()
+            return self._iv + self._encryptor.update(data)
         return self._encryptor.update(data)
 
-    def decrypt(self, encrypted_data):
-        return self._decryptor.update(encrypted_data)
+    def decrypt(self, data):
+        if self._first_package:
+            self._first_package = False
+            self._iv, data = data[:self._iv_len], data[self._iv_len:]
+            self._decryptor = self._make_cipher().decryptor()
+        return self._decryptor.update(data)
