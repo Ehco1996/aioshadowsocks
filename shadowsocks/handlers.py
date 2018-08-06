@@ -135,7 +135,6 @@ class LocalHandler(BaseTimeoutHandler):
     def handle_data_received(self, data):
         self._logger.debug('received data length: {}'.format(len(data)))
         data = self._cryptor.decrypt(data)
-
         if self._stage == self.STAGE_INIT:
             coro = self._handle_stage_init(data)
             asyncio.ensure_future(coro)
@@ -239,14 +238,14 @@ class LocalHandler(BaseTimeoutHandler):
                 return
             else:
                 self._logger.debug(
-                    'some error happed stage: {}'.format(self._stage))
+                    'some error happed stage {}'.format(self._stage))
         #  5s之后连接还没建立的话 超时处理
         self._logger.waring(
-            'time out to connect remote stage: {}'.format(self._stage))
+            'time out to connect remote stage {}'.format(self._stage))
         return
 
     def _handle_stage_stream(self, data):
-        self._logger.debug('realy data length :{}'.format(len(data)))
+        self._logger.debug('realy data length {}'.format(len(data)))
         self.keep_alive_active()
         self._remote.write(data)
 

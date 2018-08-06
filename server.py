@@ -16,7 +16,7 @@ def run_servers():
     local_adress = configs['local_adress']
 
     tcp_servers = []
-    # udp_servers = []
+    udp_transports = []
     loop = asyncio.get_event_loop()
 
     for user in configs['users']:
@@ -29,7 +29,11 @@ def run_servers():
                 user.method, user.password), local_adress, user.port))
         tcp_servers.append(tcp_server)
 
-        # TODO UDP server
+        # UDP server
+        listen = loop.create_datagram_endpoint(lambda: LoaclUDP(
+            user.method, user.password), (local_adress, user.port))
+        udp_transport, _ = loop.run_until_complete(listen)
+        udp_transports.append(udp_transport)
 
     try:
         loop.run_forever()
@@ -39,7 +43,9 @@ def run_servers():
         for tcp_server in tcp_servers:
             tcp_server.close()
             loop.run_until_complete(tcp_server.wait_closed())
-
+        for udp_transport in udp_transports:
+            udp_transport.close()
+    finally:
         loop.stop()
 
 

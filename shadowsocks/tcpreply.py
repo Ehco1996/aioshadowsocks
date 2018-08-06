@@ -102,7 +102,7 @@ class RemoteTCP(asyncio.Protocol, BaseTimeoutHandler):
         self._transport = transport
         self._peername = self._transport.get_extra_info('peername')
         self._logger.debug(
-            'connection made, peername={}'.format(self._peername))
+            'connection made, peername {}'.format(self._peername))
         self.write(self._data)
 
     def data_received(self, data):
