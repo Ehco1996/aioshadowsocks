@@ -142,8 +142,7 @@ class LocalHandler(BaseTimeoutHandler):
             coro = self._handle_stage_connect(data)
             asyncio.ensure_future(coro)
         elif self._stage == self.STAGE_STREAM:
-            coro = self._handle_stage_stream(data)
-            asyncio.ensure_future(coro)
+            self._handle_stage_stream(data)
         elif self._stage == self.STAGE_ERROR:
             self._handle_stage_error()
         else:
@@ -182,7 +181,7 @@ class LocalHandler(BaseTimeoutHandler):
             dst_addr = data[2:domain_index]
             dst_port = struct.unpack(
                 '!H', data[domain_index:domain_index + 2])[0]
-            payload = data[domain_index + 2]
+            payload = data[domain_index + 2:]
         else:
             self._logger.warning('unknown atype: {}'.format(atype))
             self.close()
