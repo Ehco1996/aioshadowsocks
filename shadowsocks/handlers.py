@@ -120,6 +120,7 @@ class LocalHandler(BaseTimeoutHandler):
         '''
         处理udp连接
         '''
+        self.check_alive()
 
         self._stage = self.STAGE_INIT
         self._transport = transport
@@ -146,7 +147,7 @@ class LocalHandler(BaseTimeoutHandler):
         elif self._stage == self.STAGE_ERROR:
             self._handle_stage_error()
         else:
-            self._logger.warning('unknown stage={}'.format(self._stage))
+            self._logger.warning('unknown stage:{}'.format(self._stage))
 
     def handle_eof_received(self):
         self._logger.debug('eof received')
@@ -200,17 +201,17 @@ class LocalHandler(BaseTimeoutHandler):
                 remote_transport, remote_instance = await tcp_coro
             except (IOError, OSError) as e:
                 self._logger.debug(
-                    'connection faild , {} e= {}'.format(type(e), e))
+                    'connection faild , {} e: {}'.format(type(e), e))
                 self.close()
                 self._stage = self.STAGE_DESTROY
             except Exception as e:
                 self._logger.warning(
-                    'connection failed, {} e={}'.format(type(e), e))
+                    'connection failed, {} e: {}'.format(type(e), e))
                 self.close()
                 self._stage = self.STAGE_ERROR
             else:
                 self._logger.debug(
-                    'connection established, remote={}'.format(remote_instance))
+                    'connection established,remote {}'.format(remote_instance))
                 self._remote = remote_instance
                 self._stage = self.STAGE_STREAM
         elif self._transport_protocol == flag.TRANSPORT_UDP:

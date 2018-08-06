@@ -35,7 +35,11 @@ def run_servers():
         loop.run_forever()
     except KeyboardInterrupt:
         logging.info('正在关闭所有ss server')
-        # TODO graceful shutdown
+
+        for tcp_server in tcp_servers:
+            tcp_server.close()
+            loop.run_until_complete(tcp_server.wait_closed())
+
         loop.stop()
 
 
