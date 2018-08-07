@@ -8,16 +8,12 @@ from shadowsocks.logger import init_logger_config
 from shadowsocks.config_reader.json_reader import json_config_reader
 
 
-def run_servers():
-    init_logger_config(log_level="debug")
-
-    path = os.path.join(os.getcwd(), 'defualtconfig.json').encode()
-    configs = json_config_reader(path)
-    local_adress = configs['local_adress']
+async def run_servers(configs):
 
     tcp_servers = []
     udp_transports = []
     loop = asyncio.get_event_loop()
+    local_adress = configs['local_adress']
 
     for user in configs['users']:
         logging.info("user_id: {} password: {} 在 {} 的 {} 端口启动啦！".format(
@@ -50,4 +46,6 @@ def run_servers():
 
 
 if __name__ == "__main__":
-    run_servers()
+    init_logger_config(log_level="info")
+    path = os.path.join(os.getcwd(), 'defualtconfig.json').encode()
+    run_servers(json_config_reader(path))
