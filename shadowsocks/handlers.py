@@ -12,7 +12,7 @@ class BaseTimeoutHandler:
     def __init__(self):
         self._transport = None
         self._last_active_time = time.time()
-        self._timeout_limit = 20
+        self._timeout_limit = 5
 
     def close(self):
         '''由子类实现'''
@@ -42,7 +42,32 @@ class BaseTimeoutHandler:
                 await asyncio.sleep(1)
 
 
-class LocalHandler(BaseTimeoutHandler):
+class UserControlHandler:
+    def __init__(self, user):
+        self.user = user
+        self.logger = logging.getLogger(
+            '<UserControl user_id:{}>'.format(user.user_id))
+
+    def close(self):
+        raise NotImplementedError
+
+    def check_traffic(self):
+        '''
+        检查用户流量是否超额
+        每次传输数据的时候都应该调用本方法
+        '''
+        asyncio.ensure_future(self._check_traffic())
+
+    async def _check_traffic(self):
+        if self.user.used_traffic > self.user.total_traffic:
+            self.close()
+            self.logger.info('user out of traffic used_traffic: {}'.format(
+                self.user.used_traffic))
+        else:
+            self.logger.debug('checked user traffic')
+
+
+class LocalHandler(BaseTimeoutHandler, UserControlHandler):
     '''
     事件循环一共处理五个状态
 
@@ -59,8 +84,10 @@ class LocalHandler(BaseTimeoutHandler):
     STAGE_DESTROY = -1
     STAGE_ERROR = 255
 
-    def __init__(self, method, password):
+    def __init__(self, method, password, user):
         BaseTimeoutHandler.__init__(self)
+        UserControlHandler.__init__(self, user)
+
         self._key = password
         self._method = method
 
@@ -133,7 +160,10 @@ class LocalHandler(BaseTimeoutHandler):
         self._logger.debug('udp connection made')
 
     def handle_data_received(self, data):
-        self._logger.debug('received data length: {}'.format(len(data)))
+        # 累计并检查用户流量
+        self.user.upload_traffic += len(data)
+        self.check_traffic()
+
         data = self._cryptor.decrypt(data)
         if self._stage == self.STAGE_INIT:
             coro = self._handle_stage_init(data)

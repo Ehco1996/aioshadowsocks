@@ -8,7 +8,7 @@ from shadowsocks.logger import init_logger_config
 from shadowsocks.config_reader.json_reader import json_config_reader
 
 
-async def run_servers(configs):
+def run_servers(configs):
 
     tcp_servers = []
     udp_transports = []
@@ -22,7 +22,7 @@ async def run_servers(configs):
         # TCP sevcer
         tcp_server = loop.run_until_complete(
             loop.create_server(lambda: LocalTCP(
-                user.method, user.password), local_adress, user.port))
+                user.method, user.password, user), local_adress, user.port))
         tcp_servers.append(tcp_server)
 
         # UDP server

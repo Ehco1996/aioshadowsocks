@@ -33,8 +33,8 @@ class LocalTCP(asyncio.Protocol):
     * CL: connection_lost()
     '''
 
-    def __init__(self, method, password):
-        self._handler = LocalHandler(method, password)
+    def __init__(self, method, password, user):
+        self._handler = LocalHandler(method, password, user)
 
     def connection_made(self, transport):
         '''
