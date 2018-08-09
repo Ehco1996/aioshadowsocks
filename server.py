@@ -27,7 +27,7 @@ def run_servers(configs):
 
         # UDP server
         listen = loop.create_datagram_endpoint(lambda: LoaclUDP(
-            user.method, user.password), (local_adress, user.port))
+            user.method, user.password, user), (local_adress, user.port))
         udp_transport, _ = loop.run_until_complete(listen)
         udp_transports.append(udp_transport)
 

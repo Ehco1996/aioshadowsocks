@@ -9,9 +9,10 @@ from shadowsocks.handlers import BaseTimeoutHandler, LocalHandler
 
 class LoaclUDP(asyncio.DatagramProtocol):
 
-    def __init__(self, method, password):
+    def __init__(self, method, password, user):
         self._method = method
         self._password = password
+        self.user = user
         self._instance = {}
 
     def connection_made(self, transport):
@@ -22,7 +23,7 @@ class LoaclUDP(asyncio.DatagramProtocol):
             handler = self._instance[peername]
         else:
             handler = LocalHandler(
-                self._method, self._password)
+                self._method, self._password, self.user)
             self._instance[peername] = handler
             handler.handle_udp_connection_made(self._transport, peername)
         handler.handle_data_received(data)
@@ -68,6 +69,9 @@ class RemoteUDP(asyncio.DatagramProtocol, BaseTimeoutHandler):
     def datagram_received(self, data, peername):
         self.keep_alive_active()
         self._logger.debug("received data len: {}".format(len(data)))
+        # 记录下载流量
+        self._local.user.download_traffic += len(data)
+
         assert self._peername == peername
         # 源地址和端口
         bind_addr, bind_port = peername

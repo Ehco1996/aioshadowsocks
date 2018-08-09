@@ -161,6 +161,7 @@ class LocalHandler(BaseTimeoutHandler, UserControlHandler):
 
     def handle_data_received(self, data):
         # 累计并检查用户流量
+        print(self.user.__dict__)
         self.user.upload_traffic += len(data)
         self.check_traffic()
 
@@ -270,7 +271,7 @@ class LocalHandler(BaseTimeoutHandler, UserControlHandler):
                 self._logger.debug(
                     'some error happed stage {}'.format(self._stage))
         #  5s之后连接还没建立的话 超时处理
-        self._logger.waring(
+        self._logger.warning(
             'time out to connect remote stage {}'.format(self._stage))
         return
 
