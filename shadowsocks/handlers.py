@@ -6,6 +6,7 @@ import asyncio
 
 from shadowsocks.cryptor import Cryptor
 from shadowsocks import protocol_flag as flag
+from shadowsocks.server_pool import ServerPool
 
 
 class BaseTimeoutHandler:
@@ -88,6 +89,8 @@ class LocalHandler(BaseTimeoutHandler, UserControlHandler):
         BaseTimeoutHandler.__init__(self)
         UserControlHandler.__init__(self, user)
 
+        self.pool = ServerPool()
+
         self._key = password
         self._method = method
 
@@ -139,8 +142,13 @@ class LocalHandler(BaseTimeoutHandler, UserControlHandler):
         # get the remote address to which the socket is connected
         self._peername = self._transport.get_extra_info('peername')
 
+        # add to server pool
+        server_id = hex(id(self))
+        if self.pool.check_tcp_server(server_id) is False:
+            self.pool.add_tcp_server(server_id, self)
+
         self._logger = logging.getLogger(
-            '<LocalTCP{0} {1}>'.format(self._peername, hex(id(self))))
+            '<LocalTCP{} {}>'.format(self._peername, server_id))
         self._logger.debug('tcp connection made')
 
     def handle_udp_connection_made(self, transport, peername):
@@ -155,13 +163,17 @@ class LocalHandler(BaseTimeoutHandler, UserControlHandler):
         self._cryptor = Cryptor(self._method, self._key)
         self._peername = peername
 
+        # add to server pool
+        server_id = hex(id(self))
+        if self.pool.check_udp_server(server_id) is False:
+            self.pool.add_udp_server(server_id, self)
+
         self._logger = logging.getLogger(
-            '<LocalUDP{0} {1}>'.format(self._peername, hex(id(self))))
+            '<LocalUDP{}{}>'.format(self._peername, server_id))
         self._logger.debug('udp connection made')
 
     def handle_data_received(self, data):
         # 累计并检查用户流量
-        print(self.user.__dict__)
         self.user.upload_traffic += len(data)
         self.check_traffic()
 

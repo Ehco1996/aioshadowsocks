@@ -1,16 +1,49 @@
 import logging
 import asyncio
 
-from shadowsocks.udpreply import LoaclUDP
-from shadowsocks.tcpreply import LocalTCP
+
+class ServerPool:
+    _instance = None
+
+    tcp_server_ids = list()
+    udp_server_ids = list()
+
+    tcp_servers = {}
+    udp_servers = {}
+
+    def __new__(cls, *args, **kw):
+        if not cls._instance:
+            cls._instance = super(ServerPool, cls).__new__(cls, *args, **kw)
+        return cls._instance
+
+    @classmethod
+    def add_tcp_server(cls, server_id, server_instance):
+        cls.tcp_server_ids.append(server_id)
+        cls.tcp_servers[server_id] = server_instance
+
+    @classmethod
+    def add_udp_server(cls, server_id, server_instance):
+        cls.udp_server_ids.append(server_id)
+        cls.udp_servers[server_id] = server_instance
+
+    @classmethod
+    def check_tcp_server(cls, server_id):
+        return server_id in cls.tcp_server_ids
+
+    @classmethod
+    def check_udp_server(cls, server_id):
+        return server_id in cls.udp_server_ids
 
 
 async def async_user_config(configs):
     '''
-    同步用户配置数据并加入事件循环
+    同步用户配置
+    创建local连接
+    加入事件循环
     '''
-    tcp_servers = []
-    udp_transports = []
+    from shadowsocks.udpreply import LoaclUDP
+    from shadowsocks.tcpreply import LocalTCP
+
     loop = asyncio.get_event_loop()
     local_adress = configs['local_adress']
 
@@ -23,12 +56,8 @@ async def async_user_config(configs):
         tcp_server = loop.create_server(lambda: LocalTCP(
             user.method, user.password, user), local_adress, user.port)
         asyncio.ensure_future(tcp_server)
-        tcp_servers.append(tcp_server)
 
         # UDP server
         listen = loop.create_datagram_endpoint(lambda: LoaclUDP(
             user.method, user.password, user), (local_adress, user.port))
-        udp_transport = asyncio.ensure_future(listen)
-        udp_transports.append(udp_transport)
-
-    return tcp_servers, udp_transports
+        asyncio.ensure_future(listen)
