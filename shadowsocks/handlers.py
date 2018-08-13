@@ -167,7 +167,7 @@ class LocalHandler(BaseTimeoutHandler, UserControlHandler):
         # add to server pool
         server_id = hex(id(self))
         if self.pool.check_udp_server(server_id) is False:
-            self.pool.add_udp_server(server_id, self.user.user_id, self)
+            self.pool.add_udp_server(server_id, self.user, self)
 
         self._logger = logging.getLogger(
             '<LocalUDP{}{}>'.format(self._peername, server_id))

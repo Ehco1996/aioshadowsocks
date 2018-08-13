@@ -45,9 +45,12 @@ class ServerPool:
         cls.user_handlers[user.user_id]['handlers'].append(server_instance)
 
     @classmethod
-    def add_udp_server(cls, server_id, user_id, server_instance):
+    def add_udp_server(cls, server_id, user, server_instance):
+        if cls._check_user_exist(user.user_id) is False:
+            cls._add_user_handler(user)
+
         cls.udp_server_ids.append(server_id)
-        cls.user_handlers[user_id]['handlers'].append(server_instance)
+        cls.user_handlers[user.user_id]['handlers'].append(server_instance)
 
 
 async def async_user_config(configs):
