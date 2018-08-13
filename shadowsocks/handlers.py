@@ -90,6 +90,7 @@ class LocalHandler(BaseTimeoutHandler, UserControlHandler):
         UserControlHandler.__init__(self, user)
 
         self.pool = ServerPool()
+        self.user = user
 
         self._key = password
         self._method = method
@@ -145,7 +146,7 @@ class LocalHandler(BaseTimeoutHandler, UserControlHandler):
         # add to server pool
         server_id = hex(id(self))
         if self.pool.check_tcp_server(server_id) is False:
-            self.pool.add_tcp_server(server_id, self)
+            self.pool.add_tcp_server(server_id, self.user, self)
 
         self._logger = logging.getLogger(
             '<LocalTCP{} {}>'.format(self._peername, server_id))
@@ -166,7 +167,7 @@ class LocalHandler(BaseTimeoutHandler, UserControlHandler):
         # add to server pool
         server_id = hex(id(self))
         if self.pool.check_udp_server(server_id) is False:
-            self.pool.add_udp_server(server_id, self)
+            self.pool.add_udp_server(server_id, self.user.user_id, self)
 
         self._logger = logging.getLogger(
             '<LocalUDP{}{}>'.format(self._peername, server_id))

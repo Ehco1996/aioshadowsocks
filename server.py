@@ -19,10 +19,13 @@ def run_servers(configs):
         logging.info('正在关闭所有ss server')
 
         pool = ServerPool()
-        for udp_transport in pool.udp_servers.values():
-            udp_transport.close()
-        for tcp_server in pool.tcp_servers.values():
-            tcp_server.close()
+        for data in pool.user_handlers.values():
+            user = data['user']
+            servers = data['handlers']
+            logging.info('正在关闭user_id: {} 的连接'.format(user.user_id))
+            for server in servers:
+                server.close()
+
         loop.stop()
 
 
