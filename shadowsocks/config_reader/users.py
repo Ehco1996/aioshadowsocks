@@ -20,3 +20,19 @@ class User:
     @property
     def used_traffic(self):
         return self.upload_traffic + self.download_traffic
+
+    @property
+    def human_used_traffic(self):
+        return self._traffic_format(self.used_traffic)
+
+    def _traffic_format(self, traffic):
+        if traffic < 1024 * 8:
+            return str(int(traffic)) + "B"
+
+        if traffic < 1024 * 1024:
+            return str(round((traffic / 1024.0), 2)) + "KB"
+
+        if traffic < 1024 * 1024 * 1024:
+            return str(round((traffic / (1024.0 * 1024)), 2)) + "MB"
+
+        return str(round((traffic / 1073741824.0), 2)) + "GB"

@@ -4,21 +4,19 @@ import asyncio
 
 from shadowsocks.server_pool import ServerPool
 from shadowsocks.logger import init_logger_config
-from shadowsocks.server_pool import async_user_config
 from shadowsocks.config_reader.json_reader import json_config_reader
 
 
 def run_servers(configs):
 
     loop = asyncio.get_event_loop()
-    asyncio.ensure_future(async_user_config(configs))
+    pool = ServerPool()
+    asyncio.ensure_future(pool.async_user_config(configs))
 
     try:
         loop.run_forever()
     except KeyboardInterrupt:
         logging.info('正在关闭所有ss server')
-
-        pool = ServerPool()
         for data in pool.user_handlers.values():
             user = data['user']
             servers = data['handlers']

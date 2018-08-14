@@ -62,8 +62,8 @@ class UserControlHandler:
     async def _check_traffic(self):
         if self.user.used_traffic > self.user.total_traffic:
             self.close()
-            self.logger.info('user out of traffic used_traffic: {}'.format(
-                self.user.used_traffic))
+            self.logger.warning('user_id {} out of traffic used:{}'.format(
+                self.user.user_id, self.user.human_used_traffic))
         else:
             self.logger.debug('checked user traffic')
 
@@ -135,6 +135,7 @@ class LocalHandler(BaseTimeoutHandler, UserControlHandler):
         doc: https://docs.python.org/3/library/asyncio-protocol.html
         '''
         self.check_alive()
+        self.pool.async_user()
 
         self._stage = self.STAGE_INIT
         self._transport = transport
@@ -157,6 +158,7 @@ class LocalHandler(BaseTimeoutHandler, UserControlHandler):
         处理udp连接
         '''
         self.check_alive()
+        self.pool.async_user()
 
         self._stage = self.STAGE_INIT
         self._transport = transport

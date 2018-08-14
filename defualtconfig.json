@@ -7,7 +7,14 @@
             "port": 2345,
             "method": "aes-256-cfb",
             "password": "hellotheworld",
-            "total_traffic": 1048576
+            "total_traffic": 104857600
+        },
+        {
+            "user_id": 2,
+            "port": 2346,
+            "method": "aes-256-cfb",
+            "password": "hellotheworld",
+            "total_traffic": 104857600
         }
     ]
 }
