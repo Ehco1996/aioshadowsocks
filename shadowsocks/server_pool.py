@@ -85,14 +85,13 @@ class ServerPool:
                     user.user_id, user.password, local_adress, user.port))
 
                 # TCP sevcer
-                tcp_server = loop.create_server(lambda: LocalTCP(
-                    user.method, user.password, user), local_adress, user.port)
+                tcp_server = loop.create_server(
+                    LocalTCP(user), local_adress, user.port)
                 asyncio.ensure_future(tcp_server)
 
                 # UDP server
                 udp_server = loop.create_datagram_endpoint(
-                    lambda: LoaclUDP(user.method, user.password, user),
-                    (local_adress, user.port))
+                    LoaclUDP(user), (local_adress, user.port))
                 asyncio.ensure_future(udp_server)
 
                 # init user in server pool

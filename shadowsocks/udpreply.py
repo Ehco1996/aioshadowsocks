@@ -9,11 +9,18 @@ from shadowsocks.handlers import BaseTimeoutHandler, LocalHandler
 
 class LoaclUDP(asyncio.DatagramProtocol):
 
-    def __init__(self, method, password, user):
-        self._method = method
-        self._password = password
+    def __init__(self, user):
         self.user = user
+
+    def _init_instance(self, user):
         self._instance = {}
+        self._method = user.method
+        self._password = user.password
+
+    def __call__(self):
+        local = LoaclUDP(self.user)
+        local._init_instance(self.user)
+        return local
 
     def connection_made(self, transport):
         self._transport = transport

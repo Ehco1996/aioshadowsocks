@@ -172,7 +172,7 @@ class LocalHandler(BaseTimeoutHandler, UserControlHandler):
             self.pool.add_udp_server(server_id, self.user, self)
 
         self._logger = logging.getLogger(
-            '<LocalUDP{}{}>'.format(self._peername, server_id))
+            '<LocalUDP{} {}>'.format(self._peername, server_id))
         self._logger.debug('udp connection made')
 
     def handle_data_received(self, data):

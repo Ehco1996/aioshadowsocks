@@ -33,8 +33,17 @@ class LocalTCP(asyncio.Protocol):
     * CL: connection_lost()
     '''
 
-    def __init__(self, method, password, user):
-        self._handler = LocalHandler(method, password, user)
+    def __init__(self, user):
+        self.user = user
+        self._handler = None
+
+    def _init_handler(self, user):
+        self._handler = LocalHandler(user.method, user.password, user)
+
+    def __call__(self):
+        local = LocalTCP(self.user)
+        local._init_handler(self.user)
+        return local
 
     def connection_made(self, transport):
         '''
@@ -107,7 +116,6 @@ class RemoteTCP(asyncio.Protocol, BaseTimeoutHandler):
 
     def data_received(self, data):
         self.keep_alive_active()
-
         # 记录下载流量
         self._local.user.download_traffic += len(data)
 
