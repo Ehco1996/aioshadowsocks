@@ -9,9 +9,14 @@ from shadowsocks.config_reader.json_reader import json_config_reader
 
 def run_servers(configs):
 
+    async def async_user_task(pool):
+        pool.async_user()
+
     loop = asyncio.get_event_loop()
     pool = ServerPool()
+
     asyncio.ensure_future(pool.async_user_config(configs))
+    asyncio.ensure_future(async_user_task(pool))
 
     try:
         loop.run_forever()

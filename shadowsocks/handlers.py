@@ -135,7 +135,6 @@ class LocalHandler(BaseTimeoutHandler, UserControlHandler):
         doc: https://docs.python.org/3/library/asyncio-protocol.html
         '''
         self.check_alive()
-        self.pool.async_user()
 
         self._stage = self.STAGE_INIT
         self._transport = transport
@@ -158,7 +157,6 @@ class LocalHandler(BaseTimeoutHandler, UserControlHandler):
         处理udp连接
         '''
         self.check_alive()
-        self.pool.async_user()
 
         self._stage = self.STAGE_INIT
         self._transport = transport

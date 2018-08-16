@@ -7,9 +7,6 @@ import asyncio
 class ServerPool:
     _instance = None
 
-    _async_user_interval = 60
-    _last_async_user_time = int(time.time())
-
     user_ids = list()
     tcp_server_ids = list()
     udp_server_ids = list()
@@ -54,17 +51,20 @@ class ServerPool:
     @classmethod
     def async_user(cls):
         '''每隔60s检查一次是否有新user'''
+        from shadowsocks.config_reader.json_reader import json_config_reader
+
+        loop = asyncio.get_event_loop()
         now = int(time.time())
-        if now - cls._last_async_user_time > cls._async_user_interval:
-            # read_config
-            from shadowsocks.config_reader.json_reader import json_config_reader
-            path = os.path.join(os.getcwd(), 'defualtconfig.json').encode()
-            configs = json_config_reader(path)
-            coro = cls.async_user_config(configs)
-            loop = asyncio.get_event_loop()
-            loop.create_task(coro)
-            cls._last_async_user_time = now
-            logging.info('async user, time {}'.format(now))
+
+        # read_config
+        path = os.path.join(os.getcwd(), 'defualtconfig.json').encode()
+        configs = json_config_reader(path)
+        # create task
+        coro = cls.async_user_config(configs)
+        loop.create_task(coro)
+        logging.info('async user config cronjob current time {}'.format(now))
+        # crontab job for every 60s
+        loop.call_later(60, cls.async_user)
 
     @classmethod
     async def async_user_config(cls, configs):
@@ -97,4 +97,5 @@ class ServerPool:
                 # init user in server pool
                 cls._init_user(user)
             else:
-                logging.info('checked user config')
+                logging.info(
+                    'checked user config user_id {}'.format(user.user_id))
