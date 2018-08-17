@@ -22,6 +22,10 @@ class ServerPool:
         return cls._instance
 
     @classmethod
+    def get_user_by_id(cls, user_id):
+        return cls.user_handlers[user_id]['user']
+
+    @classmethod
     def _check_user_exist(cls, user_id):
         return user_id in cls.user_ids
 
@@ -53,9 +57,11 @@ class ServerPool:
         '''每隔60s检查一次是否有新user'''
         from shadowsocks.config_reader.json_reader import json_config_reader
 
+        # post user traffic to server
+        cls.post_user_traffic()
+
         loop = asyncio.get_event_loop()
         now = int(time.time())
-
         # read_config
         path = os.path.join(os.getcwd(), 'defualtconfig.json').encode()
         configs = json_config_reader(path)
@@ -65,6 +71,21 @@ class ServerPool:
         logging.info('async user config cronjob current time {}'.format(now))
         # crontab job for every 60s
         loop.call_later(60, cls.async_user)
+
+    @classmethod
+    def post_user_traffic(cls):
+        data = []
+        for user_id in cls.user_ids:
+            user = cls.get_user_by_id(user_id)
+            data.append({
+                'user_id': user_id,
+                'u': user.upload_traffic,
+                'd': user.download_traffic
+            })
+            # reset user used traffic
+            user.upload_traffic = 0
+            user.download_traffic = 0
+        print(data)
 
     @classmethod
     async def async_user_config(cls, configs):
@@ -98,4 +119,7 @@ class ServerPool:
                 cls._init_user(user)
             else:
                 logging.info(
-                    'checked user config user_id {}'.format(user.user_id))
+                    'update user  user_id {}'.format(user.user_id))
+                # sycn user config with db/server
+                current_user = cls.get_user_by_id(user.user_id)
+                current_user.total = user.total_traffic
