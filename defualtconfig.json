@@ -5,7 +5,7 @@
         {
             "user_id": 1,
             "port": 2345,
-            "method": "aes-256-cfb",
+            "method": "none",
             "password": "hellotheworld",
             "total_traffic": 104857600
         },

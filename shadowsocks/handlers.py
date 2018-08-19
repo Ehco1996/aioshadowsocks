@@ -139,9 +139,14 @@ class LocalHandler(BaseTimeoutHandler, UserControlHandler):
         self._stage = self.STAGE_INIT
         self._transport = transport
         self._transport_protocol = flag.TRANSPORT_TCP
-        self._cryptor = Cryptor(self._method, self._key)
-        # get the remote address to which the socket is connected
         self._peername = self._transport.get_extra_info('peername')
+
+        try:
+            self._cryptor = Cryptor(self._method, self._key)
+        except NotImplementedError:
+            logging.warning('not support cipher')
+            self.close()
+        # get the remote address to which the socket is connected
 
         # add to server pool
         server_id = hex(id(self))
@@ -161,8 +166,13 @@ class LocalHandler(BaseTimeoutHandler, UserControlHandler):
         self._stage = self.STAGE_INIT
         self._transport = transport
         self._transport_protocol = flag.TRANSPORT_UDP
-        self._cryptor = Cryptor(self._method, self._key)
         self._peername = peername
+
+        try:
+            self._cryptor = Cryptor(self._method, self._key)
+        except NotImplementedError:
+            logging.warning('not support cipher')
+            self.close()
 
         # add to server pool
         server_id = hex(id(self))
@@ -179,6 +189,7 @@ class LocalHandler(BaseTimeoutHandler, UserControlHandler):
         self.check_traffic()
 
         data = self._cryptor.decrypt(data)
+
         if self._stage == self.STAGE_INIT:
             coro = self._handle_stage_init(data)
             asyncio.ensure_future(coro)

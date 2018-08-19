@@ -102,7 +102,7 @@ class ServerPool:
 
         for user in configs['users']:
             if cls._check_user_exist(user.user_id) is False:
-                logging.info("user_id:{} password:{}在{} 的{}端口启动啦！".format(
+                logging.info("user_id:{} pass:{} 在 {} 的 {} 端口启动啦！".format(
                     user.user_id, user.password, local_adress, user.port))
 
                 # TCP sevcer

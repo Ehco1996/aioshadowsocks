@@ -1,8 +1,8 @@
 '''
 不同加密方式的分发
 '''
-
 from shadowsocks.crypto.aes import AESCipher
+from shadowsocks.crypto.none import NONECipher
 
 
 class Cryptor:
@@ -19,6 +19,8 @@ class Cryptor:
             if method in methods:
                 if name == 'aes':
                     self._crypto = AESCipher(method, password)
+                elif name == 'none':
+                    self._crypto = NONECipher(method, password)
 
         if self._crypto is None:
             raise NotImplementedError
@@ -28,6 +30,8 @@ class Cryptor:
 
         # aes
         self.SUPPORT_METHODS['aes'] = AESCipher.SUPPORT_METHODS
+        # none
+        self.SUPPORT_METHODS['none'] = NONECipher.SUPPORT_METHODS
 
     def encrypt(self, data):
         return self._crypto.encrypt(data)
