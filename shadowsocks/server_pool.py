@@ -79,12 +79,12 @@ class ServerPool:
             user = cls.get_user_by_id(user_id)
             data.append({
                 'user_id': user_id,
-                'u': user.upload_traffic,
-                'd': user.download_traffic
+                'u': user.once_used_u,
+                'd': user.once_used_d
             })
             # reset user used traffic
-            user.upload_traffic = 0
-            user.download_traffic = 0
+            user.once_used_u = 0
+            user.once_used_d = 0
         print(data)
 
     @classmethod
@@ -120,6 +120,8 @@ class ServerPool:
             else:
                 logging.info(
                     'update user  user_id {}'.format(user.user_id))
-                # sycn user config with db/server
+                # update user config with db/server
                 current_user = cls.get_user_by_id(user.user_id)
                 current_user.total = user.total_traffic
+                current_user.upload_traffic = user.upload_traffic
+                current_user.download_traffic = user.upload_traffic

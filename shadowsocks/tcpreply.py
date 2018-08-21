@@ -117,7 +117,7 @@ class RemoteTCP(asyncio.Protocol, BaseTimeoutHandler):
     def data_received(self, data):
         self.keep_alive_active()
         # 记录下载流量
-        self._local.user.download_traffic += len(data)
+        self._local.user.once_used_d += len(data)
 
         self._logger.debug('received data length: {}'.format(len(data)))
         data = self._cryptor.encrypt(data)

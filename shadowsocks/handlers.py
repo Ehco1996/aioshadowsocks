@@ -185,7 +185,7 @@ class LocalHandler(BaseTimeoutHandler, UserControlHandler):
 
     def handle_data_received(self, data):
         # 累计并检查用户流量
-        self.user.upload_traffic += len(data)
+        self.user.once_used_u += len(data)
         self.check_traffic()
 
         data = self._cryptor.decrypt(data)

@@ -12,6 +12,10 @@ class User:
         self.peername = None
         self.user_id = None
 
+        # 记录每次同步间隔间的力量
+        self.once_used_u = 0
+        self.once_used_d = 0
+
         self.__dict__.update(propertys)
 
     def __repr__(self):
