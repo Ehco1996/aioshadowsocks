@@ -4,10 +4,9 @@ import asyncio
 
 from shadowsocks.server_pool import ServerPool
 from shadowsocks.logger import init_logger_config
-from shadowsocks.config_reader.json_reader import json_config_reader
 
 
-def run_servers(configs):
+def run_servers(transfer_type):
 
     async def async_user_task(pool):
         pool.async_user()
@@ -15,7 +14,11 @@ def run_servers(configs):
     loop = asyncio.get_event_loop()
     pool = ServerPool()
 
-    asyncio.ensure_future(pool.async_user_config(configs))
+    pool.init_transfer(transfer_type)
+
+    # 读取用户数据
+    # asyncio.ensure_future(pool.async_user_config())
+    # 启动定时任务
     asyncio.ensure_future(async_user_task(pool))
 
     try:
@@ -33,6 +36,6 @@ def run_servers(configs):
 
 
 if __name__ == "__main__":
+    from config import TRANSFER_TYPE
     init_logger_config(log_level="info")
-    path = os.path.join(os.getcwd(), 'defualtconfig.json').encode()
-    run_servers(json_config_reader(path))
+    run_servers(TRANSFER_TYPE)

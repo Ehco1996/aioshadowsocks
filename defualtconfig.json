@@ -1,6 +1,7 @@
 {
-    "local_adress": "0.0.0.0",
+    "local_address": "0.0.0.0",
     "node_id": 1,
+    "transfer_mul": 1.0,
     "users": [
         {
             "user_id": 1,

@@ -12,11 +12,13 @@ class User:
         self.peername = None
         self.user_id = None
 
-        # 记录每次同步间隔间的力量
+        # 记录每次同步间隔间的流量
         self.once_used_u = 0
         self.once_used_d = 0
 
         self.__dict__.update(propertys)
+        if 'passwd' in propertys:
+            self.password = propertys['passwd']
 
     def __repr__(self):
         return '<shdowsocks user object user_id:{}>'.format(self.user_id)

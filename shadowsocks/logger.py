@@ -5,7 +5,8 @@ def init_logger_config(log_level):
     '''
     basic log config
     '''
-    log_levels = {"ERROR": 40,
+    log_levels = {'CRITICAL': 50,
+                  "ERROR": 40,
                   "WARNING": 30,
                   "INFO": 20,
                   "DEBUG": 10}

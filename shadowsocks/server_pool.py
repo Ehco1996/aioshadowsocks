@@ -3,9 +3,14 @@ import time
 import logging
 import asyncio
 
+from transfer.web_transfer import WebTransfer
+from transfer.json_transfer import JsonTransfer
+
 
 class ServerPool:
     _instance = None
+
+    transfer = None
 
     user_ids = list()
     tcp_server_ids = list()
@@ -22,8 +27,25 @@ class ServerPool:
         return cls._instance
 
     @classmethod
+    def init_transfer(cls, transfer_type):
+        import config as c
+        if transfer_type == 'webapi':
+            cls.transfer = WebTransfer(
+                c.TOKEN, c.WEBAPI_URL, c.NODE_ID, c.LOACL_ADREES)
+        else:
+            path = os.path.join(os.getcwd(), 'defualtconfig.json').encode()
+            cls.transfer = JsonTransfer(path)
+
+    @classmethod
     def get_user_by_id(cls, user_id):
         return cls.user_handlers[user_id]['user']
+
+    @classmethod
+    def get_user_list(cls):
+        user_list = []
+        for user_id in cls.user_ids:
+            user_list.append(cls.get_user_by_id(user_id))
+        return user_list
 
     @classmethod
     def _check_user_exist(cls, user_id):
@@ -55,40 +77,20 @@ class ServerPool:
     @classmethod
     def async_user(cls):
         '''每隔60s检查一次是否有新user'''
-        from shadowsocks.config_reader.json_reader import json_config_reader
 
         # post user traffic to server
-        cls.post_user_traffic()
-
+        cls.transfer.update_all_user(cls.get_user_list())
         loop = asyncio.get_event_loop()
         now = int(time.time())
-        # read_config
-        path = os.path.join(os.getcwd(), 'defualtconfig.json').encode()
-        configs = json_config_reader(path)
         # create task
-        coro = cls.async_user_config(configs)
+        coro = cls.async_user_config()
         loop.create_task(coro)
         logging.info('async user config cronjob current time {}'.format(now))
         # crontab job for every 60s
         loop.call_later(60, cls.async_user)
 
     @classmethod
-    def post_user_traffic(cls):
-        data = []
-        for user_id in cls.user_ids:
-            user = cls.get_user_by_id(user_id)
-            data.append({
-                'user_id': user_id,
-                'u': user.once_used_u,
-                'd': user.once_used_d
-            })
-            # reset user used traffic
-            user.once_used_u = 0
-            user.once_used_d = 0
-        print(data)
-
-    @classmethod
-    async def async_user_config(cls, configs):
+    async def async_user_config(cls):
         '''
         同步用户配置
         创建local连接
@@ -97,22 +99,23 @@ class ServerPool:
         from shadowsocks.udpreply import LoaclUDP
         from shadowsocks.tcpreply import LocalTCP
 
+        configs = cls.transfer.get_all_user_configs()
         loop = asyncio.get_event_loop()
-        local_adress = configs['local_adress']
+        local_address = configs['local_address']
 
         for user in configs['users']:
             if cls._check_user_exist(user.user_id) is False:
                 logging.info("user_id:{} pass:{} 在 {} 的 {} 端口启动啦！".format(
-                    user.user_id, user.password, local_adress, user.port))
+                    user.user_id, user.password, local_address, user.port))
 
                 # TCP sevcer
                 tcp_server = loop.create_server(
-                    LocalTCP(user), local_adress, user.port)
+                    LocalTCP(user), local_address, user.port)
                 asyncio.ensure_future(tcp_server)
 
                 # UDP server
                 udp_server = loop.create_datagram_endpoint(
-                    LoaclUDP(user), (local_adress, user.port))
+                    LoaclUDP(user), (local_address, user.port))
                 asyncio.ensure_future(udp_server)
 
                 # init user in server pool
