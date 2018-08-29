@@ -45,3 +45,22 @@ sslocal将数据流进行加密并后再和 ss server 进行通讯
 这样经过数据流过gfw的时候，就是很普通的tcp包，由于没有解密的key，gfw也就不能解密 
 
 最后ss server将加密后的数据解密 经过处理之后，再次向client发送加密数据
+
+
+## 使用教程
+
+* 安装依赖
+
+```sh
+wget https://bootstrap.pypa.io/get-pip.py
+
+python get-pip.py
+
+pip install -r requirements.txt
+```
+
+* 使用
+
+```python
+python server.py
+```
