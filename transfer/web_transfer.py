@@ -42,21 +42,24 @@ class WebTransfer:
     def update_all_user(self, user_list):
         # 用户流量上报
         data = []
+        alive_user_count = 0
         for user in user_list:
             data.append({
                 'user_id': user.user_id,
                 'u': user.once_used_u * self.transfer_mul,
                 'd': user.once_used_d * self.transfer_mul
             })
+            if user.once_used_traffic > 0:
+                alive_user_count += 1
             # reset user used traffic
             user.once_used_u = 0
             user.once_used_d = 0
+
         if len(data) > 0:
             tarffic_data = {'node_id': self.node_id,
                             'data': data}
             self.api.postApi('/traffic/upload', tarffic_data)
         # 节点人数上报
-        alive_user_count = len(user_list)
         online_data = {'node_id': self.node_id,
                        'online_user': alive_user_count}
         self.api.postApi('/nodes/online', online_data)

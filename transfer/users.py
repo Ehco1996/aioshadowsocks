@@ -31,6 +31,10 @@ class User:
     def human_used_traffic(self):
         return self._traffic_format(self.used_traffic)
 
+    @property
+    def once_used_traffic(self):
+        return self.once_used_u + self.once_used_d
+
     def _traffic_format(self, traffic):
         if traffic < 1024 * 8:
             return str(int(traffic)) + "B"
