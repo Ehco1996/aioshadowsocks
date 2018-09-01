@@ -40,28 +40,23 @@ class WebTransfer:
         return configs
 
     def update_all_user(self, user_list):
-        pass
-
-        # # 用户流量上报
-        # data = []
-        # for port in dt_transfer.keys():
-        #     if (port not in dt_transfer.keys()) or (port not in self.port_uid_table.keys()):
-        #         continue
-        #     elif dt_transfer[port][0] == 0 and dt_transfer[port][1] == 0:
-        #         continue
-        #     data.append({'u': dt_transfer[port][0] * self.cfg['transfer_mul'],
-        #                  'd': dt_transfer[port][1] * self.cfg['transfer_mul'],
-        #                  'user_id': self.port_uid_table[port]})
-        #     update_transfer[port] = dt_transfer[port]
-        # if len(data) > 0:
-        #     tarffic_data = {'node_id': node_id,
-        #                     'data': data}
-        #     webapi.postApi('/traffic/upload', tarffic_data)
-
-        # # 节点人数上报
-        # alive_user_count = len(self.onlineuser_cache)
-        # online_data = {'node_id': node_id,
-        #                'online_user': alive_user_count}
-        # webapi.postApi('/nodes/online', online_data)
-
-        # return update_transfer
+        # 用户流量上报
+        data = []
+        for user in user_list:
+            data.append({
+                'user_id': user.user_id,
+                'u': user.once_used_u * self.transfer_mul,
+                'd': user.once_used_d * self.transfer_mul
+            })
+            # reset user used traffic
+            user.once_used_u = 0
+            user.once_used_d = 0
+        if len(data) > 0:
+            tarffic_data = {'node_id': self.node_id,
+                            'data': data}
+            self.api.postApi('/traffic/upload', tarffic_data)
+        # 节点人数上报
+        alive_user_count = len(user_list)
+        online_data = {'node_id': self.node_id,
+                       'online_user': alive_user_count}
+        self.api.postApi('/nodes/online', online_data)

@@ -36,8 +36,8 @@ class JsonTransfer:
         for user in user_list:
             data.append({
                 'user_id': user.user_id,
-                'u': user.once_used_u,
-                'd': user.once_used_d
+                'u': user.once_used_u * self.transfer_mul,
+                'd': user.once_used_d * self.transfer_mul
             })
             # reset user used traffic
             user.once_used_u = 0
