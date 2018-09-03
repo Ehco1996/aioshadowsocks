@@ -1,5 +1,6 @@
 import json
 import logging
+import traceback
 
 import requests
 from requests.adapters import Retry
@@ -55,10 +56,9 @@ class EhcoApi:
             return data['data']
 
         except Exception:
-            import traceback
             trace = traceback.format_exc()
             logging.error(trace)
-            raise Exception(
+            logging.error(
                 '网络问题，请保证api接口地址设置正确！当前接口地址：{}'.format(self.WEBAPI_URL))
 
     def postApi(self, uri, raw_data={}):
@@ -80,8 +80,7 @@ class EhcoApi:
                 return []
             return data['data']
         except Exception:
-            import traceback
             trace = traceback.format_exc()
             logging.error(trace)
-            raise Exception(
+            logging.error(
                 '网络问题，请保证api接口地址设置正确！当前接口地址：{}'.format(self.WEBAPI_URL))

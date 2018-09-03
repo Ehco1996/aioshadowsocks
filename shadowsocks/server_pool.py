@@ -100,6 +100,9 @@ class ServerPool:
         from shadowsocks.tcpreply import LocalTCP
 
         configs = cls.transfer.get_all_user_configs()
+        if not configs:
+            logging.error('get user config faild')
+            return
         loop = asyncio.get_event_loop()
         local_address = configs['local_address']
 
