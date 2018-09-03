@@ -1,4 +1,3 @@
-import time
 import json
 import logging
 
@@ -31,18 +30,17 @@ class EhcoApi:
         self.TOKEN = token
         self.WEBAPI_URL = url
 
-        self.session_pool = requests.Session()
+        self.session = requests.Session()
         http_adapter = HTTPAdapter(max_retries=Retry(
             total=3, method_whitelist=frozenset(['GET', 'POST'])))
-        self.session_pool.mount('https://', http_adapter)
+        self.session.mount('https://', http_adapter)
 
     def getApi(self, uri):
         res = None
         try:
             payload = {'token': self.TOKEN}
             url = self.WEBAPI_URL+uri
-            res = self.session_pool.get(url, params=payload, timeout=10)
-            time.sleep(0.005)
+            res = self.session.get(url, params=payload, timeout=10)
             try:
                 data = res.json()
             except Exception:
@@ -69,9 +67,7 @@ class EhcoApi:
             payload = {'token': self.TOKEN}
             payload.update(raw_data)
             url = self.WEBAPI_URL+uri
-            res = self.session_pool.post(
-                url, json=payload, timeout=10)
-            time.sleep(0.005)
+            res = self.session.post(url, json=payload, timeout=10)
             try:
                 data = res.json()
             except Exception:
@@ -89,6 +85,3 @@ class EhcoApi:
             logging.error(trace)
             raise Exception(
                 '网络问题，请保证api接口地址设置正确！当前接口地址：{}'.format(self.WEBAPI_URL))
-
-    def close(self):
-        self.session_pool.close()

@@ -16,8 +16,6 @@ def run_servers(transfer_type):
 
     pool.init_transfer(transfer_type)
 
-    # 读取用户数据
-    # asyncio.ensure_future(pool.async_user_config())
     # 启动定时任务
     asyncio.ensure_future(async_user_task(pool))
 
