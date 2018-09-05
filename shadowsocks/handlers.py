@@ -50,6 +50,7 @@ class UserControlHandler:
             '<UserControl user_id:{}>'.format(user.user_id))
 
     def close(self):
+        '''由子类实现'''
         raise NotImplementedError
 
     def check_traffic(self):
@@ -111,10 +112,11 @@ class LocalHandler(BaseTimeoutHandler, UserControlHandler):
             if self._transport is not None:
                 self._transport.close()
         elif self._transport_protocol == flag.TRANSPORT_UDP:
-            # TODO 断开udp连接
             pass
         else:
             raise NotImplementedError
+        # remove ojb reference
+        self.pool.remove_server(self.user.user_id, id(self._transport))
 
     def write(self, data):
         '''

@@ -17,9 +17,10 @@ class ServerPool:
     tcp_server_ids = list()
     udp_server_ids = list()
 
-    # {'user_id':{
-    #              'user':<user instance>,
-    #              'handlers:[<local handler>,]')}
+    # {'user_id': {
+    #     'user': '<user instance>',
+    #     'handlers': {'instance_id': '<local handler>'}}
+    #  }
     user_handlers = {}
 
     def __new__(cls, *args, **kw):
@@ -55,7 +56,7 @@ class ServerPool:
     @classmethod
     def _init_user(cls, user):
         cls.user_ids.append(user.user_id)
-        cls.user_handlers[user.user_id] = {'user': user, 'handlers': list()}
+        cls.user_handlers[user.user_id] = {'user': user, 'handlers': {}}
 
     @classmethod
     def check_tcp_server(cls, server_id):
@@ -68,12 +69,16 @@ class ServerPool:
     @classmethod
     def add_tcp_server(cls, server_id, user, server_instance):
         cls.tcp_server_ids.append(server_id)
-        cls.user_handlers[user.user_id]['handlers'].append(server_instance)
+        cls.user_handlers[user.user_id]['handlers'][server_id] = server_instance
 
     @classmethod
     def add_udp_server(cls, server_id, user, server_instance):
         cls.udp_server_ids.append(server_id)
-        cls.user_handlers[user.user_id]['handlers'].append(server_instance)
+        cls.user_handlers[user.user_id]['handlers'][server_id] = server_instance
+
+    @classmethod
+    def remove_server(cls, user_id, server_id):
+        del cls.user_handlers[user_id]['handlers'][server_id]
 
     @classmethod
     def async_user(cls):
