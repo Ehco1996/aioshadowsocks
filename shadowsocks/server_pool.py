@@ -131,7 +131,7 @@ class ServerPool:
                 # init user in server pool
                 cls._init_user(user)
             else:
-                logging.info(
+                logging.debug(
                     'update user  user_id {}'.format(user.user_id))
                 # update user config with db/server
                 current_user = cls.get_user_by_id(user.user_id)
