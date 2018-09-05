@@ -78,7 +78,8 @@ class ServerPool:
 
     @classmethod
     def remove_server(cls, user_id, server_id):
-        del cls.user_handlers[user_id]['handlers'][server_id]
+        if server_id in cls.user_handlers[user_id]['handlers']:
+            del cls.user_handlers[user_id]['handlers'][server_id]
 
     @classmethod
     def async_user(cls):

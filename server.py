@@ -13,7 +13,6 @@ def run_servers(transfer_type):
 
     loop = asyncio.get_event_loop()
     pool = ServerPool()
-
     pool.init_transfer(transfer_type)
 
     # 启动定时任务
@@ -23,13 +22,6 @@ def run_servers(transfer_type):
         loop.run_forever()
     except KeyboardInterrupt:
         logging.info('正在关闭所有ss server')
-        for data in pool.user_handlers.values():
-            user = data['user']
-            servers = data['handlers'].items()
-            logging.info('正在关闭user_id: {} 的连接'.format(user.user_id))
-            for _, server in servers:
-                server.close()
-
         loop.stop()
 
 

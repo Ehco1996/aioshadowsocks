@@ -108,15 +108,18 @@ class LocalHandler(BaseTimeoutHandler, UserControlHandler):
         '''
         针对tcp/udp分别关闭连接
         '''
+        server_id = hex(id(self))
         if self._transport_protocol == flag.TRANSPORT_TCP:
             if self._transport is not None:
                 self._transport.close()
+                self.pool.tcp_server_ids.remove(server_id)
         elif self._transport_protocol == flag.TRANSPORT_UDP:
-            pass
+            if self._transport is not None:
+                self.pool.udp_server_ids.remove(server_id)
         else:
             raise NotImplementedError
         # remove ojb reference
-        self.pool.remove_server(self.user.user_id, hex(id(self)))
+        self.pool.remove_server(self.user.user_id, server_id)
 
     def write(self, data):
         '''
