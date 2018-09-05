@@ -1,3 +1,4 @@
+import gc
 import os
 import time
 import logging
@@ -76,7 +77,10 @@ class ServerPool:
 
     @classmethod
     def async_user(cls):
-        '''每隔60s检查一次是否有新user'''
+        '''
+        每隔60s检查一次是否有新user
+        内存回收
+        '''
 
         # post user traffic to server
         cls.transfer.update_all_user(cls.get_user_list())
@@ -88,6 +92,9 @@ class ServerPool:
         logging.info('async user config cronjob current time {}'.format(now))
         # crontab job for every 60s
         loop.call_later(60, cls.async_user)
+        # gc
+        free = gc.collect()
+        logging.info('GC ING :{}'.format(free))
 
     @classmethod
     async def async_user_config(cls):
