@@ -116,7 +116,7 @@ class LocalHandler(BaseTimeoutHandler, UserControlHandler):
         else:
             raise NotImplementedError
         # remove ojb reference
-        self.pool.remove_server(self.user.user_id, id(self))
+        self.pool.remove_server(self.user.user_id, hex(id(self)))
 
     def write(self, data):
         '''

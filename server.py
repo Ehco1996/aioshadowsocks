@@ -25,9 +25,9 @@ def run_servers(transfer_type):
         logging.info('正在关闭所有ss server')
         for data in pool.user_handlers.values():
             user = data['user']
-            servers = data['handlers']
+            servers = data['handlers'].items()
             logging.info('正在关闭user_id: {} 的连接'.format(user.user_id))
-            for server in servers:
+            for _, server in servers:
                 server.close()
 
         loop.stop()
