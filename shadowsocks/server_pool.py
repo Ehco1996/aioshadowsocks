@@ -50,7 +50,7 @@ class ServerPool:
         return user_list
 
     @classmethod
-    def _check_user_exist(cls, user_id):
+    def check_user_exist(cls, user_id):
         return user_id in cls.user_ids
 
     @classmethod
@@ -76,14 +76,43 @@ class ServerPool:
         cls.udp_server_ids.append(server_id)
         cls.user_handlers[user.user_id]['handlers'][server_id] = server_instance
 
+    @staticmethod
+    def get_obj_by_id(obj_id):
+        for obj in gc.get_objects():
+            if hex(id(obj)) == obj_id:
+                return obj
+
     @classmethod
     def remove_server(cls, user_id, server_id):
         if server_id in cls.user_handlers[user_id]['handlers']:
             del cls.user_handlers[user_id]['handlers'][server_id]
+        else:
+            obj = cls.get_obj_by_id(server_id)
+            print('kill un hit ', obj)
+            del obj
         if server_id in cls.tcp_server_ids:
             cls.tcp_server_ids.remove(server_id)
         if server_id in cls.udp_server_ids:
             cls.udp_server_ids.remove(server_id)
+
+    @classmethod
+    def remove_user(cls, user_id):
+        for server in cls.user_handlers[user_id]['handlers'].values():
+            server.close()
+        cls.user_ids.remove(user_id)
+        del cls.user_handlers[user_id]
+
+    @classmethod
+    def check_user_traffic(cls):
+        '''删除超出流量的用户'''
+
+        for user in cls.get_user_list():
+            if user.used_traffic > user.total_traffic:
+                cls.remove_user(user.user_id)
+                logging.warning('user_id {} out of traffic used:{}'.format(
+                    user.user_id, user.human_used_traffic))
+
+        logging.info('checked user traffic')
 
     @classmethod
     def async_user(cls):
@@ -91,20 +120,24 @@ class ServerPool:
         每隔60s检查一次是否有新user
         内存回收
         '''
-
         # post user traffic to server
         cls.transfer.update_all_user(cls.get_user_list())
-        loop = asyncio.get_event_loop()
         now = int(time.time())
-        # create task
-        coro = cls.async_user_config()
-        loop.create_task(coro)
         logging.info('async user config cronjob current time {}'.format(now))
-        # crontab job for every 60s
-        loop.call_later(60, cls.async_user)
+
+        # del out of traffic user from pool
+        cls.check_user_traffic()
+
         # gc
         free = gc.collect()
         logging.info('GC ING :{}'.format(free))
+
+        # create task
+        loop = asyncio.get_event_loop()
+        coro = cls.async_user_config()
+        loop.create_task(coro)
+        # crontab job for every 60s
+        loop.call_later(5, cls.async_user)
 
     @classmethod
     async def async_user_config(cls):
@@ -124,9 +157,11 @@ class ServerPool:
         local_address = configs['local_address']
 
         for user in configs['users']:
-            if cls._check_user_exist(user.user_id) is False:
+            user_id = user.user_id
+            if cls.check_user_exist(user_id) is False:
+
                 logging.info("user_id:{} pass:{} 在 {} 的 {} 端口启动啦！".format(
-                    user.user_id, user.password, local_address, user.port))
+                    user_id, user.password, local_address, user.port))
 
                 # TCP sevcer
                 tcp_server = loop.create_server(

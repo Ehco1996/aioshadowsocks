@@ -43,33 +43,7 @@ class BaseTimeoutHandler:
                 await asyncio.sleep(1)
 
 
-class UserControlHandler:
-    def __init__(self, user):
-        self.user = user
-        self.logger = logging.getLogger(
-            '<UserControl user_id:{}>'.format(user.user_id))
-
-    def close(self):
-        '''由子类实现'''
-        raise NotImplementedError
-
-    def check_traffic(self):
-        '''
-        检查用户流量是否超额
-        每次传输数据的时候都应该调用本方法
-        '''
-        asyncio.ensure_future(self._check_traffic())
-
-    async def _check_traffic(self):
-        if self.user.used_traffic > self.user.total_traffic:
-            self.close()
-            self.logger.warning('user_id {} out of traffic used:{}'.format(
-                self.user.user_id, self.user.human_used_traffic))
-        else:
-            self.logger.debug('checked user traffic')
-
-
-class LocalHandler(BaseTimeoutHandler, UserControlHandler):
+class LocalHandler(BaseTimeoutHandler):
     '''
     事件循环一共处理五个状态
 
@@ -88,7 +62,6 @@ class LocalHandler(BaseTimeoutHandler, UserControlHandler):
 
     def __init__(self, method, password, user):
         BaseTimeoutHandler.__init__(self)
-        UserControlHandler.__init__(self, user)
 
         self.pool = ServerPool()
         self.user = user
@@ -142,6 +115,7 @@ class LocalHandler(BaseTimeoutHandler, UserControlHandler):
         self._stage = self.STAGE_INIT
         self._transport = transport
         self._transport_protocol = flag.TRANSPORT_TCP
+        # get the remote address to which the socket is connected
         self._peername = self._transport.get_extra_info('peername')
 
         try:
@@ -149,7 +123,6 @@ class LocalHandler(BaseTimeoutHandler, UserControlHandler):
         except NotImplementedError:
             logging.warning('not support cipher')
             self.close()
-        # get the remote address to which the socket is connected
 
         # add to server pool
         server_id = hex(id(self))
@@ -189,7 +162,6 @@ class LocalHandler(BaseTimeoutHandler, UserControlHandler):
     def handle_data_received(self, data):
         # 累计并检查用户流量
         self.user.once_used_u += len(data)
-        self.check_traffic()
 
         data = self._cryptor.decrypt(data)
 
@@ -208,6 +180,7 @@ class LocalHandler(BaseTimeoutHandler, UserControlHandler):
 
     def handle_eof_received(self):
         self._logger.debug('eof received')
+        self.close()
 
     def handle_connection_lost(self, exc):
         self._logger.debug('lost exc={exc}'.format(exc=exc))

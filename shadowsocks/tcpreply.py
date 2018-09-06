@@ -125,6 +125,7 @@ class RemoteTCP(asyncio.Protocol, BaseTimeoutHandler):
 
     def eof_received(self):
         self._logger.debug('eof received')
+        self.close()
 
     def connection_lost(self, exc):
         self._logger.debug('lost exc={exc}'.format(exc=exc))
