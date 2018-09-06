@@ -137,7 +137,7 @@ class ServerPool:
         coro = cls.async_user_config()
         loop.create_task(coro)
         # crontab job for every 60s
-        loop.call_later(5, cls.async_user)
+        loop.call_later(60, cls.async_user)
 
     @classmethod
     async def async_user_config(cls):
@@ -176,8 +176,6 @@ class ServerPool:
                 # init user in server pool
                 cls._init_user(user)
             else:
-                logging.debug(
-                    'update user  user_id {}'.format(user.user_id))
                 # update user config with db/server
                 current_user = cls.get_user_by_id(user.user_id)
                 current_user.total = user.total_traffic
