@@ -9,41 +9,7 @@ from shadowsocks import protocol_flag as flag
 from shadowsocks.server_pool import ServerPool
 
 
-class BaseTimeoutHandler:
-    def __init__(self):
-        self._transport = None
-        self._last_active_time = time.time()
-        self._timeout_limit = 5
-
-    def close(self):
-        '''由子类实现'''
-        raise NotImplementedError
-
-    def check_alive(self):
-        '''
-        判断是否timeout
-        每次建立连接时都应该调用本方法
-        '''
-        asyncio.ensure_future(self._check_alive())
-
-    def keep_alive_active(self):
-        '''
-        记录心跳时间
-        每次传输数据时都应该调用本方法
-        '''
-        self._last_active_time = time.time()
-
-    async def _check_alive(self):
-        while self._transport is not None:
-            current_time = time.time()
-            if current_time - self._last_active_time > self._timeout_limit:
-                self.close()
-                break
-            else:
-                await asyncio.sleep(1)
-
-
-class LocalHandler(BaseTimeoutHandler):
+class LocalHandler():
     '''
     事件循环一共处理五个状态
 
@@ -61,7 +27,6 @@ class LocalHandler(BaseTimeoutHandler):
     STAGE_ERROR = 255
 
     def __init__(self, method, password, user):
-        BaseTimeoutHandler.__init__(self)
 
         self.pool = ServerPool()
         self.user = user
@@ -110,7 +75,6 @@ class LocalHandler(BaseTimeoutHandler):
         get_extra_info asyncio Transports api
         doc: https://docs.python.org/3/library/asyncio-protocol.html
         '''
-        self.check_alive()
 
         self._stage = self.STAGE_INIT
         self._transport = transport
@@ -137,7 +101,6 @@ class LocalHandler(BaseTimeoutHandler):
         '''
         处理udp连接
         '''
-        self.check_alive()
 
         self._stage = self.STAGE_INIT
         self._transport = transport
@@ -277,7 +240,6 @@ class LocalHandler(BaseTimeoutHandler):
 
     def _handle_stage_stream(self, data):
         self._logger.debug('realy data length {}'.format(len(data)))
-        self.keep_alive_active()
         self._remote.write(data)
 
     def _handle_stage_error(self):

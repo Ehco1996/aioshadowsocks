@@ -3,7 +3,7 @@ import asyncio
 
 from shadowsocks.cryptor import Cryptor
 from shadowsocks import protocol_flag as flag
-from shadowsocks.handlers import BaseTimeoutHandler, LocalHandler
+from shadowsocks.handlers import LocalHandler
 
 
 class LocalTCP(asyncio.Protocol):
@@ -83,10 +83,9 @@ class LocalTCP(asyncio.Protocol):
         self._handler.handle_connection_lost(exc)
 
 
-class RemoteTCP(asyncio.Protocol, BaseTimeoutHandler):
+class RemoteTCP(asyncio.Protocol):
 
     def __init__(self, addr, port, data, method, password, local_handler):
-        BaseTimeoutHandler.__init__(self)
 
         self._logger = logging.getLogger(
             '<RemoteTCP{} {}>'.format((addr, port), hex(id(self))))
@@ -106,7 +105,6 @@ class RemoteTCP(asyncio.Protocol, BaseTimeoutHandler):
             self._transport.close()
 
     def connection_made(self, transport):
-        self.keep_alive_active()
 
         self._transport = transport
         self._peername = self._transport.get_extra_info('peername')
@@ -115,7 +113,6 @@ class RemoteTCP(asyncio.Protocol, BaseTimeoutHandler):
         self.write(self._data)
 
     def data_received(self, data):
-        self.keep_alive_active()
         # 记录下载流量
         self._local.user.once_used_d += len(data)
 

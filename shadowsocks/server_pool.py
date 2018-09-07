@@ -120,22 +120,27 @@ class ServerPool:
         每隔60s检查一次是否有新user
         内存回收
         '''
-        # post user traffic to server
-        cls.transfer.update_all_user(cls.get_user_list())
-        now = int(time.time())
-        logging.info('async user config cronjob current time {}'.format(now))
 
-        # del out of traffic user from pool
-        cls.check_user_traffic()
+        try:
+            # post user traffic to server
+            cls.transfer.update_all_user(cls.get_user_list())
+            now = int(time.time())
+            logging.info(
+                'async user config cronjob current time {}'.format(now))
 
-        # gc
-        free = gc.collect()
-        logging.info('GC ING :{}'.format(free))
+            # del out of traffic user from pool
+            cls.check_user_traffic()
+            # gc
+            free = gc.collect()
+            logging.info('GC ING :{}'.format(free))
 
-        # create task
-        loop = asyncio.get_event_loop()
-        coro = cls.async_user_config()
-        loop.create_task(coro)
+            # create task
+            loop = asyncio.get_event_loop()
+            coro = cls.async_user_config()
+            loop.create_task(coro)
+        except Exception as e:
+            logging.warning('async_user error {}'.format(e))
+
         # crontab job for every 60s
         loop.call_later(60, cls.async_user)
 
