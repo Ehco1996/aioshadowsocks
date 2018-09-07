@@ -84,18 +84,17 @@ class LocalHandler():
 
         try:
             self._cryptor = Cryptor(self._method, self._key)
+            # add to server pool
+            server_id = hex(id(self))
+            if self.pool.check_tcp_server(server_id) is False:
+                self.pool.add_tcp_server(server_id, self.user, self)
+
+            self._logger = logging.getLogger(
+                '<LocalTCP{} {}>'.format(self._peername, server_id))
+            self._logger.debug('tcp connection made')
         except NotImplementedError:
             logging.warning('not support cipher')
             self.close()
-
-        # add to server pool
-        server_id = hex(id(self))
-        if self.pool.check_tcp_server(server_id) is False:
-            self.pool.add_tcp_server(server_id, self.user, self)
-
-        self._logger = logging.getLogger(
-            '<LocalTCP{} {}>'.format(self._peername, server_id))
-        self._logger.debug('tcp connection made')
 
     def handle_udp_connection_made(self, transport, peername):
         '''
@@ -109,18 +108,17 @@ class LocalHandler():
 
         try:
             self._cryptor = Cryptor(self._method, self._key)
+            # add to server pool
+            server_id = hex(id(self))
+            if self.pool.check_udp_server(server_id) is False:
+                self.pool.add_udp_server(server_id, self.user, self)
+
+            self._logger = logging.getLogger(
+                '<LocalUDP{} {}>'.format(self._peername, server_id))
+            self._logger.debug('udp connection made')
         except NotImplementedError:
             logging.warning('not support cipher')
             self.close()
-
-        # add to server pool
-        server_id = hex(id(self))
-        if self.pool.check_udp_server(server_id) is False:
-            self.pool.add_udp_server(server_id, self.user, self)
-
-        self._logger = logging.getLogger(
-            '<LocalUDP{} {}>'.format(self._peername, server_id))
-        self._logger.debug('udp connection made')
 
     def handle_data_received(self, data):
         # 累计并检查用户流量
