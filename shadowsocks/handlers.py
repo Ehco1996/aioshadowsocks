@@ -140,11 +140,11 @@ class LocalHandler():
             self._logger.warning('unknown stage:{}'.format(self._stage))
 
     def handle_eof_received(self):
-        self._logger.debug('eof received')
+        logging.debug('eof received')
         self.close()
 
     def handle_connection_lost(self, exc):
-        self._logger.debug('lost exc={exc}'.format(exc=exc))
+        logging.debug('lost exc={exc}'.format(exc=exc))
         if self._remote is not None:
             self._remote.close()
 

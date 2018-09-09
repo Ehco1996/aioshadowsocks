@@ -69,10 +69,10 @@ class RemoteUDP(asyncio.DatagramProtocol):
             "connetcion made peername: {}".format(self._peername))
 
     def connection_lost(self, exc):
-        self._logger.debug("connetcion lost exc {}".format(exc))
+        self._logger.debug("udp connetcion lost exc {}".format(exc))
 
     def datagram_received(self, data, peername):
-        self._logger.debug("received data len: {}".format(len(data)))
+        self._logger.debug("udp received data len: {}".format(len(data)))
         # 记录下载流量
         self._local.user.once_used_d += len(data)
 
