@@ -13,15 +13,12 @@ class ServerPool:
 
     transfer = None
 
-    user_ids = list()
-    tcp_server_ids = list()
-    udp_server_ids = list()
-
     # {'user_id': {
     #     'user': '<user instance>',
-    #     'handlers': {'instance_id': '<local handler>'}}
+    #     'tcp': 'tcp_local_handler',
+    #     'udp': 'udp_local_handler'}
     #  }
-    user_handlers = {}
+    local_handlers = {}
 
     def __new__(cls, *args, **kw):
         if not cls._instance:
@@ -40,41 +37,24 @@ class ServerPool:
 
     @classmethod
     def get_user_by_id(cls, user_id):
-        return cls.user_handlers[user_id]['user']
+        return cls.local_handlers[user_id]['user']
 
     @classmethod
     def get_user_list(cls):
         user_list = []
-        for user_id in cls.user_ids:
+        for user_id in cls.local_handlers.keys():
             user_list.append(cls.get_user_by_id(user_id))
         return user_list
 
     @classmethod
     def check_user_exist(cls, user_id):
-        return user_id in cls.user_ids
+        return user_id in cls.local_handlers.keys()
 
     @classmethod
-    def _init_user(cls, user):
-        cls.user_ids.append(user.user_id)
-        cls.user_handlers[user.user_id] = {'user': user, 'handlers': {}}
-
-    @classmethod
-    def check_tcp_server(cls, server_id):
-        return server_id in cls.tcp_server_ids
-
-    @classmethod
-    def check_udp_server(cls, server_id):
-        return server_id in cls.udp_server_ids
-
-    @classmethod
-    def add_tcp_server(cls, server_id, user, server_instance):
-        cls.tcp_server_ids.append(server_id)
-        cls.user_handlers[user.user_id]['handlers'][server_id] = server_instance
-
-    @classmethod
-    def add_udp_server(cls, server_id, user, server_instance):
-        cls.udp_server_ids.append(server_id)
-        cls.user_handlers[user.user_id]['handlers'][server_id] = server_instance
+    def _init_user(cls, user, tcp_server, udp_server):
+        cls.local_handlers[user.user_id] = {'user': user,
+                                            'tcp': tcp_server,
+                                            'udp': udp_server}
 
     @staticmethod
     def get_obj_by_id(obj_id):
@@ -83,44 +63,26 @@ class ServerPool:
                 return obj
 
     @classmethod
-    def remove_server(cls, user_id, server_id):
-        if server_id in cls.user_handlers[user_id]['handlers']:
-            del cls.user_handlers[user_id]['handlers'][server_id]
-        else:
-            obj = cls.get_obj_by_id(server_id)
-            print('kill un hit ', obj)
-            del obj
-        if server_id in cls.tcp_server_ids:
-            cls.tcp_server_ids.remove(server_id)
-        if server_id in cls.udp_server_ids:
-            cls.udp_server_ids.remove(server_id)
-
-    @classmethod
     def remove_user(cls, user_id):
-        for server in cls.user_handlers[user_id]['handlers'].values():
-            server.close()
-        cls.user_ids.remove(user_id)
-        del cls.user_handlers[user_id]
+        user_data = cls.local_handlers.pop(user_id)
+        user_data['tcp'].close()
+        user_data['udp'].close()
 
     @classmethod
     def check_user_traffic(cls):
         '''删除超出流量的用户'''
-
         for user in cls.get_user_list():
             if user.used_traffic > user.total_traffic:
                 cls.remove_user(user.user_id)
                 logging.warning('user_id {} out of traffic used:{}'.format(
                     user.user_id, user.human_used_traffic))
-
         logging.info('checked user traffic')
 
     @classmethod
     def async_user(cls):
         '''
         每隔60s检查一次是否有新user
-        内存回收
         '''
-
         try:
             # post user traffic to server
             cls.transfer.update_all_user(cls.get_user_list())
@@ -140,7 +102,6 @@ class ServerPool:
             loop.create_task(coro)
         except Exception as e:
             logging.warning('async_user error {}'.format(e))
-
         # crontab job for every 60s
         loop.call_later(60, cls.async_user)
 
@@ -179,7 +140,7 @@ class ServerPool:
                 asyncio.ensure_future(udp_server)
 
                 # init user in server pool
-                cls._init_user(user)
+                cls._init_user(user, tcp_server, udp_server)
             else:
                 # update user config with db/server
                 current_user = cls.get_user_by_id(user.user_id)

@@ -54,8 +54,6 @@ class LocalHandler():
             pass
         else:
             raise NotImplementedError
-        # remove ojb reference
-        self.pool.remove_server(self.user.user_id, server_id)
 
     def write(self, data):
         '''
@@ -84,13 +82,8 @@ class LocalHandler():
 
         try:
             self._cryptor = Cryptor(self._method, self._key)
-            # add to server pool
-            server_id = hex(id(self))
-            if self.pool.check_tcp_server(server_id) is False:
-                self.pool.add_tcp_server(server_id, self.user, self)
-
             self._logger = logging.getLogger(
-                '<LocalTCP{} {}>'.format(self._peername, server_id))
+                '<LocalTCP{} {}>'.format(self._peername, hex(id(self))))
             self._logger.debug('tcp connection made')
         except NotImplementedError:
             logging.warning('not support cipher')
@@ -108,13 +101,8 @@ class LocalHandler():
 
         try:
             self._cryptor = Cryptor(self._method, self._key)
-            # add to server pool
-            server_id = hex(id(self))
-            if self.pool.check_udp_server(server_id) is False:
-                self.pool.add_udp_server(server_id, self.user, self)
-
             self._logger = logging.getLogger(
-                '<LocalUDP{} {}>'.format(self._peername, server_id))
+                '<LocalUDP{} {}>'.format(self._peername, hex(id(self))))
             self._logger.debug('udp connection made')
         except NotImplementedError:
             logging.warning('not support cipher')
