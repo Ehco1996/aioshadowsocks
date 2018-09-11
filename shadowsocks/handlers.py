@@ -46,7 +46,6 @@ class LocalHandler():
         '''
         针对tcp/udp分别关闭连接
         '''
-        server_id = hex(id(self))
         if self._transport_protocol == flag.TRANSPORT_TCP:
             if self._transport is not None:
                 self._transport.close()

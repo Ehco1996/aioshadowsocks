@@ -44,13 +44,13 @@ class WebTransfer:
         data = []
         alive_user_count = 0
         for user in user_list:
-            data.append({
-                'user_id': user.user_id,
-                'u': user.once_used_u * self.transfer_mul,
-                'd': user.once_used_d * self.transfer_mul
-            })
             if user.once_used_traffic > 0:
                 alive_user_count += 1
+                data.append({
+                    'user_id': user.user_id,
+                    'u': user.once_used_u * self.transfer_mul,
+                    'd': user.once_used_d * self.transfer_mul
+                })
             # reset user used traffic
             user.once_used_u = 0
             user.once_used_d = 0
