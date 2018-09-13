@@ -35,13 +35,6 @@ class AESCipher:
         self._decryptor = None
         self._first_package = True
 
-    def __del__(self):
-        '''gc时finalize'''
-        if self._encryptor is not None:
-            self._encryptor.finalize()
-        if self._decryptor is not None:
-            self._decryptor.finalize()
-
     def _make_cipher(self):
         cipher = Cipher(
             algorithms.AES(self._key),
