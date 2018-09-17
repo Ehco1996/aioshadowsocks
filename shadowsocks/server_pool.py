@@ -1,4 +1,3 @@
-import gc
 import os
 import time
 import logging
@@ -56,12 +55,6 @@ class ServerPool:
                                             'tcp': tcp_server,
                                             'udp': udp_server}
 
-    @staticmethod
-    def get_obj_by_id(obj_id):
-        for obj in gc.get_objects():
-            if hex(id(obj)) == obj_id:
-                return obj
-
     @classmethod
     def remove_user(cls, user_id):
         user_data = cls.local_handlers.pop(user_id)
@@ -89,13 +82,8 @@ class ServerPool:
             now = int(time.time())
             logging.info(
                 'async user config cronjob current time {}'.format(now))
-
             # del out of traffic user from pool
             cls.check_user_traffic()
-            # gc
-            free = gc.collect()
-            logging.info('GC ING :{}'.format(free))
-
             # create task
             loop = asyncio.get_event_loop()
             coro = cls.async_user_config()

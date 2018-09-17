@@ -53,6 +53,10 @@ class LocalHandler():
             pass
         else:
             raise NotImplementedError
+        if self._logger:
+            for handler in self._logger.handlers[:]:
+                handler.close()
+                self._logger.removeHandler(handler)
 
     def write(self, data):
         '''
