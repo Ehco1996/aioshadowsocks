@@ -87,8 +87,6 @@ class RemoteTCP(asyncio.Protocol):
 
     def __init__(self, addr, port, data, method, password, local_handler):
 
-        self._logger = logging.getLogger(
-            '<RemoteTCP{} {}>'.format((addr, port), hex(id(self))))
         self._data = data
         self._local = local_handler
         self._peername = None
@@ -108,7 +106,7 @@ class RemoteTCP(asyncio.Protocol):
 
         self._transport = transport
         self._peername = self._transport.get_extra_info('peername')
-        self._logger.debug(
+        logging.debug(
             'connection made, peername {}'.format(self._peername))
         self.write(self._data)
 
@@ -116,15 +114,15 @@ class RemoteTCP(asyncio.Protocol):
         # 记录下载流量
         self._local.user.once_used_d += len(data)
 
-        self._logger.debug('received data length: {}'.format(len(data)))
+        logging.debug('received data length: {}'.format(len(data)))
         data = self._cryptor.encrypt(data)
         self._local.write(data)
 
     def eof_received(self):
-        self._logger.debug('eof received')
+        logging.debug('eof received')
         self.close()
 
     def connection_lost(self, exc):
-        self._logger.debug('lost exc={exc}'.format(exc=exc))
+        logging.debug('lost exc={exc}'.format(exc=exc))
         if self._local is not None:
             self._local.close()

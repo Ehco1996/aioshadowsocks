@@ -46,8 +46,6 @@ class LoaclUDP(asyncio.DatagramProtocol):
 class RemoteUDP(asyncio.DatagramProtocol):
 
     def __init__(self, addr, port, data, method, password, local_hander):
-        self._logger = logging.getLogger(
-            "<RemoteUDP{} {}>".format((addr, port), hex(id(self))))
         self._data = data
         self._local = local_hander
         self._peername = None
@@ -65,14 +63,14 @@ class RemoteUDP(asyncio.DatagramProtocol):
     def connection_made(self, transport):
         self._transport = transport
         self._peername = self._transport.get_extra_info('peername')
-        self._logger.debug(
+        logging.debug(
             "connetcion made peername: {}".format(self._peername))
 
     def connection_lost(self, exc):
-        self._logger.debug("udp connetcion lost exc {}".format(exc))
+        logging.debug("udp connetcion lost exc {}".format(exc))
 
     def datagram_received(self, data, peername):
-        self._logger.debug("udp received data len: {}".format(len(data)))
+        logging.debug("udp received data len: {}".format(len(data)))
         # 记录下载流量
         self._local.user.once_used_d += len(data)
 
@@ -87,4 +85,4 @@ class RemoteUDP(asyncio.DatagramProtocol):
         self._local.write(data)
 
     def error_received(self, exc):
-        self._logger.debug("error received exc {}".format(exc))
+        logging.debug("error received exc {}".format(exc))

@@ -34,7 +34,6 @@ class LocalHandler():
         self._key = password
         self._method = method
 
-        self._logger = None
         self._remote = None
         self._cryptor = None
         self._peername = None
@@ -53,10 +52,6 @@ class LocalHandler():
             pass
         else:
             raise NotImplementedError
-        if self._logger:
-            for handler in self._logger.handlers[:]:
-                handler.close()
-                self._logger.removeHandler(handler)
 
     def write(self, data):
         '''
@@ -85,9 +80,7 @@ class LocalHandler():
 
         try:
             self._cryptor = Cryptor(self._method, self._key)
-            self._logger = logging.getLogger(
-                '<LocalTCP{} {}>'.format(self._peername, hex(id(self))))
-            self._logger.debug('tcp connection made')
+            logging.debug('tcp connection made')
         except NotImplementedError:
             logging.warning('not support cipher')
             self.close()
@@ -104,9 +97,7 @@ class LocalHandler():
 
         try:
             self._cryptor = Cryptor(self._method, self._key)
-            self._logger = logging.getLogger(
-                '<LocalUDP{} {}>'.format(self._peername, hex(id(self))))
-            self._logger.debug('udp connection made')
+            logging.debug('udp connection made')
         except NotImplementedError:
             logging.warning('not support cipher')
             self.close()
@@ -128,7 +119,7 @@ class LocalHandler():
         elif self._stage == self.STAGE_ERROR:
             self._handle_stage_error()
         else:
-            self._logger.warning('unknown stage:{}'.format(self._stage))
+            logging.warning('unknown stage:{}'.format(self._stage))
 
     def handle_eof_received(self):
         logging.debug('eof received')
@@ -166,7 +157,7 @@ class LocalHandler():
                 '!H', data[domain_index:domain_index + 2])[0]
             payload = data[domain_index + 2:]
         else:
-            self._logger.warning('unknown atype: {}'.format(atype))
+            logging.warning('unknown atype: {}'.format(atype))
             self.close()
             return
 
@@ -182,17 +173,17 @@ class LocalHandler():
             try:
                 remote_transport, remote_instance = await tcp_coro
             except (IOError, OSError) as e:
-                self._logger.debug(
+                logging.debug(
                     'connection faild , {} e: {}'.format(type(e), e))
                 self.close()
                 self._stage = self.STAGE_DESTROY
             except Exception as e:
-                self._logger.warning(
+                logging.warning(
                     'connection failed, {} e: {}'.format(type(e), e))
                 self.close()
                 self._stage = self.STAGE_ERROR
             else:
-                self._logger.debug(
+                logging.debug(
                     'connection established,remote {}'.format(remote_instance))
                 self._remote = remote_instance
                 self._stage = self.STAGE_STREAM
@@ -209,26 +200,26 @@ class LocalHandler():
 
     async def _handle_stage_connect(self, data):
 
-        self._logger.debug('wait until the connection established')
+        logging.debug('wait until the connection established')
         # 在握手之后，会耗费一定时间来来和remote建立连接
         # 但是ss-client并不会等这个时间 所以我们在这里手动sleep一会
         for i in range(25):
             if self._stage == self.STAGE_CONNECT:
                 await asyncio.sleep(0.2)
             elif self._stage == self.STAGE_STREAM:
-                self._logger.debug('connection established')
+                logging.debug('connection established')
                 self._remote.write(data)
                 return
             else:
-                self._logger.debug(
+                logging.debug(
                     'some error happed stage {}'.format(self._stage))
         #  5s之后连接还没建立的话 超时处理
-        self._logger.warning(
+        logging.warning(
             'time out to connect remote stage {}'.format(self._stage))
         return
 
     def _handle_stage_stream(self, data):
-        self._logger.debug('realy data length {}'.format(len(data)))
+        logging.debug('realy data length {}'.format(len(data)))
         self._remote.write(data)
 
     def _handle_stage_error(self):
