@@ -16,6 +16,9 @@ class User:
         self.once_used_u = 0
         self.once_used_d = 0
 
+        # user_ip
+        self.user_ip = None
+
         self.__dict__.update(propertys)
         if 'passwd' in propertys:
             self.password = propertys['passwd']

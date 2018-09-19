@@ -54,6 +54,7 @@ class LocalTCP(asyncio.Protocol):
         When the connection is closed, connection_lost() is called.
         '''
         self._handler.handle_tcp_connection_made(transport)
+        self.user.user_ip = transport.get_extra_info('peername')[0]
 
     def data_received(self, data):
         '''
