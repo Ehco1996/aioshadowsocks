@@ -52,6 +52,8 @@ class LocalHandler():
             pass
         else:
             raise NotImplementedError
+        if self.user:
+            del self.user
 
     def write(self, data):
         '''
