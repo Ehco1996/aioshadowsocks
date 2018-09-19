@@ -53,7 +53,7 @@ class LocalHandler():
         else:
             raise NotImplementedError
         if self.user:
-            del self.user
+            self.user = None
 
     def write(self, data):
         '''
