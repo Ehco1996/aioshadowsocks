@@ -74,6 +74,8 @@ class RemoteUDP(asyncio.DatagramProtocol):
         # 记录下载流量
         if self._local.user:
             self._local.user.once_used_d += len(data)
+        else:
+            self.close()
 
         assert self._peername == peername
         # 源地址和端口
