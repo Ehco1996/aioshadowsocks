@@ -113,7 +113,8 @@ class RemoteTCP(asyncio.Protocol):
 
     def data_received(self, data):
         # 记录下载流量
-        self._local.user.once_used_d += len(data)
+        if self._local.user:
+            self._local.user.once_used_d += len(data)
 
         logging.debug('received data length: {}'.format(len(data)))
         data = self._cryptor.encrypt(data)
