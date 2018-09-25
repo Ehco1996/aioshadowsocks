@@ -34,7 +34,7 @@ class AESCipher:
         self._encryptor = None
         self._decryptor = None
         self._first_package = True
-        self._cipher = self._make_cipher()
+        self._cipher = None
 
     def _make_cipher(self):
         if not self._cipher:
@@ -46,6 +46,7 @@ class AESCipher:
 
     def encrypt(self, data):
         if self._first_package:
+            self._make_cipher()
             self._first_package = False
             self._iv = os.urandom(self._iv_len)
             self._encryptor = self._cipher.encryptor()
@@ -54,6 +55,7 @@ class AESCipher:
 
     def decrypt(self, data):
         if self._first_package:
+            self._make_cipher()
             self._first_package = False
             self._iv, data = data[:self._iv_len], data[self._iv_len:]
             self._decryptor = self._cipher.decryptor()
