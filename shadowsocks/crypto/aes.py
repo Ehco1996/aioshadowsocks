@@ -34,20 +34,21 @@ class AESCipher:
         self._encryptor = None
         self._decryptor = None
         self._first_package = True
+        self._cipher = self._make_cipher()
 
     def _make_cipher(self):
-        cipher = Cipher(
-            algorithms.AES(self._key),
-            modes.CFB(self._iv),
-            backend=default_backend()
-        )
-        return cipher
+        if not self._cipher:
+            self._cipher = Cipher(
+                algorithms.AES(self._key),
+                modes.CFB(self._iv),
+                backend=default_backend()
+            )
 
     def encrypt(self, data):
         if self._first_package:
             self._first_package = False
             self._iv = os.urandom(self._iv_len)
-            self._encryptor = self._make_cipher().encryptor()
+            self._encryptor = self._cipher.encryptor()
             return self._iv + self._encryptor.update(data)
         return self._encryptor.update(data)
 
@@ -55,5 +56,5 @@ class AESCipher:
         if self._first_package:
             self._first_package = False
             self._iv, data = data[:self._iv_len], data[self._iv_len:]
-            self._decryptor = self._make_cipher().decryptor()
+            self._decryptor = self._cipher.decryptor()
         return self._decryptor.update(data)
