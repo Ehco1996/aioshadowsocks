@@ -1,7 +1,7 @@
 import logging
 
 
-def init_logger_config(log_level):
+def init_logger_config(log_level, open=True):
     '''
     basic log config
     '''
@@ -11,6 +11,9 @@ def init_logger_config(log_level):
                   "INFO": 20,
                   "DEBUG": 10}
     level = log_levels.get(log_level.upper(), 10)
+    if open is False:
+        logging.disable(level)
+        return
     logging.basicConfig(
         format='[%(levelname)s] %(asctime)s - %(process)d - %(name)s - %(funcName)s() - %(message)s',  # noqa
         level=level)
