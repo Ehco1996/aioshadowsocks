@@ -105,23 +105,25 @@ class LocalHandler():
             self.close()
 
     def handle_data_received(self, data):
-        # 累计并检查用户流量
-        self.user.once_used_u += len(data)
-
-        data = self._cryptor.decrypt(data)
-
-        if self._stage == self.STAGE_INIT:
-            coro = self._handle_stage_init(data)
-            asyncio.ensure_future(coro)
-        elif self._stage == self.STAGE_CONNECT:
-            coro = self._handle_stage_connect(data)
-            asyncio.ensure_future(coro)
-        elif self._stage == self.STAGE_STREAM:
-            self._handle_stage_stream(data)
-        elif self._stage == self.STAGE_ERROR:
-            self._handle_stage_error()
+        if self.user is None:
+            self.close()
         else:
-            logging.warning('unknown stage:{}'.format(self._stage))
+            # 累计并检查用户流量
+            self.user.once_used_u += len(data)
+            data = self._cryptor.decrypt(data)
+
+            if self._stage == self.STAGE_INIT:
+                coro = self._handle_stage_init(data)
+                asyncio.ensure_future(coro)
+            elif self._stage == self.STAGE_CONNECT:
+                coro = self._handle_stage_connect(data)
+                asyncio.ensure_future(coro)
+            elif self._stage == self.STAGE_STREAM:
+                self._handle_stage_stream(data)
+            elif self._stage == self.STAGE_ERROR:
+                self._handle_stage_error()
+            else:
+                logging.warning('unknown stage:{}'.format(self._stage))
 
     def handle_eof_received(self):
         logging.debug('eof received')
