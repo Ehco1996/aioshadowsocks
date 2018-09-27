@@ -9,7 +9,32 @@ from shadowsocks import protocol_flag as flag
 from shadowsocks.server_pool import ServerPool
 
 
-class LocalHandler():
+class TimeoutHandler:
+    def __init__(self):
+        self._transport = None
+        self._last_active_time = time.time()
+        self._timeout_limit = 20
+
+    def close(self):
+        raise NotImplementedError
+
+    def keep_alive_open(self):
+        asyncio.ensure_future(self._keep_alive())
+
+    def keep_alive_active(self):
+        self._last_active_time = time.time()
+
+    async def _keep_alive(self):
+        while self._transport is not None:
+            current_time = time.time()
+            if current_time - self._last_active_time > self._timeout_limit:
+                self.close()
+                break
+            else:
+                await asyncio.sleep(1)
+
+
+class LocalHandler(TimeoutHandler):
     '''
     事件循环一共处理五个状态
 
@@ -73,7 +98,7 @@ class LocalHandler():
         get_extra_info asyncio Transports api
         doc: https://docs.python.org/3/library/asyncio-protocol.html
         '''
-
+        self.keep_alive_open()
         self._stage = self.STAGE_INIT
         self._transport = transport
         self._transport_protocol = flag.TRANSPORT_TCP
@@ -224,6 +249,7 @@ class LocalHandler():
 
     def _handle_stage_stream(self, data):
         logging.debug('realy data length {}'.format(len(data)))
+        self.keep_alive_active()
         self._remote.write(data)
 
     def _handle_stage_error(self):

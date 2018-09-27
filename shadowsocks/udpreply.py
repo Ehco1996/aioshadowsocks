@@ -4,7 +4,7 @@ import logging
 import asyncio
 
 from shadowsocks.cryptor import Cryptor
-from shadowsocks.handlers import LocalHandler
+from shadowsocks.handlers import LocalHandler, TimeoutHandler
 
 
 class LoaclUDP(asyncio.DatagramProtocol):
@@ -43,7 +43,7 @@ class LoaclUDP(asyncio.DatagramProtocol):
         pass
 
 
-class RemoteUDP(asyncio.DatagramProtocol):
+class RemoteUDP(asyncio.DatagramProtocol, TimeoutHandler):
 
     def __init__(self, addr, port, data, method, password, local_hander):
         self._data = data
@@ -61,6 +61,7 @@ class RemoteUDP(asyncio.DatagramProtocol):
             self._transport.close()
 
     def connection_made(self, transport):
+        self.keep_alive_open()
         self._transport = transport
         self._peername = self._transport.get_extra_info('peername')
         logging.debug(
@@ -70,6 +71,7 @@ class RemoteUDP(asyncio.DatagramProtocol):
         logging.debug("udp connetcion lost exc {}".format(exc))
 
     def datagram_received(self, data, peername):
+        self.keep_alive_active()
         logging.debug("udp received data len: {}".format(len(data)))
         # 记录下载流量
         if self._local.user:
