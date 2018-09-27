@@ -46,6 +46,7 @@ class LoaclUDP(asyncio.DatagramProtocol):
 class RemoteUDP(asyncio.DatagramProtocol, TimeoutHandler):
 
     def __init__(self, addr, port, data, method, password, local_hander):
+        TimeoutHandler.__init__(self)
         self._data = data
         self._local = local_hander
         self._peername = None

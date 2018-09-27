@@ -52,6 +52,7 @@ class LocalHandler(TimeoutHandler):
     STAGE_ERROR = 255
 
     def __init__(self, method, password, user):
+        TimeoutHandler.__init__(self)
 
         self.pool = ServerPool()
         self.user = user

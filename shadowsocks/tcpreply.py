@@ -87,7 +87,7 @@ class LocalTCP(asyncio.Protocol):
 class RemoteTCP(asyncio.Protocol, TimeoutHandler):
 
     def __init__(self, addr, port, data, method, password, local_handler):
-
+        TimeoutHandler.__init__(self)
         self._data = data
         self._local = local_handler
         self._peername = None
