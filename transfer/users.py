@@ -18,6 +18,8 @@ class User:
 
         # user_ip
         self.user_ip = None
+        # 活跃的tcp连接数
+        self.tcp_count = 0
 
         self.__dict__.update(propertys)
         if 'passwd' in propertys:

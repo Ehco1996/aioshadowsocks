@@ -73,6 +73,7 @@ class LocalHandler(TimeoutHandler):
         '''
         if self._transport_protocol == flag.TRANSPORT_TCP:
             if self._transport is not None:
+                self.user.tcp_count -= 1
                 self._transport.close()
         elif self._transport_protocol == flag.TRANSPORT_UDP:
             pass
@@ -202,6 +203,8 @@ class LocalHandler(TimeoutHandler):
                 dst_addr, dst_port)
             try:
                 remote_transport, remote_instance = await tcp_coro
+                # 记录用户的tcp连接数
+                self.user.tcp_count += 1
             except (IOError, OSError) as e:
                 logging.debug(
                     'connection faild , {} e: {}'.format(type(e), e))
