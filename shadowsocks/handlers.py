@@ -205,7 +205,8 @@ class LocalHandler(TimeoutHandler):
             try:
                 remote_transport, remote_instance = await tcp_coro
                 # 记录用户的tcp连接数
-                self.user.tcp_count += 1
+                if self.user:
+                    self.user.tcp_count += 1
             except (IOError, OSError) as e:
                 logging.debug(
                     'connection faild , {} e: {}'.format(type(e), e))
