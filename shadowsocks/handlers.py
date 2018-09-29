@@ -73,8 +73,9 @@ class LocalHandler(TimeoutHandler):
         '''
         if self._transport_protocol == flag.TRANSPORT_TCP:
             if self._transport is not None:
-                self.user.tcp_count -= 1
                 self._transport.close()
+            if self.user:
+                self.user.tcp_count -= 1
         elif self._transport_protocol == flag.TRANSPORT_UDP:
             pass
         else:
