@@ -24,6 +24,9 @@ class User:
         self.__dict__.update(propertys)
         if 'passwd' in propertys:
             self.password = propertys['passwd']
+        if 'id' in propertys:
+            self.user_id = propertys['id']
+
 
     def __repr__(self):
         return '<shdowsocks user object user_id:{}>'.format(self.user_id)
