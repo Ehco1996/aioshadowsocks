@@ -4,6 +4,7 @@ import struct
 import logging
 import asyncio
 
+from config import MAX_TCP_CONNECT
 from shadowsocks.cryptor import Cryptor
 from shadowsocks import protocol_flag as flag
 from shadowsocks.server_pool import ServerPool
@@ -206,7 +207,10 @@ class LocalHandler(TimeoutHandler):
                 remote_transport, remote_instance = await tcp_coro
                 # 记录用户的tcp连接数
                 if self.user:
-                    self.user.tcp_count += 1
+                    if self.user.tcp_count > MAX_TCP_CONNECT:
+                        self.close()
+                    else:
+                        self.user.tcp_count += 1
             except (IOError, OSError) as e:
                 logging.debug(
                     'connection faild , {} e: {}'.format(type(e), e))

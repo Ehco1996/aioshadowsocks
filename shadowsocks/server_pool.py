@@ -75,14 +75,7 @@ class ServerPool:
     @classmethod
     def check_user_limit(cls, user_list):
         '''user rate limit'''
-        from config import MAX_TCP_CONNECT
-
-        for user in user_list:
-            if user.tcp_count > MAX_TCP_CONNECT:
-                cls.remove_user(user.user_id)
-                cls.balck_user_list.append(user.user_id)
-                logging.warning('user_id {} reach max tcp limt{}'.format(
-                    user.user_id, MAX_TCP_CONNECT))
+        pass
 
     @classmethod
     def async_user(cls):
@@ -131,6 +124,7 @@ class ServerPool:
             # 去除黑名单里的用户
             if user_id in cls.balck_user_list:
                 continue
+
             if cls.check_user_exist(user_id) is False:
 
                 logging.info("user_id:{} pass:{} 在 {} 的 {} 端口启动啦！".format(
