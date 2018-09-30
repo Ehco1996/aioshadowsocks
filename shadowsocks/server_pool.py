@@ -62,14 +62,25 @@ class ServerPool:
         user_data['udp'].close()
 
     @classmethod
-    def check_user_traffic(cls):
+    def check_user_traffic(cls, user_list):
         '''删除超出流量的用户'''
-        for user in cls.get_user_list():
+        for user in user_list:
             if user.used_traffic > user.total_traffic:
                 cls.remove_user(user.user_id)
                 logging.warning('user_id {} out of traffic used:{}'.format(
                     user.user_id, user.human_used_traffic))
         logging.info('checked user traffic')
+
+    @classmethod
+    def check_user_limit(cls, user_list):
+        '''user rate limit'''
+        from config import MAX_TCP_CONNECT
+
+        for user in user_list:
+            if user.tcp_count > MAX_TCP_CONNECT:
+                cls.remove_user(user.user_id)
+                logging.warning('user_id {} reach max tcp limt{}'.format(
+                    user.user_id, MAX_TCP_CONNECT))
 
     @classmethod
     def async_user(cls):
@@ -78,12 +89,15 @@ class ServerPool:
         '''
         try:
             # post user traffic to server
-            cls.transfer.update_all_user(cls.get_user_list())
+            user_list = cls.get_user_list()
+            cls.transfer.update_all_user(user_list)
             now = int(time.time())
             logging.info(
                 'async user config cronjob current time {}'.format(now))
+            # user rate limit
+            cls.check_user_limit(user_list)
             # del out of traffic user from pool
-            cls.check_user_traffic()
+            cls.check_user_traffic(user_list)
             # create task
             loop = asyncio.get_event_loop()
             coro = cls.async_user_config()

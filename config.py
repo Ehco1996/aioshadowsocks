@@ -6,3 +6,6 @@ TOKEN = ""
 WEBAPI_URL = ''
 NODE_ID = 1
 LOACL_ADREES = '0.0.0.0'
+
+# 最大
+MAX_TCP_CONNECT = 10
