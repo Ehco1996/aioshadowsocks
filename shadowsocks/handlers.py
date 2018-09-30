@@ -199,6 +199,9 @@ class LocalHandler(TimeoutHandler):
         if self._transport_protocol == flag.TRANSPORT_TCP:
             self._stage = self.STAGE_CONNECT
 
+            if self.user and self.user.tcp_count > MAX_TCP_CONNECT:
+                self.close()
+                return
             # 尝试建立tcp连接，成功的话将会返回 (transport,protocol)
             tcp_coro = loop.create_connection(lambda: RemoteTCP(
                 dst_addr, dst_port, payload, self._method, self._key, self),
@@ -207,10 +210,7 @@ class LocalHandler(TimeoutHandler):
                 remote_transport, remote_instance = await tcp_coro
                 # 记录用户的tcp连接数
                 if self.user:
-                    if self.user.tcp_count > MAX_TCP_CONNECT:
-                        self.close()
-                    else:
-                        self.user.tcp_count += 1
+                    self.user.tcp_count += 1
             except (IOError, OSError) as e:
                 logging.debug(
                     'connection faild , {} e: {}'.format(type(e), e))
