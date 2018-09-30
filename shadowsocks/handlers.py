@@ -75,7 +75,7 @@ class LocalHandler(TimeoutHandler):
         if self._transport_protocol == flag.TRANSPORT_TCP:
             if self._transport is not None:
                 self._transport.close()
-            if self.user:
+            if self.user and self.user.tcp_count > 0:
                 self.user.tcp_count -= 1
         elif self._transport_protocol == flag.TRANSPORT_UDP:
             pass
@@ -228,7 +228,6 @@ class LocalHandler(TimeoutHandler):
                 self._stage = self.STAGE_STREAM
         elif self._transport_protocol == flag.TRANSPORT_UDP:
             self._stage = self.STAGE_INIT
-
             # 异步建立udp连接，并存入future对象
             udp_coro = loop.create_datagram_endpoint(lambda: RemoteUDP(
                 dst_addr, dst_port, payload, self._method, self._key,  self),
