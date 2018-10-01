@@ -94,8 +94,9 @@ class LocalHandler(TimeoutHandler):
             self._transport.sendto(data, self._peername)
         else:
             raise NotImplementedError
-        # 记录下载流量
-        self.user.once_used_d += len(data)
+        if self.user:
+            # 记录下载流量
+            self.user.once_used_d += len(data)
 
     def handle_tcp_connection_made(self, transport):
         '''
