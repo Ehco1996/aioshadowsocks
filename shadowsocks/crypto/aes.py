@@ -36,13 +36,6 @@ class AESCipher:
         self._first_package = True
         self._cipher = None
 
-    def __del__(self):
-        '''openssl内存清理'''
-        if self._encryptor is not None:
-            self._encryptor.finalize()
-        if self._decryptor is not None:
-            self._decryptor.finalize()
-
     def _make_cipher(self):
         if not self._cipher:
             self._cipher = Cipher(

@@ -74,12 +74,6 @@ class RemoteUDP(asyncio.DatagramProtocol, TimeoutHandler):
     def datagram_received(self, data, peername):
         self.keep_alive_active()
         logging.debug("udp received data len: {}".format(len(data)))
-        # 记录下载流量
-        if self._local.user:
-            self._local.user.once_used_d += len(data)
-        else:
-            self.close()
-
         assert self._peername == peername
         # 源地址和端口
         bind_addr, bind_port = peername
