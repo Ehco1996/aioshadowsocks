@@ -51,10 +51,9 @@ class ServerPool:
         return user_id in cls.local_handlers.keys()
 
     @classmethod
-    def _init_user(cls, user, tcp_server, udp_server):
-        cls.local_handlers[user.user_id] = {'user': user,
-                                            'tcp': tcp_server,
-                                            'udp': udp_server}
+    def _init_user(cls, user):
+        cls.local_handlers[user.user_id] = {
+            'user': user, 'tcp': None, 'udp': None}
 
     @classmethod
     def remove_user(cls, user_id):
@@ -126,22 +125,24 @@ class ServerPool:
                 continue
 
             if cls.check_user_exist(user_id) is False:
-
                 logging.info("user_id:{} pass:{} 在 {} 的 {} 端口启动啦！".format(
                     user_id, user.password, local_address, user.port))
 
+                # init user in server pool
+                cls._init_user(user)
+
                 # TCP sevcer
                 tcp_server = loop.create_server(
-                    LocalTCP(user), local_address, user.port)
+                    LocalTCP(user.user_id), local_address, user.port)
                 asyncio.ensure_future(tcp_server)
+                cls.local_handlers[user.user_id]['tcp'] = tcp_server
 
                 # UDP server
                 udp_server = loop.create_datagram_endpoint(
-                    LocalUDP(user), (local_address, user.port))
+                    LocalUDP(user.user_id), (local_address, user.port))
                 asyncio.ensure_future(udp_server)
+                cls.local_handlers[user.user_id]['udp'] = udp_server
 
-                # init user in server pool
-                cls._init_user(user, tcp_server, udp_server)
             else:
                 # update user config with db/server
                 current_user = cls.get_user_by_id(user.user_id)

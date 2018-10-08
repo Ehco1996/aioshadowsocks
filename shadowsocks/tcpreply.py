@@ -3,6 +3,7 @@ import asyncio
 
 from shadowsocks.cryptor import Cryptor
 from shadowsocks import protocol_flag as flag
+from shadowsocks.server_pool import ServerPool
 from shadowsocks.handlers import LocalHandler, TimeoutHandler
 
 
@@ -33,16 +34,19 @@ class LocalTCP(asyncio.Protocol):
     * CL: connection_lost()
     '''
 
-    def __init__(self, user):
-        self.user = user
+    def __init__(self, user_id):
+        self.user_id = user_id
         self._handler = None
+        self.pool = ServerPool()
+        self.user = self.pool.get_user_by_id(self.user_id)
 
-    def _init_handler(self, user):
-        self._handler = LocalHandler(user.method, user.password, user)
+    def _init_handler(self):
+        self._handler = LocalHandler(
+            self.user.method, self.user.password, self.user_id)
 
     def __call__(self):
-        local = LocalTCP(self.user)
-        local._init_handler(self.user)
+        local = LocalTCP(self.user_id)
+        local._init_handler()
         return local
 
     def connection_made(self, transport):

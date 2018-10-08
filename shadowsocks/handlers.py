@@ -52,11 +52,11 @@ class LocalHandler(TimeoutHandler):
     STAGE_DESTROY = -1
     STAGE_ERROR = 255
 
-    def __init__(self, method, password, user):
+    def __init__(self, method, password, user_id):
         TimeoutHandler.__init__(self)
 
         self.pool = ServerPool()
-        self.user = user
+        self.user = self.pool.get_user_by_id(self.user_id)
 
         self._key = password
         self._method = method

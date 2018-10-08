@@ -4,22 +4,25 @@ import logging
 import asyncio
 
 from shadowsocks.cryptor import Cryptor
+from shadowsocks.server_pool import ServerPool
 from shadowsocks.handlers import LocalHandler, TimeoutHandler
 
 
 class LocalUDP(asyncio.DatagramProtocol):
 
-    def __init__(self, user):
-        self.user = user
+    def __init__(self, user_id):
+        self.user_id = user_id
+        self.pool = ServerPool()
+        self.user = self.pool.get_user_by_id(self.user_id)
 
-    def _init_instance(self, user):
+    def _init_instance(self):
         self._instance = {}
-        self._method = user.method
-        self._password = user.password
+        self._method = self.user.method
+        self._password = self.user.password
 
     def __call__(self):
-        local = LocalUDP(self.user)
-        local._init_instance(self.user)
+        local = LocalUDP(self.user_id)
+        local._init_instance()
         return local
 
     def connection_made(self, transport):
@@ -30,7 +33,7 @@ class LocalUDP(asyncio.DatagramProtocol):
             handler = self._instance[peername]
         else:
             handler = LocalHandler(
-                self._method, self._password, self.user)
+                self._method, self._password, self.user_id)
             self._instance[peername] = handler
             handler.handle_udp_connection_made(self._transport, peername)
         handler.handle_data_received(data)
