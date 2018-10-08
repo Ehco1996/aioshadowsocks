@@ -56,7 +56,7 @@ class LocalHandler(TimeoutHandler):
         TimeoutHandler.__init__(self)
 
         self.pool = ServerPool()
-        self.user = self.pool.get_user_by_id(self.user_id)
+        self.user = self.pool.get_user_by_id(user_id)
 
         self._key = password
         self._method = method
