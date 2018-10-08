@@ -7,7 +7,7 @@ from shadowsocks.cryptor import Cryptor
 from shadowsocks.handlers import LocalHandler, TimeoutHandler
 
 
-class LoaclUDP(asyncio.DatagramProtocol):
+class LocalUDP(asyncio.DatagramProtocol):
 
     def __init__(self, user):
         self.user = user
@@ -18,7 +18,7 @@ class LoaclUDP(asyncio.DatagramProtocol):
         self._password = user.password
 
     def __call__(self):
-        local = LoaclUDP(self.user)
+        local = LocalUDP(self.user)
         local._init_instance(self.user)
         return local
 

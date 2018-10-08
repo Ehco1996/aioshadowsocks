@@ -109,7 +109,7 @@ class ServerPool:
         创建local连接
         加入事件循环
         '''
-        from shadowsocks.udpreply import LoaclUDP
+        from shadowsocks.udpreply import LocalUDP
         from shadowsocks.tcpreply import LocalTCP
 
         configs = cls.transfer.get_all_user_configs()
@@ -137,7 +137,7 @@ class ServerPool:
 
                 # UDP server
                 udp_server = loop.create_datagram_endpoint(
-                    LoaclUDP(user), (local_address, user.port))
+                    LocalUDP(user), (local_address, user.port))
                 asyncio.ensure_future(udp_server)
 
                 # init user in server pool
