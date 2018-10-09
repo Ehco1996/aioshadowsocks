@@ -117,7 +117,6 @@ class ServerPool:
             return
         loop = asyncio.get_event_loop()
         local_address = configs['local_address']
-
         for user in configs['users']:
             user_id = user.user_id
             # 去除黑名单里的用户
@@ -148,4 +147,4 @@ class ServerPool:
                 current_user = cls.get_user_by_id(user.user_id)
                 current_user.total = user.total_traffic
                 current_user.upload_traffic = user.upload_traffic
-                current_user.download_traffic = user.upload_traffic
+                current_user.download_traffic = user.download_traffic

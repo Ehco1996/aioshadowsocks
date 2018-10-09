@@ -22,6 +22,7 @@ class User:
         self.tcp_count = 0
 
         self.__dict__.update(propertys)
+
         # format for api
         if 'passwd' in propertys:
             self.password = propertys['passwd']
@@ -31,6 +32,8 @@ class User:
             self.upload_traffic = propertys['u']
         if 'd' in propertys:
             self.download_traffic = propertys['d']
+        if 'transfer_enable' in propertys:
+            self.total_traffic = propertys['transfer_enable']
 
     def __repr__(self):
         return '<shdowsocks user object user_id:{}>'.format(self.user_id)
