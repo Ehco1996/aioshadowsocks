@@ -105,16 +105,18 @@ class LocalHandler(TimeoutHandler):
         get_extra_info asyncio Transports api
         doc: https://docs.python.org/3/library/asyncio-protocol.html
         '''
-        if not self.user or self.user.tcp_count > MAX_TCP_CONNECT:
-            self.close()
-            return
-
-        self.keep_alive_open()
         self._stage = self.STAGE_INIT
         self._transport = transport
         self._transport_protocol = flag.TRANSPORT_TCP
         # get the remote address to which the socket is connected
         self._peername = self._transport.get_extra_info('peername')
+
+        # filter tcp connction
+        if not self.user or self.user.tcp_count > MAX_TCP_CONNECT:
+            self.close()
+            return
+        else:
+            self.keep_alive_open()
 
         try:
             self._cryptor = Cryptor(self._method, self._key)
