@@ -123,7 +123,9 @@ class LocalHandler(TimeoutHandler):
         '''
         处理udp连接
         '''
-
+        if not self.user or self.user.tcp_count > MAX_TCP_CONNECT:
+            self.close()
+            return
         self._stage = self.STAGE_INIT
         self._transport = transport
         self._transport_protocol = flag.TRANSPORT_UDP
@@ -202,9 +204,6 @@ class LocalHandler(TimeoutHandler):
         if self._transport_protocol == flag.TRANSPORT_TCP:
             self._stage = self.STAGE_CONNECT
 
-            if self.user and self.user.tcp_count > MAX_TCP_CONNECT:
-                self.close()
-                return
             # 尝试建立tcp连接，成功的话将会返回 (transport,protocol)
             tcp_coro = loop.create_connection(lambda: RemoteTCP(
                 dst_addr, dst_port, payload, self._method, self._key, self),
