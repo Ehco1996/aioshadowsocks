@@ -89,18 +89,16 @@ class LocalHandler(TimeoutHandler):
         if self._transport_protocol == flag.TRANSPORT_TCP:
             try:
                 self._transport.write(data)
+                # 记录下载流量
+                self.user.once_used_d += len(data)
             except MemoryError:
                 logging.warning(
                     'memory boom user_id: {}'.format(self.user.user_id))
-                self.user.once_used_u -= len(data)
-                self._transport.close()
+                self.close()
         elif self._transport_protocol == flag.TRANSPORT_UDP:
             self._transport.sendto(data, self._peername)
         else:
             raise NotImplementedError
-        if self.user:
-            # 记录下载流量
-            self.user.once_used_d += len(data)
 
     def handle_tcp_connection_made(self, transport):
         '''
