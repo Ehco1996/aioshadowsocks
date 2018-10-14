@@ -101,7 +101,13 @@ class RemoteTCP(asyncio.Protocol, TimeoutHandler):
 
     def write(self, data):
         if self._transport is not None:
-            self._transport.write(data)
+            try:
+                self._transport.write(data)
+            except MemoryError:
+                logging.warning(
+                    'memory boom user_id: {}'.format(self._local.user.user_id))
+                self._local.user.once_used_u -= len(data)
+                self._local.close()
 
     def close(self):
         if self._transport is not None:

@@ -93,7 +93,7 @@ class LocalHandler(TimeoutHandler):
                 logging.warning(
                     'memory boom user_id: {}'.format(self.user.user_id))
                 self.user.once_used_u -= len(data)
-                self.close()
+                self._transport.close()
         elif self._transport_protocol == flag.TRANSPORT_UDP:
             self._transport.sendto(data, self._peername)
         else:
