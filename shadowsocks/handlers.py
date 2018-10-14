@@ -81,15 +81,18 @@ class LocalHandler(TimeoutHandler):
             pass
         else:
             raise NotImplementedError
-        if self.user:
-            self.user = None
 
     def write(self, data):
         '''
         针对tcp/udp分别写数据
         '''
         if self._transport_protocol == flag.TRANSPORT_TCP:
-            self._transport.write(data)
+            try:
+                self._transport.write(data)
+            except MemoryError:
+                logging.warning(
+                    'memory boom user_id: {}'.format(self.user.user_id))
+                self.close()
         elif self._transport_protocol == flag.TRANSPORT_UDP:
             self._transport.sendto(data, self._peername)
         else:
