@@ -92,6 +92,7 @@ class LocalHandler(TimeoutHandler):
             except MemoryError:
                 logging.warning(
                     'memory boom user_id: {}'.format(self.user.user_id))
+                self.user.once_used_u -= len(data)
                 self.close()
         elif self._transport_protocol == flag.TRANSPORT_UDP:
             self._transport.sendto(data, self._peername)
@@ -145,25 +146,22 @@ class LocalHandler(TimeoutHandler):
             self.close()
 
     def handle_data_received(self, data):
-        if self.user is None:
-            self.close()
-        else:
-            # 累计并检查用户流量
-            self.user.once_used_u += len(data)
-            data = self._cryptor.decrypt(data)
+        # 累计并检查用户流量
+        self.user.once_used_u += len(data)
+        data = self._cryptor.decrypt(data)
 
-            if self._stage == self.STAGE_INIT:
-                coro = self._handle_stage_init(data)
-                asyncio.ensure_future(coro)
-            elif self._stage == self.STAGE_CONNECT:
-                coro = self._handle_stage_connect(data)
-                asyncio.ensure_future(coro)
-            elif self._stage == self.STAGE_STREAM:
-                self._handle_stage_stream(data)
-            elif self._stage == self.STAGE_ERROR:
-                self._handle_stage_error()
-            else:
-                logging.warning('unknown stage:{}'.format(self._stage))
+        if self._stage == self.STAGE_INIT:
+            coro = self._handle_stage_init(data)
+            asyncio.ensure_future(coro)
+        elif self._stage == self.STAGE_CONNECT:
+            coro = self._handle_stage_connect(data)
+            asyncio.ensure_future(coro)
+        elif self._stage == self.STAGE_STREAM:
+            self._handle_stage_stream(data)
+        elif self._stage == self.STAGE_ERROR:
+            self._handle_stage_error()
+        else:
+            logging.warning('unknown stage:{}'.format(self._stage))
 
     def handle_eof_received(self):
         logging.debug('eof received')
