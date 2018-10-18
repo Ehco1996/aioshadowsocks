@@ -20,6 +20,9 @@ class User:
         self.user_ip = None
         # 活跃的tcp连接数
         self.tcp_count = 0
+        # 状态： 0：norma，1：in black_user_list
+        self.status = 0
+        self.jail_time = -1
 
         self.__dict__.update(propertys)
 

@@ -9,3 +9,6 @@ LOACL_ADREES = '0.0.0.0'
 
 # 最大
 MAX_TCP_CONNECT = 10
+
+# 清空黑名单是时间间隔
+RELEASE_TIME = 60 * 10

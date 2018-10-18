@@ -3,6 +3,7 @@ import time
 import logging
 import asyncio
 
+import config as c
 from transfer.web_transfer import WebTransfer
 from transfer.json_transfer import JsonTransfer
 
@@ -18,7 +19,7 @@ class ServerPool:
     #     'udp': 'udp_local_handler'}
     #  }
     local_handlers = {}
-    balck_user_list = []
+    balck_user_id_list = []
 
     def __new__(cls, *args, **kw):
         if not cls._instance:
@@ -27,7 +28,6 @@ class ServerPool:
 
     @classmethod
     def init_transfer(cls, transfer_type):
-        import config as c
         if transfer_type == 'webapi':
             cls.transfer = WebTransfer(
                 c.TOKEN, c.WEBAPI_URL, c.NODE_ID, c.LOACL_ADREES)
@@ -72,9 +72,19 @@ class ServerPool:
         logging.info('checked user traffic')
 
     @classmethod
-    def check_user_limit(cls, user_list):
-        '''user rate limit'''
-        pass
+    def filter_black_user_list(cls):
+        now = int(time.time())
+        for user_id in cls.balck_user_id_list:
+            user = cls.get_user_by_id(user_id)
+            if user.staus == 0:
+                cls.remove_user(user_id)
+                logging.warning(
+                    'close user: {} connection in black_list'.format(user_id))
+                user.staus = 1
+                user.jail_time = now
+            elif user.staus == 1 and (now-user.jail_time) > c.RELEASE_TIME:
+                cls.balck_user_id_list.remove(user_id)
+                user.staus = 0
 
     @classmethod
     def async_user(cls):
@@ -88,8 +98,8 @@ class ServerPool:
             now = int(time.time())
             logging.info(
                 'async user config cronjob current time {}'.format(now))
-            # user rate limit
-            cls.check_user_limit(user_list)
+            # filter user
+            cls.filter_black_user_list()
             # del out of traffic user from pool
             cls.check_user_traffic(user_list)
             # create task
@@ -119,8 +129,8 @@ class ServerPool:
         local_address = configs['local_address']
         for user in configs['users']:
             user_id = user.user_id
-            # 去除黑名单里的用户
-            if user_id in cls.balck_user_list:
+            # 跳过黑名单里的用户
+            if user_id in cls.balck_user_id_list:
                 continue
 
             if cls.check_user_exist(user_id) is False:
