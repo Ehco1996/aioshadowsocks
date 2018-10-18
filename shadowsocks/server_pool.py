@@ -93,6 +93,7 @@ class ServerPool:
         '''
         每隔60s检查一次是否有新user
         '''
+        loop = asyncio.get_event_loop()
         try:
             # post user traffic to server
             user_list = cls.get_user_list()
@@ -105,7 +106,6 @@ class ServerPool:
             # del out of traffic user from pool
             cls.check_user_traffic(user_list)
             # create task
-            loop = asyncio.get_event_loop()
             coro = cls.async_user_config()
             loop.create_task(coro)
         except Exception as e:
