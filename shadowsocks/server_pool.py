@@ -19,7 +19,7 @@ class ServerPool:
     #     'udp': 'udp_local_handler'}
     #  }
     local_handlers = {}
-    balck_user_id_list = []
+    balck_user_ids = set()
 
     def __new__(cls, *args, **kw):
         if not cls._instance:
@@ -74,7 +74,7 @@ class ServerPool:
     @classmethod
     def filter_black_user_list(cls):
         now = int(time.time())
-        for user_id in cls.balck_user_id_list:
+        for user_id in cls.balck_user_ids:
             user = cls.get_user_by_id(user_id)
             if user.status == 0:
                 cls.remove_user(user_id)
@@ -83,7 +83,7 @@ class ServerPool:
                 user.status = 1
                 user.jail_time = now
             elif user.status == 1 and (now-user.jail_time) > c.RELEASE_TIME:
-                cls.balck_user_id_list.remove(user_id)
+                cls.balck_user_ids.remove(user_id)
                 user.status = 0
                 logging.warning(
                     'release user: {} from  black_list'.format(user_id))
@@ -132,7 +132,7 @@ class ServerPool:
         for user in configs['users']:
             user_id = user.user_id
             # 跳过黑名单里的用户
-            if user_id in cls.balck_user_id_list:
+            if user_id in cls.balck_user_ids:
                 continue
 
             if cls.check_user_exist(user_id) is False:
