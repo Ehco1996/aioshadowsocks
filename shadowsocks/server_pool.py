@@ -77,7 +77,9 @@ class ServerPool:
         for user_id in cls.balck_user_ids:
             user = cls.get_user_by_id(user_id)
             if user.status == 0:
-                cls.remove_user(user_id)
+                user_data = cls.local_handlers[user_id]
+                user_data['tcp'].close()
+                user_data['udp'].close()
                 logging.warning(
                     'close user: {} connection in black_list'.format(user_id))
                 user.status = 1
