@@ -74,6 +74,7 @@ class ServerPool:
     @classmethod
     def filter_black_user_list(cls):
         now = int(time.time())
+        need_release_ids = []
         for user_id in cls.balck_user_ids:
             user = cls.get_user_by_id(user_id)
             if user.status == 0:
@@ -85,10 +86,13 @@ class ServerPool:
                 user.status = 1
                 user.jail_time = now
             elif user.status == 1 and (now-user.jail_time) > c.RELEASE_TIME:
-                cls.balck_user_ids.remove(user_id)
+                need_release_ids.append(user_id)
                 user.status = 0
                 logging.warning(
                     'release user: {} from  black_list'.format(user_id))
+        # release user
+        for user_id in need_release_ids:
+            cls.balck_user_ids.remove(user_id)
 
     @classmethod
     def async_user(cls):
