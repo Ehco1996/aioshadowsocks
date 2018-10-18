@@ -76,15 +76,17 @@ class ServerPool:
         now = int(time.time())
         for user_id in cls.balck_user_id_list:
             user = cls.get_user_by_id(user_id)
-            if user.staus == 0:
+            if user.status == 0:
                 cls.remove_user(user_id)
                 logging.warning(
                     'close user: {} connection in black_list'.format(user_id))
-                user.staus = 1
+                user.status = 1
                 user.jail_time = now
-            elif user.staus == 1 and (now-user.jail_time) > c.RELEASE_TIME:
+            elif user.status == 1 and (now-user.jail_time) > c.RELEASE_TIME:
                 cls.balck_user_id_list.remove(user_id)
-                user.staus = 0
+                user.status = 0
+                logging.warning(
+                    'release user: {} from  black_list'.format(user_id))
 
     @classmethod
     def async_user(cls):
