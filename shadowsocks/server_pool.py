@@ -77,15 +77,7 @@ class ServerPool:
         need_release_ids = []
         for user_id in cls.balck_user_ids:
             user = cls.get_user_by_id(user_id)
-            if user.status == 0:
-                user_data = cls.local_handlers[user_id]
-                user_data['tcp'].close()
-                user_data['udp'].close()
-                logging.warning(
-                    'close user: {} connection in black_list'.format(user_id))
-                user.status = 1
-                user.jail_time = now
-            elif user.status == 1 and (now-user.jail_time) > c.RELEASE_TIME:
+            if user.status == 1 and (now-user.jail_time) > c.RELEASE_TIME:
                 need_release_ids.append(user_id)
                 user.status = 0
                 logging.warning(
@@ -93,6 +85,23 @@ class ServerPool:
         # release user
         for user_id in need_release_ids:
             cls.balck_user_ids.remove(user_id)
+
+    @classmethod
+    def add_user_to_jail(cls, user_id):
+        now = int(time.time())
+        cls.balck_user_ids.add(user_id)
+        user = cls.get_user_by_id(user_id)
+        if user.status == 0:
+            user_data = cls.local_handlers[user_id]
+            user_data['tcp'].close()
+            user_data['udp'].close()
+            user.status = 1
+            user.jail_time = now
+            logging.warning(
+                'close user: {} connection & addto black_list'.format(user_id))
+        else:
+            logging.warning(
+                'user: {} already in black_list'.format(user_id))
 
     @classmethod
     def async_user(cls):

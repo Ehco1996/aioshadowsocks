@@ -94,6 +94,7 @@ class LocalHandler(TimeoutHandler):
             except MemoryError:
                 logging.warning(
                     'memory boom user_id: {}'.format(self.user.user_id))
+                self.pool.add_user_to_jail(self.user.user_id)
                 self.close()
         elif self._transport_protocol == flag.TRANSPORT_UDP:
             self._transport.sendto(data, self._peername)
