@@ -4,7 +4,6 @@ import struct
 import logging
 import asyncio
 
-from config import MAX_TCP_CONNECT
 from shadowsocks.cryptor import Cryptor
 from shadowsocks import protocol_flag as flag
 from shadowsocks.server_pool import ServerPool
@@ -115,7 +114,7 @@ class LocalHandler(TimeoutHandler):
         self._peername = self._transport.get_extra_info('peername')
 
         # filter tcp connction
-        if not self.user or self.user.tcp_count > MAX_TCP_CONNECT:
+        if not self.pool.filter_user(self.user):
             self.close()
             return
         else:

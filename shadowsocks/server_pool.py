@@ -87,6 +87,16 @@ class ServerPool:
             cls.balck_user_ids.remove(user_id)
 
     @classmethod
+    def filter_user(cls, user):
+        if not user:
+            return False
+        elif user.user_id in cls.balck_user_ids:
+            return False
+        elif user.tcp_count > c.MAX_TCP_CONNECT:
+            return False
+        return True
+
+    @classmethod
     def add_user_to_jail(cls, user_id):
         now = int(time.time())
         cls.balck_user_ids.add(user_id)
