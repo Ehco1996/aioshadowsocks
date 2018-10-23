@@ -39,7 +39,7 @@ class User:
             self.total_traffic = propertys['transfer_enable']
 
     def __repr__(self):
-        return '<shdowsocks user object user_id:{}>'.format(self.user_id)
+        return '<shadowsocks user object user_id:{}>'.format(self.user_id)
 
     @property
     def used_traffic(self):
