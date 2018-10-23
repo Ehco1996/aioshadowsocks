@@ -68,15 +68,16 @@ class RemoteUDP(asyncio.DatagramProtocol, TimeoutHandler):
         self.keep_alive_open()
         self._transport = transport
         self._peername = self._transport.get_extra_info('peername')
-        logging.debug(
-            "connetcion made peername: {}".format(self._peername))
+        logging.debug("connetcion made peername: {} user: {}".format(
+            self._peername, self._local.user))
 
     def connection_lost(self, exc):
         logging.debug("udp connetcion lost exc {}".format(exc))
 
     def datagram_received(self, data, peername):
         self.keep_alive_active()
-        logging.debug("udp received data len: {}".format(len(data)))
+        logging.debug("udp received data len: {} user: {}".format(
+            len(data), self._local.user))
         assert self._peername == peername
         # 源地址和端口
         bind_addr, bind_port = peername
