@@ -185,3 +185,6 @@ class ServerPool:
                 current_user.total = user.total_traffic
                 current_user.upload_traffic = user.upload_traffic
                 current_user.download_traffic = user.download_traffic
+
+
+pool = ServerPool()

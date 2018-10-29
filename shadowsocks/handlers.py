@@ -5,8 +5,8 @@ import logging
 import asyncio
 
 from shadowsocks.cryptor import Cryptor
+from shadowsocks.server_pool import pool
 from shadowsocks import protocol_flag as flag
-from shadowsocks.server_pool import ServerPool
 
 
 class TimeoutHandler:
@@ -54,8 +54,7 @@ class LocalHandler(TimeoutHandler):
     def __init__(self, method, password, user_id):
         TimeoutHandler.__init__(self)
 
-        self.pool = ServerPool()
-        self.user = self.pool.get_user_by_id(user_id)
+        self.user = pool.get_user_by_id(user_id)
 
         self._key = password
         self._method = method
@@ -93,7 +92,7 @@ class LocalHandler(TimeoutHandler):
             except MemoryError:
                 logging.warning(
                     'memory boom user_id: {}'.format(self.user.user_id))
-                self.pool.add_user_to_jail(self.user.user_id)
+                pool.add_user_to_jail(self.user.user_id)
                 self.close()
         elif self._transport_protocol == flag.TRANSPORT_UDP:
             self._transport.sendto(data, self._peername)
@@ -114,7 +113,7 @@ class LocalHandler(TimeoutHandler):
         self._peername = self._transport.get_extra_info('peername')
 
         # filter tcp connction
-        if not self.pool.filter_user(self.user):
+        if not pool.filter_user(self.user):
             self.close()
             return
         else:

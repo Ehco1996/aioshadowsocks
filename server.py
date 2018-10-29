@@ -2,7 +2,7 @@ import os
 import logging
 import asyncio
 
-from shadowsocks.server_pool import ServerPool
+from shadowsocks.server_pool import pool
 from shadowsocks.logger import init_logger_config
 
 
@@ -12,7 +12,6 @@ def run_servers(transfer_type):
         pool.async_user()
 
     loop = asyncio.get_event_loop()
-    pool = ServerPool()
     pool.init_transfer(transfer_type)
 
     # 启动定时任务
