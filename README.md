@@ -54,9 +54,9 @@ sslocal将数据流进行加密并后再和 ss server 进行通讯
 ```sh
 wget https://bootstrap.pypa.io/get-pip.py
 
-python get-pip.py
+python3 get-pip.py
 
-pip install -r requirements.txt
+pip3 install -r requirements.txt
 ```
 
 * 使用
