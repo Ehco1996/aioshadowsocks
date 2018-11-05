@@ -194,7 +194,8 @@ class LocalHandler(TimeoutHandler):
                 '!H', data[domain_index:domain_index + 2])[0]
             payload = data[domain_index + 2:]
         else:
-            logging.warning('unknown atype: {}'.format(atype))
+            logging.warning(
+                'unknown atype: {} user: {}'.format(atype, self.user))
             self.close()
             return
 
