@@ -37,4 +37,7 @@ class Cryptor:
         return self._crypto.encrypt(data)
 
     def decrypt(self, data):
-        return self._crypto.decrypt(data)
+        try:
+            return self._crypto.decrypt(data)
+        except Exception as e:
+            raise RuntimeError(e)

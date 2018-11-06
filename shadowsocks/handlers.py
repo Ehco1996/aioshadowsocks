@@ -72,7 +72,7 @@ class LocalHandler(TimeoutHandler):
         if self._transport_protocol == flag.TRANSPORT_TCP:
             if self._transport is not None:
                 self._transport.close()
-            if self.user and self.user.tcp_count > 0:
+            if self.user.tcp_count > 0:
                 self.user.tcp_count -= 1
         elif self._transport_protocol == flag.TRANSPORT_UDP:
             pass
@@ -143,8 +143,11 @@ class LocalHandler(TimeoutHandler):
     def handle_data_received(self, data):
         # 累计并检查用户流量
         self.user.once_used_u += len(data)
-        data = self._cryptor.decrypt(data)
-
+        try:
+            data = self._cryptor.decrypt(data)
+        except RuntimeError as e:
+            logging.warning('decrypt data error {}'.format(e))
+            self.close()
         if self._stage == self.STAGE_INIT:
             coro = self._handle_stage_init(data)
             asyncio.ensure_future(coro)
@@ -176,8 +179,11 @@ class LocalHandler(TimeoutHandler):
         '''
         from shadowsocks.tcpreply import RemoteTCP  # noqa
         from shadowsocks.udpreply import RemoteUDP  # noqa
+        try:
+            atype = data[0]
+        except IndexError:
+            logging.warning('not vaild data {}'.format(data))
 
-        atype = data[0]
         if atype == flag.ATYPE_IPV4:
             dst_addr = socket.inet_ntop(socket.AF_INET, data[1:5])
             dst_port = struct.unpack('!H', data[5:7])[0]
@@ -195,7 +201,7 @@ class LocalHandler(TimeoutHandler):
             payload = data[domain_index + 2:]
         else:
             logging.warning(
-                'unknown atype: {} user: {}'.format(atype, self.user))
+                'unknown atype: {} user: {}'.format(data, self.user))
             self.close()
             return
 
