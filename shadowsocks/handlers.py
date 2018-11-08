@@ -6,6 +6,7 @@ import asyncio
 
 from shadowsocks.cryptor import Cryptor
 from shadowsocks.server_pool import pool
+from shadowsocks.utils import parse_header
 from shadowsocks import protocol_flag as flag
 
 
@@ -125,7 +126,7 @@ class LocalHandler(TimeoutHandler):
             logging.debug('tcp connection made')
         except NotImplementedError:
             logging.warning('not support cipher')
-            self.close()
+            transport.close()
 
     def handle_udp_connection_made(self, transport, peername):
         '''
@@ -141,7 +142,7 @@ class LocalHandler(TimeoutHandler):
             logging.debug('udp connection made')
         except NotImplementedError:
             logging.warning('not support cipher')
-            self.close()
+            transport.close()
 
     def handle_data_received(self, data):
         # 累计并检查用户流量
@@ -151,6 +152,8 @@ class LocalHandler(TimeoutHandler):
         except RuntimeError as e:
             logging.warning('decrypt data error {}'.format(e))
             self.close()
+            return
+
         if self._stage == self.STAGE_INIT:
             coro = self._handle_stage_init(data)
             asyncio.ensure_future(coro)
@@ -180,33 +183,16 @@ class LocalHandler(TimeoutHandler):
         doc:
         https://docs.python.org/3/library/asyncio-eventloop.html
         '''
-        from shadowsocks.tcpreply import RemoteTCP  # noqa
-        from shadowsocks.udpreply import RemoteUDP  # noqa
-        try:
-            atype = data[0]
-        except IndexError:
-            logging.warning('not vaild data {}'.format(data))
+        from shadowsocks.tcpreply import RemoteTCP
+        from shadowsocks.udpreply import RemoteUDP
 
-        if atype == flag.ATYPE_IPV4:
-            dst_addr = socket.inet_ntop(socket.AF_INET, data[1:5])
-            dst_port = struct.unpack('!H', data[5:7])[0]
-            payload = data[7:]
-        elif atype == flag.ATYPE_IPV6:
-            dst_addr = socket.inet_ntop(socket.AF_INET6, data[1:17])
-            dst_port = struct.unpack('!H', data[17:19])[0]
-            payload = data[19:]
-        elif atype == flag.ATYPE_DOMAINNAME:
-            domain_length = data[1]
-            domain_index = 2 + domain_length
-            dst_addr = data[2:domain_index]
-            dst_port = struct.unpack(
-                '!H', data[domain_index:domain_index + 2])[0]
-            payload = data[domain_index + 2:]
-        else:
+        atype, dst_addr, dst_port, header_length = parse_header(data)
+
+        if not dst_addr:
             logging.warning(
-                'unknown atype: {} user: {}'.format(data, self.user))
-            self.close()
-            return
+                'not valid data atype：{} user: {}'.format(atype, self.user))
+        else:
+            payload = data[header_length:]
 
         # 获取事件循环
         loop = asyncio.get_event_loop()
