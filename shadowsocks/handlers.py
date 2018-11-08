@@ -1,6 +1,4 @@
 import time
-import socket
-import struct
 import logging
 import asyncio
 
@@ -66,19 +64,34 @@ class LocalHandler(TimeoutHandler):
         self._transport_protocol = None
         self._stage = self.STAGE_DESTROY
 
+    def destory(self):
+        '''尝试优化一些内存泄露的问题'''
+        self.user = None
+        self._key = None
+        self._method = None
+        self._remote = None
+        self._cryptor = None
+        self._peername = None
+        self._transport = None
+        self._transport_protocol = None
+        self._stage = None
+
     def close(self):
         '''
         针对tcp/udp分别关闭连接
         '''
         if self._transport_protocol == flag.TRANSPORT_TCP:
-            if self._transport is not None:
+            if self._transport:
                 self._transport.close()
             if self.user.tcp_count > 0:
                 self.user.tcp_count -= 1
+            if self._remote:
+                self._remote.close()
         elif self._transport_protocol == flag.TRANSPORT_UDP:
             pass
         else:
             raise NotImplementedError
+        self.destory()
 
     def write(self, data):
         '''
@@ -112,6 +125,7 @@ class LocalHandler(TimeoutHandler):
         # filter tcp connction
         if not pool.filter_user(self.user):
             transport.close()
+            self.destory()
             return
 
         self._stage = self.STAGE_INIT
@@ -127,6 +141,7 @@ class LocalHandler(TimeoutHandler):
         except NotImplementedError:
             logging.warning('not support cipher')
             transport.close()
+            self.destory()
 
     def handle_udp_connection_made(self, transport, peername):
         '''
@@ -143,6 +158,7 @@ class LocalHandler(TimeoutHandler):
         except NotImplementedError:
             logging.warning('not support cipher')
             transport.close()
+            self.destory()
 
     def handle_data_received(self, data):
         # 累计并检查用户流量
@@ -215,8 +231,8 @@ class LocalHandler(TimeoutHandler):
             except Exception as e:
                 logging.warning(
                     'connection failed, {} e: {}'.format(type(e), e))
-                self.close()
                 self._stage = self.STAGE_ERROR
+                self.close()
             else:
                 logging.debug(
                     'connection established,remote {}'.format(remote_instance))
@@ -250,7 +266,7 @@ class LocalHandler(TimeoutHandler):
         #  5s之后连接还没建立的话 超时处理
         logging.warning(
             'time out to connect remote stage {}'.format(self._stage))
-        return
+        self.close()
 
     def _handle_stage_stream(self, data):
         logging.debug('realy data length {}'.format(len(data)))
