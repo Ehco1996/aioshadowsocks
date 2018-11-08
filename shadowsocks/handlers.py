@@ -79,10 +79,10 @@ class LocalHandler(TimeoutHandler):
     def close(self):
         if self._transport:
             self._transport.close()
-        if self.user.tcp_count > 0:
-            self.user.tcp_count -= 1
         if self._remote:
             self._remote.close()
+        if self.user and self.user.tcp_count > 0:
+            self.user.tcp_count -= 1
         self.destory()
 
     def write(self, data):
