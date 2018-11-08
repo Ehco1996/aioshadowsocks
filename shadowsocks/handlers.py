@@ -77,20 +77,12 @@ class LocalHandler(TimeoutHandler):
         self._stage = None
 
     def close(self):
-        '''
-        针对tcp/udp分别关闭连接
-        '''
-        if self._transport_protocol == flag.TRANSPORT_TCP:
-            if self._transport:
-                self._transport.close()
-            if self.user.tcp_count > 0:
-                self.user.tcp_count -= 1
-            if self._remote:
-                self._remote.close()
-        elif self._transport_protocol == flag.TRANSPORT_UDP:
-            pass
-        else:
-            raise NotImplementedError
+        if self._transport:
+            self._transport.close()
+        if self.user.tcp_count > 0:
+            self.user.tcp_count -= 1
+        if self._remote:
+            self._remote.close()
         self.destory()
 
     def write(self, data):
@@ -189,8 +181,7 @@ class LocalHandler(TimeoutHandler):
 
     def handle_connection_lost(self, exc):
         logging.debug('lost exc={exc}'.format(exc=exc))
-        if self._remote is not None:
-            self._remote.close()
+        self.close()
 
     async def _handle_stage_init(self, data):
         '''
