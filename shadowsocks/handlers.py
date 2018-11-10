@@ -64,26 +64,30 @@ class LocalHandler(TimeoutHandler):
         self._transport_protocol = None
         self._stage = self.STAGE_DESTROY
 
-    def destory(self):
+    def destroy(self):
         '''尝试优化一些内存泄露的问题'''
         self.user = None
+        self._stage = self.STAGE_DESTROY
         self._key = None
         self._method = None
-        self._remote = None
         self._cryptor = None
         self._peername = None
+        self._remote = None
         self._transport = None
-        self._transport_protocol = None
-        self._stage = None
 
-    def close(self):
-        if self._transport:
-            self._transport.close()
-        if self._remote:
-            self._remote.close()
-        if self.user and self.user.tcp_count > 0:
-            self.user.tcp_count -= 1
-        self.destory()
+    def close(self, clean=False):
+        if self._transport_protocol == flag.TRANSPORT_TCP:
+            if self._transport:
+                self._transport.close()
+            if self.user and self.user.tcp_count > 0:
+                self.user.tcp_count -= 1
+        elif self._transport_protocol == flag.TRANSPORT_UDP:
+            pass
+        else:
+            raise NotImplementedError
+
+        if clean:
+            self.destroy()
 
     def write(self, data):
         '''
@@ -92,6 +96,7 @@ class LocalHandler(TimeoutHandler):
         # filter user
         if not pool.filter_user(self.user):
             self.close()
+
         if self._transport_protocol == flag.TRANSPORT_TCP:
             try:
                 self._transport.write(data)
@@ -101,7 +106,7 @@ class LocalHandler(TimeoutHandler):
                 logging.warning(
                     'memory boom user_id: {}'.format(self.user.user_id))
                 pool.add_user_to_jail(self.user.user_id)
-                self.close()
+                self.close(clean=True)
         elif self._transport_protocol == flag.TRANSPORT_UDP:
             self._transport.sendto(data, self._peername)
         else:
@@ -117,7 +122,7 @@ class LocalHandler(TimeoutHandler):
         # filter tcp connction
         if not pool.filter_user(self.user):
             transport.close()
-            self.destory()
+            self.close(clean=True)
             return
 
         self._stage = self.STAGE_INIT
@@ -133,7 +138,7 @@ class LocalHandler(TimeoutHandler):
         except NotImplementedError:
             logging.warning('not support cipher')
             transport.close()
-            self.destory()
+            self.close(clean=True)
 
     def handle_udp_connection_made(self, transport, peername):
         '''
@@ -150,7 +155,7 @@ class LocalHandler(TimeoutHandler):
         except NotImplementedError:
             logging.warning('not support cipher')
             transport.close()
-            self.destory()
+            self.close(clean=True)
 
     def handle_data_received(self, data):
         # 累计并检查用户流量
