@@ -66,13 +66,11 @@ class LocalHandler(TimeoutHandler):
 
     def destroy(self):
         '''尝试优化一些内存泄露的问题'''
-        self.user = None
         self._stage = self.STAGE_DESTROY
         self._key = None
         self._method = None
         self._cryptor = None
         self._peername = None
-        self._remote = None
         self._transport = None
 
     def close(self, clean=False):
