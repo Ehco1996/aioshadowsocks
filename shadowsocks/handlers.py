@@ -95,7 +95,8 @@ class LocalHandler(TimeoutHandler):
         '''
         # filter user
         if not pool.filter_user(self.user):
-            self.close()
+            self.close(clean=True)
+            return
 
         if self._transport_protocol == flag.TRANSPORT_TCP:
             try:
