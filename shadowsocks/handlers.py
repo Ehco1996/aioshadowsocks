@@ -71,7 +71,6 @@ class LocalHandler(TimeoutHandler):
         self._method = None
         self._cryptor = None
         self._peername = None
-        self._transport = None
 
     def close(self, clean=False):
         if self._transport_protocol == flag.TRANSPORT_TCP:
@@ -118,14 +117,13 @@ class LocalHandler(TimeoutHandler):
         get_extra_info asyncio Transports api
         doc: https://docs.python.org/3/library/asyncio-protocol.html
         '''
+        self._stage = self.STAGE_INIT
+        self._transport_protocol = flag.TRANSPORT_TCP
         # filter tcp connction
         if not pool.filter_user(self.user):
             transport.close()
             self.close(clean=True)
             return
-
-        self._stage = self.STAGE_INIT
-        self._transport_protocol = flag.TRANSPORT_TCP
         self._transport = transport
         # get the remote address to which the socket is connected
         self._peername = self._transport.get_extra_info('peername')

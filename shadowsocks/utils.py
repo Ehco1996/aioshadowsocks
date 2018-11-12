@@ -6,11 +6,9 @@ from shadowsocks import protocol_flag as flag
 
 
 def parse_header(data):
+    atype, dst_addr, dst_port, header_length = None, None, None, 0
     try:
         atype = data[0]
-        dst_addr = None
-        dst_port = None
-        header_length = 0
     except IndexError:
         logging.warning('not vaild data {}'.format(data))
 
