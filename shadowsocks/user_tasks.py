@@ -34,7 +34,7 @@ class UserTasks:
         except Exception as e:
             logging.warning('async_user error {}'.format(e))
         # crontab job for every 60s
-        loop.call_later(6, self.user_cron_task)
+        loop.call_later(60, self.user_cron_task)
 
     async def sync_user_config_task(self):
         configs = self.pool.transfer.get_all_user_configs()
