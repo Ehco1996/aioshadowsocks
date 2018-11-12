@@ -47,8 +47,16 @@ class ServerPool:
         return user_list
 
     @classmethod
-    def check_user_exist(cls, user_id):
-        return user_id in cls.local_handlers.keys()
+    def check_user_exist(cls, user_id, port):
+        if user_id in cls.local_handlers.keys():
+            current_user = cls.get_user_by_id(user_id)
+            # change user port
+            if current_user.port != port:
+                pool.remove_user(user_id)
+                return False
+            return True
+        else:
+            return False
 
     @classmethod
     def _init_user(cls, user):
