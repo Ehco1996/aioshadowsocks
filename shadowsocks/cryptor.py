@@ -10,7 +10,7 @@ class Cryptor:
     # 注册所有加密方式
     SUPPORT_METHODS = {}
 
-    def __init__(self, method, password):
+    def __init__(self, method, password, flag):
         self._crypto = None
         self._register_chipher()
 
@@ -18,9 +18,9 @@ class Cryptor:
         for name, methods in self.SUPPORT_METHODS.items():
             if method in methods:
                 if name == 'aes':
-                    self._crypto = AESCipher(method, password)
+                    self._crypto = AESCipher(method, password, flag)
                 elif name == 'none':
-                    self._crypto = NONECipher(method, password)
+                    self._crypto = NONECipher(method, password, flag)
 
         if self._crypto is None:
             raise NotImplementedError

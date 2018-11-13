@@ -131,7 +131,7 @@ class LocalHandler(TimeoutHandler):
 
         try:
             self._cryptor = Cryptor(
-                self._method, self._key, _transport_protocol)
+                self._method, self._key, self._transport_protocol)
             logging.debug('tcp connection made')
         except NotImplementedError:
             logging.warning('not support cipher')
@@ -163,7 +163,7 @@ class LocalHandler(TimeoutHandler):
             data = self._cryptor.decrypt(data)
         except RuntimeError as e:
             logging.warning('decrypt data error {}'.format(e))
-            self.close()
+            self.close(clean=True)
             return
 
         if self._stage == self.STAGE_INIT:
