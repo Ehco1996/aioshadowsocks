@@ -94,7 +94,7 @@ class RemoteTCP(asyncio.Protocol, TimeoutHandler):
         self._peername = None
         self._transport = None
         self._transport_type = flag.TRANSPORT_TCP
-        self._cryptor = Cryptor(method, password)
+        self._cryptor = Cryptor(method, password, self._transport_type)
 
     def write(self, data):
         if self._transport is not None:

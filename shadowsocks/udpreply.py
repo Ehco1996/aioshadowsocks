@@ -4,6 +4,7 @@ import logging
 import asyncio
 
 from shadowsocks.cryptor import Cryptor
+from shadowsocks import protocol_flag as flag
 from shadowsocks.handlers import LocalHandler, TimeoutHandler
 
 
@@ -50,7 +51,8 @@ class RemoteUDP(asyncio.DatagramProtocol, TimeoutHandler):
         self._local = local_hander
         self._peername = None
         self._transport = None
-        self._cryptor = Cryptor(method, password)
+        self._transport_type = flag.TRANSPORT_TCP
+        self._cryptor = Cryptor(method, password, _transport_type)
 
     def write(self, data):
         if self._transport is not None:
