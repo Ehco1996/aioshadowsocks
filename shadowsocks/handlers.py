@@ -130,7 +130,8 @@ class LocalHandler(TimeoutHandler):
         self.keep_alive_open()
 
         try:
-            self._cryptor = Cryptor(self._method, self._key)
+            self._cryptor = Cryptor(
+                self._method, self._key, _transport_protocol)
             logging.debug('tcp connection made')
         except NotImplementedError:
             logging.warning('not support cipher')
@@ -147,7 +148,8 @@ class LocalHandler(TimeoutHandler):
         self._peername = peername
 
         try:
-            self._cryptor = Cryptor(self._method, self._key)
+            self._cryptor = Cryptor(
+                self._method, self._key, self._transport_protocol)
             logging.debug('udp connection made')
         except NotImplementedError:
             logging.warning('not support cipher')
@@ -200,6 +202,7 @@ class LocalHandler(TimeoutHandler):
         if not dst_addr:
             logging.warning(
                 'not valid data atype：{} user: {}'.format(atype, self.user))
+            self.close(clean=True)
             return
         else:
             payload = data[header_length:]

@@ -114,16 +114,17 @@ class RemoteTCP(asyncio.Protocol, TimeoutHandler):
         self.keep_alive_open()
         self._transport = transport
         self._peername = self._transport.get_extra_info('peername')
-        logging.debug('connection made, peername {} user: {}'.format(
+        logging.debug('remotetcp connection made, peername {} user: {}'.format(
             self._peername, self._local.user))
         self.write(self._data)
 
     def data_received(self, data):
         self.keep_alive_active()
-        logging.debug('received data length: {} user: {}'.format(
+        logging.debug('remotetcp received data length: {} user: {}'.format(
             len(data), self._local.user))
         data = self._cryptor.encrypt(data)
-        self._local.write(data)
+        if self._local:
+            self._local.write(data)
 
     def eof_received(self):
         logging.debug('eof received')
