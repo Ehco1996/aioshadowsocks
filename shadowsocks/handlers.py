@@ -90,11 +90,10 @@ class LocalHandler(TimeoutHandler):
         '''
         针对tcp/udp分别写数据
         '''
-        # filter user
-        if not pool.filter_user(self.user):
+        # filter user&transport
+        if pool.filter_user(self.user) is False or self._transport is None:
             self.close(clean=True)
             return
-
         if self._transport_protocol == flag.TRANSPORT_TCP:
             try:
                 self._transport.write(data)

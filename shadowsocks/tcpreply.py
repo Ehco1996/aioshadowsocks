@@ -97,7 +97,7 @@ class RemoteTCP(asyncio.Protocol, TimeoutHandler):
         self._cryptor = Cryptor(method, password, self._transport_type)
 
     def write(self, data):
-        if self._transport is not None:
+        if self._transport:
             try:
                 self._transport.write(data)
             except MemoryError:
@@ -119,12 +119,14 @@ class RemoteTCP(asyncio.Protocol, TimeoutHandler):
         self.write(self._data)
 
     def data_received(self, data):
+        if not self._local:
+            self.close()
+            return
         self.keep_alive_active()
         logging.debug('remotetcp received data length: {} user: {}'.format(
             len(data), self._local.user))
         data = self._cryptor.encrypt(data)
-        if self._local:
-            self._local.write(data)
+        self._local.write(data)
 
     def eof_received(self):
         logging.debug('eof received')
