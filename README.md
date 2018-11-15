@@ -2,6 +2,15 @@
 用 asyncio 重写 shadowsocks ~
 
 
+### 当前进度~
+
+- [x] TCP
+- [x] UDP
+- [x] Basic Cipher (aes)
+- [x] WebTransfer
+- [ ] ManyUser One Port
+- [ ] More Cipher (ahead)
+
 ## 为什么要重写shadowsocks
 
 最近对异步IO非常感兴趣
