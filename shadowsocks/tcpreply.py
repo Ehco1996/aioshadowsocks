@@ -119,7 +119,7 @@ class RemoteTCP(asyncio.Protocol, TimeoutHandler):
         self.write(self._data)
 
     def data_received(self, data):
-        if not self._local:
+        if self._local_verified is False:
             self.close()
             return
         self.keep_alive_active()
@@ -136,3 +136,11 @@ class RemoteTCP(asyncio.Protocol, TimeoutHandler):
         logging.debug('lost exc={exc}'.format(exc=exc))
         if self._local is not None:
             self._local.close()
+
+    @property
+    def _local_verified(self):
+        if not self._local:
+            return False
+        elif self._local._transport is None:
+            return False
+        return True

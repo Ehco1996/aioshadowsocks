@@ -102,6 +102,8 @@ class ServerPool:
             return False
         elif user.tcp_count > c.MAX_TCP_CONNECT:
             return False
+        elif user.enable is False:
+            return False
         return True
 
     @classmethod
