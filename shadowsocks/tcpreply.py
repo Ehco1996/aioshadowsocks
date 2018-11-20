@@ -143,4 +143,7 @@ class RemoteTCP(asyncio.Protocol, TimeoutHandler):
             return False
         elif self._local._transport is None:
             return False
+        elif self._transport._sock is None:
+            # cpython selector_events _SelectorTransport
+            return False
         return True
