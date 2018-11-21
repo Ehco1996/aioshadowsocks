@@ -10,7 +10,7 @@ from shadowsocks.logger import init_logger_config
 
 
 def run_servers(transfer_type):
-    # 初始化tansfer
+    # 初始化transfer
     pool.init_transfer(transfer_type)
 
     # 启动定时任务
