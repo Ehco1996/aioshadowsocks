@@ -40,8 +40,9 @@ class WebTransfer:
         return configs
 
     def update_all_user(self, user_list):
-        # 用户流量上报
+        # 用户流量/在线ip上报
         data = []
+        ip_data = {}
         alive_user_count = 0
         for user in user_list:
             if user.once_used_traffic > 0:
@@ -51,9 +52,11 @@ class WebTransfer:
                     'u': user.once_used_u * self.transfer_mul,
                     'd': user.once_used_d * self.transfer_mul
                 })
-            # reset user used traffic
+                ip_data[user.user_id] = list(user.ip_list)
+            # reset user used traffic/ip_list
             user.once_used_u = 0
             user.once_used_d = 0
+            user.ip_list.clear()
 
         if len(data) > 0:
             tarffic_data = {'node_id': self.node_id,
@@ -63,3 +66,7 @@ class WebTransfer:
         online_data = {'node_id': self.node_id,
                        'online_user': alive_user_count}
         self.api.postApi('/nodes/online', online_data)
+        # 节点在线ip上报
+        self.api.postApi('/nodes/aliveip',
+                         {'node_id': self.node_id,
+                          'data': ip_data})
