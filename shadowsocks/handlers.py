@@ -161,7 +161,7 @@ class LocalHandler(TimeoutHandler):
                 self._method, self._key, self._transport_protocol)
             logging.debug('udp connection made')
         except NotImplementedError:
-            logging.warning('not support cipher')
+            logging.warning('not support cipher:{}'.format(self._method))
             transport.close()
             self.close(clean=True)
 
