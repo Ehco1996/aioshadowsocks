@@ -272,7 +272,7 @@ class LocalHandler(TimeoutHandler):
         #  5s之后连接还没建立的话 超时处理
         logging.warning(
             'time out to connect remote stage {}'.format(self._stage))
-        self.close()
+        self.close(clean=True)
 
     def _handle_stage_stream(self, data):
         logging.debug('realy data length {}'.format(len(data)))
