@@ -18,7 +18,7 @@ class TimeoutHandler:
         raise NotImplementedError
 
     def keep_alive_open(self):
-        asyncio.ensure_future(self._keep_alive())
+        asyncio.create_task(self._keep_alive())
 
     def keep_alive_active(self):
         self._last_active_time = time.time()
@@ -177,10 +177,10 @@ class LocalHandler(TimeoutHandler):
 
         if self._stage == self.STAGE_INIT:
             coro = self._handle_stage_init(data)
-            asyncio.ensure_future(coro)
+            asyncio.create_task(coro)
         elif self._stage == self.STAGE_CONNECT:
             coro = self._handle_stage_connect(data)
-            asyncio.ensure_future(coro)
+            asyncio.create_task(coro)
         elif self._stage == self.STAGE_STREAM:
             self._handle_stage_stream(data)
         elif self._stage == self.STAGE_ERROR:
@@ -250,7 +250,7 @@ class LocalHandler(TimeoutHandler):
             udp_coro = loop.create_datagram_endpoint(lambda: RemoteUDP(
                 dst_addr, dst_port, payload, self._method, self._key,  self),
                 remote_addr=(dst_addr, dst_port))
-            asyncio.ensure_future(udp_coro)
+            asyncio.create_task(udp_coro)
         else:
             raise NotImplementedError
 
@@ -259,7 +259,7 @@ class LocalHandler(TimeoutHandler):
         logging.debug('wait until the connection established')
         # 在握手之后，会耗费一定时间来来和remote建立连接
         # 但是ss-client并不会等这个时间 所以我们在这里手动sleep一会
-        for i in range(25):
+        for _ in range(25):
             if self._stage == self.STAGE_CONNECT:
                 await asyncio.sleep(0.2)
             elif self._stage == self.STAGE_STREAM:
