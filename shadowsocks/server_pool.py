@@ -129,7 +129,7 @@ class ServerPool:
     @classmethod
     def init_transfer(cls, transfer_type):
         if transfer_type == 'webapi':
-            cls.transfer = WebTransfer(c.TOKEN, c.WEBAPI_URL)
+            cls.transfer = WebTransfer(c.TOKEN, c.WEBAPI_URL, c.NODE_ID)
         else:
             path = os.path.join(os.getcwd(), 'defualtconfig.json').encode()
             cls.transfer = JsonTransfer(path)
