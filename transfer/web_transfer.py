@@ -5,9 +5,8 @@ from transfer.utils import EhcoApi
 
 
 class WebTransfer:
-    def __init__(self, token, url, node_id, local_address):
+    def __init__(self, token, url, node_id):
         self.api = EhcoApi(token, url)
-        self.local_address = local_address
         self.node_id = node_id
         self.transfer_mul = 1.0
 
@@ -33,11 +32,10 @@ class WebTransfer:
         if not data:
             logging.warning('没有查询到满足要求的user，请检查自己的node_id!')
             return
-        users = []
+        user_configs = []
         for user_info in data:
-            users.append(User(**user_info))
-        configs = {'local_address': self.local_address, 'users': users}
-        return configs
+            user_configs.append(User(**user_info))
+        return user_configs
 
     def update_all_user(self, user_list):
         # 用户流量/在线ip上报

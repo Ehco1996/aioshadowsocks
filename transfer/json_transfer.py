@@ -1,7 +1,5 @@
-import os
 import logging
 
-from transfer.users import User
 from transfer.utils import json_config_reader
 
 

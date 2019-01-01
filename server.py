@@ -1,11 +1,8 @@
-import os
-import time
 import logging
 import asyncio
 
 from config import TRANSFER_TYPE
 from shadowsocks.server_pool import pool
-from shadowsocks.user_tasks import UserTasks
 from shadowsocks.logger import init_logger_config
 
 
@@ -13,9 +10,8 @@ def run_servers(transfer_type):
     # 初始化transfer
     pool.init_transfer(transfer_type)
 
-    # 启动定时任务
-    user_tasks = UserTasks(pool)
-    user_tasks.user_cron_task()
+    # 定时任务
+    pool.sync_user_config_task()
 
     loop = asyncio.get_event_loop()
     try:
@@ -28,5 +24,5 @@ def run_servers(transfer_type):
 
 
 if __name__ == "__main__":
-    init_logger_config(log_level="info")
+    init_logger_config(log_level="debug")
     run_servers(TRANSFER_TYPE)

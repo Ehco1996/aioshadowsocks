@@ -12,3 +12,6 @@ MAX_TCP_CONNECT = 20
 
 # 清空黑名单是时间间隔
 RELEASE_TIME = 60 * 10
+
+# 与服务器同步时间间隔
+SYNC_TIME = 60
