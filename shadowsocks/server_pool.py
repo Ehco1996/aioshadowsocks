@@ -59,11 +59,11 @@ class ServerPool:
 
     @classmethod
     def _init_or_update_user_server(cls, loop):
-        configs = cls.transfer.get_all_user_configs()
-        if not configs:
+        user_configs = cls.transfer.get_all_user_configs()
+        if not user_configs:
             logging.error('get user config faild')
             return
-        for user in configs['users']:
+        for user in user_configs:
             # 跳过黑名单里的用户
             if user.user_id in cls.balck_user_ids:
                 continue
