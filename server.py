@@ -17,7 +17,7 @@ def run_servers(transfer_type):
     try:
         loop.run_forever()
     except KeyboardInterrupt:
-        logging.info('正在关闭所有ss server')
+        logging.info("正在关闭所有ss server")
         for user in pool.get_user_list():
             pool.remove_user(user.user_id)
         loop.stop()

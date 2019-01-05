@@ -1,27 +1,23 @@
-'''
+"""
 提供AES系列加密解密
-'''
+"""
 import os
 
 from cryptography.hazmat.backends import default_backend
-from cryptography.hazmat.primitives.ciphers import (Cipher, algorithms, modes)
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 
 from shadowsocks.protocol_flag import TRANSPORT_UDP
 from shadowsocks.crypto.utils import evp_bytestokey
 
 
 class AESCipher:
-    '''
+    """
     doc:
     https://cryptography.io/en/latest/hazmat/primitives/symmetric-encryption/
-    '''
+    """
 
     # 不同加密方式对应的 block size
-    SUPPORT_METHODS = {
-        'aes-128-cfb': 16,
-        'aes-192-cfb': 24,
-        'aes-256-cfb': 32,
-    }
+    SUPPORT_METHODS = {"aes-128-cfb": 16, "aes-192-cfb": 24, "aes-256-cfb": 32}
 
     def __init__(self, method, password, flag):
         self._method = method.lower()
@@ -46,9 +42,7 @@ class AESCipher:
 
     def _make_cipher(self):
         self._cipher = Cipher(
-            algorithms.AES(self._key),
-            modes.CFB(self._iv),
-            backend=default_backend()
+            algorithms.AES(self._key), modes.CFB(self._iv), backend=default_backend()
         )
 
     def encrypt(self, data):
@@ -63,7 +57,7 @@ class AESCipher:
     def decrypt(self, data):
         if self._first_package or self._flag == TRANSPORT_UDP:
             self._first_package = False
-            self._iv, data = data[:self._iv_len], data[self._iv_len:]
+            self._iv, data = data[: self._iv_len], data[self._iv_len :]
             self._make_cipher()
             self._decryptor = self._cipher.decryptor()
         return self._decryptor.update(data)

@@ -9,7 +9,6 @@ from shadowsocks.handlers import LocalHandler, TimeoutHandler
 
 
 class LocalUDP(asyncio.DatagramProtocol):
-
     def __init__(self, user):
         self.user = user
 
@@ -36,15 +35,14 @@ class LocalUDP(asyncio.DatagramProtocol):
         handler.handle_data_received(data)
 
     def error_received(self, exc):
-        '''
+        """
         Called when a send or receive operation raises an OSError.
         (Other than BlockingIOError or InterruptedError.)
-        '''
+        """
         pass
 
 
 class RemoteUDP(asyncio.DatagramProtocol, TimeoutHandler):
-
     def __init__(self, addr, port, data, method, password, local_hander):
         TimeoutHandler.__init__(self)
         self._data = data
@@ -65,24 +63,28 @@ class RemoteUDP(asyncio.DatagramProtocol, TimeoutHandler):
     def connection_made(self, transport):
         self.keep_alive_open()
         self._transport = transport
-        self._peername = self._transport.get_extra_info('peername')
-        logging.debug("connetcion made peername: {} user: {}".format(
-            self._peername, self._local.user))
+        self._peername = self._transport.get_extra_info("peername")
+        logging.debug(
+            "connetcion made peername: {} user: {}".format(
+                self._peername, self._local.user
+            )
+        )
 
     def connection_lost(self, exc):
         logging.debug("udp connetcion lost exc {}".format(exc))
 
     def datagram_received(self, data, peername):
         self.keep_alive_active()
-        logging.debug("udp received data len: {} user: {}".format(
-            len(data), self._local.user))
+        logging.debug(
+            "udp received data len: {} user: {}".format(len(data), self._local.user)
+        )
         assert self._peername == peername
         # 源地址和端口
         bind_addr, bind_port = peername
         addr = socket.inet_pton(socket.AF_INET, bind_addr)
-        port = struct.pack('!H', bind_port)
+        port = struct.pack("!H", bind_port)
         # 构造返回的报文结构
-        data = b'\x01' + addr + port + data
+        data = b"\x01" + addr + port + data
         data = self._cryptor.encrypt(data)
         self._local.write(data)
 

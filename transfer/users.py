@@ -1,6 +1,6 @@
-'''
+"""
 user object
-'''
+"""
 
 
 class User:
@@ -26,19 +26,19 @@ class User:
         self.__dict__.update(propertys)
 
         # format for api
-        if 'passwd' in propertys:
-            self.password = propertys['passwd']
-        if 'id' in propertys:
-            self.user_id = propertys['id']
-        if 'u' in propertys:
-            self.upload_traffic = propertys['u']
-        if 'd' in propertys:
-            self.download_traffic = propertys['d']
-        if 'transfer_enable' in propertys:
-            self.total_traffic = propertys['transfer_enable']
+        if "passwd" in propertys:
+            self.password = propertys["passwd"]
+        if "id" in propertys:
+            self.user_id = propertys["id"]
+        if "u" in propertys:
+            self.upload_traffic = propertys["u"]
+        if "d" in propertys:
+            self.download_traffic = propertys["d"]
+        if "transfer_enable" in propertys:
+            self.total_traffic = propertys["transfer_enable"]
 
     def __repr__(self):
-        return '<shadowsocks user object user_id:{}>'.format(self.user_id)
+        return "<shadowsocks user object user_id:{}>".format(self.user_id)
 
     @property
     def used_traffic(self):
