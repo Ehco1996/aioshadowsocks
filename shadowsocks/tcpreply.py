@@ -126,8 +126,8 @@ class RemoteTCP(asyncio.Protocol, TimeoutHandler):
             return
         self.keep_alive_active()
         logging.debug(
-            "remotetcp received data length: {} user: {}".format(
-                len(data), self._local.user
+            "remotetcp {} received data length: {} user: {}".format(
+                self, len(data), self._local.user
             )
         )
         data = self._cryptor.encrypt(data)
