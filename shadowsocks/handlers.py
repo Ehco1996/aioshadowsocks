@@ -2,6 +2,9 @@ import time
 import logging
 import asyncio
 
+from ratelimit import limits, sleep_and_retry
+
+
 from shadowsocks.cryptor import Cryptor
 from shadowsocks.server_pool import pool
 from shadowsocks.utils import parse_header
@@ -96,9 +99,12 @@ class LocalHandler(TimeoutHandler):
         if clean:
             self.destroy()
 
+    @sleep_and_retry
+    @limits(calls=100, period=1)
     def write(self, data):
         """
         针对tcp/udp分别写数据
+        ratelimt: 100calls/1s
         """
         # filter traffic
         if self.traffic_filter() is False:
@@ -110,7 +116,8 @@ class LocalHandler(TimeoutHandler):
                 # 记录下载流量
                 self.user.once_used_d += len(data)
             except MemoryError:
-                logging.warning("memory boom user_id: {}".format(self.user.user_id))
+                logging.warning(
+                    "memory boom user_id: {}".format(self.user.user_id))
                 pool.add_user_to_jail(self.user.user_id)
                 self.close(clean=True)
         elif self._transport_protocol == flag.TRANSPORT_UDP:
@@ -138,7 +145,8 @@ class LocalHandler(TimeoutHandler):
         self.keep_alive_open()
 
         try:
-            self._cryptor = Cryptor(self._method, self._key, self._transport_protocol)
+            self._cryptor = Cryptor(
+                self._method, self._key, self._transport_protocol)
             logging.debug("tcp connection made")
         except NotImplementedError:
             logging.warning("not support cipher")
@@ -155,7 +163,8 @@ class LocalHandler(TimeoutHandler):
         self._peername = peername
 
         try:
-            self._cryptor = Cryptor(self._method, self._key, self._transport_protocol)
+            self._cryptor = Cryptor(
+                self._method, self._key, self._transport_protocol)
             logging.debug("udp connection made")
         except NotImplementedError:
             logging.warning("not support cipher:{}".format(self._method))
@@ -232,16 +241,19 @@ class LocalHandler(TimeoutHandler):
                     # 记录用户的tcp连接数
                     self.user.tcp_count += 1
                 except (IOError, OSError) as e:
-                    logging.debug("connection faild , {} e: {}".format(type(e), e))
+                    logging.debug(
+                        "connection faild , {} e: {}".format(type(e), e))
                     self.close()
                     self._stage = self.STAGE_DESTROY
                 except Exception as e:
-                    logging.warning("connection failed, {} e: {}".format(type(e), e))
+                    logging.warning(
+                        "connection failed, {} e: {}".format(type(e), e))
                     self._stage = self.STAGE_ERROR
                     self.close()
                 else:
                     logging.debug(
-                        "connection established,remote {}".format(remote_instance)
+                        "connection established,remote {}".format(
+                            remote_instance)
                     )
                     self._remote = remote_instance
                     self._stage = self.STAGE_STREAM
@@ -273,7 +285,8 @@ class LocalHandler(TimeoutHandler):
             else:
                 logging.debug("some error happed stage {}".format(self._stage))
         #  5s之后连接还没建立的话 超时处理
-        logging.warning("time out to connect remote stage {}".format(self._stage))
+        logging.warning(
+            "time out to connect remote stage {}".format(self._stage))
         self.close(clean=True)
 
     def _handle_stage_stream(self, data):
