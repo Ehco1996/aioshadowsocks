@@ -35,10 +35,6 @@ class LocalUDP(asyncio.DatagramProtocol):
         handler.handle_data_received(data)
 
     def error_received(self, exc):
-        """
-        Called when a send or receive operation raises an OSError.
-        (Other than BlockingIOError or InterruptedError.)
-        """
         pass
 
 

@@ -1,11 +1,9 @@
-import os
 import time
 import logging
 import asyncio
 
 from shadowsocks.udpreply import LocalUDP
 from shadowsocks.tcpreply import LocalTCP
-from shadowsocks.logger import init_logger_config
 
 
 class UserTasks:
@@ -44,9 +42,6 @@ class UserTasks:
         for user in configs["users"]:
             user_id = user.user_id
             port = user.port
-            # 跳过黑名单里的用户
-            if user_id in self.pool.balck_user_ids:
-                continue
             if self.pool.check_user_exist(user_id, port) is False:
                 logging.info(
                     "user_id:{} pass:{} 在 {} 的 {} 端口启动啦！".format(

@@ -111,15 +111,9 @@ class LocalHandler(TimeoutHandler):
             self.close(clean=True)
             return
         if self._transport_protocol == flag.TRANSPORT_TCP:
-            try:
-                self._transport.write(data)
-                # 记录下载流量
-                self.user.once_used_d += len(data)
-            except MemoryError:
-                logging.warning(
-                    "memory boom user_id: {}".format(self.user.user_id))
-                pool.add_user_to_jail(self.user.user_id)
-                self.close(clean=True)
+            self._transport.write(data)
+            # 记录下载流量
+            self.user.once_used_d += len(data)
         elif self._transport_protocol == flag.TRANSPORT_UDP:
             self._transport.sendto(data, self._peername)
         else:
@@ -145,8 +139,7 @@ class LocalHandler(TimeoutHandler):
         self.keep_alive_open()
 
         try:
-            self._cryptor = Cryptor(
-                self._method, self._key, self._transport_protocol)
+            self._cryptor = Cryptor(self._method, self._key, self._transport_protocol)
             logging.debug("tcp connection made")
         except NotImplementedError:
             logging.warning("not support cipher")
@@ -163,8 +156,7 @@ class LocalHandler(TimeoutHandler):
         self._peername = peername
 
         try:
-            self._cryptor = Cryptor(
-                self._method, self._key, self._transport_protocol)
+            self._cryptor = Cryptor(self._method, self._key, self._transport_protocol)
             logging.debug("udp connection made")
         except NotImplementedError:
             logging.warning("not support cipher:{}".format(self._method))
@@ -176,7 +168,7 @@ class LocalHandler(TimeoutHandler):
         self.user.once_used_u += len(data)
         try:
             data = self._cryptor.decrypt(data)
-        except RuntimeError as e:
+        except Exception as e:
             logging.warning("decrypt data error {}".format(e))
             self.close(clean=True)
             return
@@ -241,19 +233,16 @@ class LocalHandler(TimeoutHandler):
                     # 记录用户的tcp连接数
                     self.user.tcp_count += 1
                 except (IOError, OSError) as e:
-                    logging.debug(
-                        "connection faild , {} e: {}".format(type(e), e))
+                    logging.debug("connection faild , {} e: {}".format(type(e), e))
                     self.close()
                     self._stage = self.STAGE_DESTROY
                 except Exception as e:
-                    logging.warning(
-                        "connection failed, {} e: {}".format(type(e), e))
+                    logging.warning("connection failed, {} e: {}".format(type(e), e))
                     self._stage = self.STAGE_ERROR
                     self.close()
                 else:
                     logging.debug(
-                        "connection established,remote {}".format(
-                            remote_instance)
+                        "connection established,remote {}".format(remote_instance)
                     )
                     self._remote = remote_instance
                     self._stage = self.STAGE_STREAM
@@ -285,8 +274,7 @@ class LocalHandler(TimeoutHandler):
             else:
                 logging.debug("some error happed stage {}".format(self._stage))
         #  5s之后连接还没建立的话 超时处理
-        logging.warning(
-            "time out to connect remote stage {}".format(self._stage))
+        logging.warning("time out to connect remote stage {}".format(self._stage))
         self.close(clean=True)
 
     def _handle_stage_stream(self, data):

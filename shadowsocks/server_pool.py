@@ -19,7 +19,6 @@ class ServerPool:
     #     'udp': 'udp_local_handler'}
     #  }
     local_handlers = {}
-    balck_user_ids = set()
     semaphore = asyncio.BoundedSemaphore(c.MAX_INTI_SEMAPHORE)
 
     def __new__(cls, *args, **kw):
@@ -72,9 +71,6 @@ class ServerPool:
             logging.error("get user config faild")
             return
         for user in user_configs:
-            # 跳过黑名单里的用户
-            if user.user_id in cls.balck_user_ids:
-                continue
             if not cls._check_user_exist(user.user_id, user.port):
                 loop.create_task(cls._init_user_server(loop, user))
             else:
@@ -99,37 +95,6 @@ class ServerPool:
         logging.info("checked user traffic")
 
     @classmethod
-    def _add_user_to_jail(cls, user_id):
-        now = int(time.time())
-        cls.balck_user_ids.add(user_id)
-        user = cls._get_user_by_id(user_id)
-        if user.status == 0:
-            user_data = cls.local_handlers[user_id]
-            user_data["tcp"].close()
-            user_data["udp"].close()
-            user.status = 1
-            user.jail_time = now
-            logging.warning(
-                "close user: {} connection & addto black_list".format(user_id)
-            )
-        else:
-            logging.warning("user: {} already in black_list".format(user_id))
-
-    @classmethod
-    def _release_black_user(cls):
-        now = int(time.time())
-        need_release_ids = []
-        for user_id in cls.balck_user_ids:
-            user = cls._get_user_by_id(user_id)
-            if user.status == 1 and (now - user.jail_time) > c.RELEASE_TIME:
-                need_release_ids.append(user_id)
-                user.status = 0
-                logging.warning("release user: {} from  black_list".format(user_id))
-        # release user
-        for user_id in need_release_ids:
-            cls.balck_user_ids.remove(user_id)
-
-    @classmethod
     def get_user_list(cls):
         user_list = []
         for user_id in cls.local_handlers.keys():
@@ -151,9 +116,7 @@ class ServerPool:
             # post user traffic to server
             user_list = cls.get_user_list()
             cls.transfer.update_all_user(user_list)
-            now = int(time.time())
-            logging.info("async user config cronjob current time {}".format(now))
-            cls._release_black_user()
+            logging.info(f"async user config cronjob current time {time.time}")
             # del out of traffic user from pool
             cls._check_user_traffic(user_list)
             # check/init user server
@@ -166,8 +129,6 @@ class ServerPool:
     @classmethod
     def filter_user(cls, user):
         if not user:
-            return False
-        elif user.user_id in cls.balck_user_ids:
             return False
         elif user.tcp_count > c.MAX_TCP_CONNECT:
             return False

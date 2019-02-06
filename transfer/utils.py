@@ -1,4 +1,3 @@
-import gc
 import json
 import logging
 import traceback
@@ -26,10 +25,6 @@ def json_config_reader(path):
 
 
 class EhcoApi:
-    """
-    提供发送get/post的抽象类
-    """
-
     def __init__(self, token, url):
         self.TOKEN = token
         self.WEBAPI_URL = url
@@ -86,9 +81,3 @@ class EhcoApi:
             trace = traceback.format_exc()
             logging.error(trace)
             logging.error("网络问题，请保证api接口地址设置正确！当前接口地址：{}".format(self.WEBAPI_URL))
-
-
-def get_obj_by_id(obj_id):
-    for obj in gc.get_objects():
-        if id(obj) == obj_id:
-            return obj

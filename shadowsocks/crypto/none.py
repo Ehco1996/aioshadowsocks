@@ -1,11 +1,3 @@
-"""
-提供AES系列加密解密
-"""
-import os
-
-from shadowsocks.crypto.utils import evp_bytestokey
-
-
 class NONECipher:
     SUPPORT_METHODS = {"none": -1}
 
