@@ -2,6 +2,7 @@ import socket
 import struct
 import logging
 
+
 from shadowsocks import protocol_flag as flag
 
 

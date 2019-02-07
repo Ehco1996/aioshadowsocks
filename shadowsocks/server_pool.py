@@ -36,7 +36,7 @@ class ServerPool:
             current_user = cls._get_user_by_id(user_id)
             # change user port
             if current_user.port != port:
-                pool.remove_user(user_id)
+                cls.remove_user(user_id)
                 return False
             return True
         else:

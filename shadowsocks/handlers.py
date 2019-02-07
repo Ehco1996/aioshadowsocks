@@ -1,14 +1,13 @@
+import gc
 import time
 import logging
 import asyncio
-
-from ratelimit import limits, sleep_and_retry
-
 
 from shadowsocks.cryptor import Cryptor
 from shadowsocks.server_pool import pool
 from shadowsocks.utils import parse_header
 from shadowsocks import protocol_flag as flag
+from shadowsocks.ratelimit import UserRateLimitDecorator
 
 
 class TimeoutHandler:
@@ -67,16 +66,8 @@ class LocalHandler(TimeoutHandler):
         self._transport_protocol = None
         self._stage = self.STAGE_DESTROY
 
-    def destroy(self):
-        """尝试优化一些内存泄露的问题"""
-        self._stage = self.STAGE_DESTROY
-        self._key = None
-        self._method = None
-        self._cryptor = None
-        self._peername = None
-
     def traffic_filter(self):
-        if pool.filter_user(self.user) is False:
+        if not pool.filter_user(self.user):
             return False
         elif self._transport is None:
             return False
@@ -85,7 +76,7 @@ class LocalHandler(TimeoutHandler):
             return False
         return True
 
-    def close(self, clean=False):
+    def close(self):
         if self._transport_protocol == flag.TRANSPORT_TCP:
             if self._transport:
                 self._transport.close()
@@ -96,19 +87,15 @@ class LocalHandler(TimeoutHandler):
         else:
             raise NotImplementedError
 
-        if clean:
-            self.destroy()
-
-    @sleep_and_retry
-    @limits(calls=100, period=1)
+    @UserRateLimitDecorator(calls=150, period=1)
     def write(self, data):
         """
         针对tcp/udp分别写数据
-        ratelimt: 100calls/1s
+        ratelimt: 150calls/1s/user
         """
         # filter traffic
         if self.traffic_filter() is False:
-            self.close(clean=True)
+            self.close()
             return
         if self._transport_protocol == flag.TRANSPORT_TCP:
             self._transport.write(data)
@@ -131,7 +118,7 @@ class LocalHandler(TimeoutHandler):
         # filter tcp connction
         if not pool.filter_user(self.user):
             transport.close()
-            self.close(clean=True)
+            self.close()
             return
         self._transport = transport
         # get the remote address to which the socket is connected
@@ -144,7 +131,7 @@ class LocalHandler(TimeoutHandler):
         except NotImplementedError:
             logging.warning("not support cipher")
             transport.close()
-            self.close(clean=True)
+            self.close()
 
     def handle_udp_connection_made(self, transport, peername):
         """
@@ -161,7 +148,7 @@ class LocalHandler(TimeoutHandler):
         except NotImplementedError:
             logging.warning("not support cipher:{}".format(self._method))
             transport.close()
-            self.close(clean=True)
+            self.close()
 
     def handle_data_received(self, data):
         # 累计并检查用户流量
@@ -170,7 +157,7 @@ class LocalHandler(TimeoutHandler):
             data = self._cryptor.decrypt(data)
         except Exception as e:
             logging.warning("decrypt data error {}".format(e))
-            self.close(clean=True)
+            self.close()
             return
 
         if self._stage == self.STAGE_INIT:
@@ -210,7 +197,7 @@ class LocalHandler(TimeoutHandler):
                 logging.warning(
                     "not valid data atype：{} user: {}".format(atype, self.user)
                 )
-                self.close(clean=True)
+                self.close()
                 return
             else:
                 payload = data[header_length:]
@@ -275,7 +262,7 @@ class LocalHandler(TimeoutHandler):
                 logging.debug("some error happed stage {}".format(self._stage))
         #  5s之后连接还没建立的话 超时处理
         logging.warning("time out to connect remote stage {}".format(self._stage))
-        self.close(clean=True)
+        self.close()
 
     def _handle_stage_stream(self, data):
         logging.debug("realy data length {}".format(len(data)))
