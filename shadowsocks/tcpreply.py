@@ -56,8 +56,8 @@ class RemoteTCP(asyncio.Protocol, TimeoutHandler):
         self._transport = transport
         self._peername = self._transport.get_extra_info("peername")
         logging.debug(
-            "remotetcp connection made, peername {} user: {}".format(
-                self._peername, self._local.user
+            "remotetcp connection made, peername {} user_id: {}".format(
+                self._peername, self._local.user.user_id
             )
         )
         self.write(self._data)
@@ -68,8 +68,8 @@ class RemoteTCP(asyncio.Protocol, TimeoutHandler):
             return
         self.keep_alive_active()
         logging.debug(
-            "remotetcp {} received data length: {} user: {}".format(
-                self, len(data), self._local.user
+            "remotetcp {} received data length: {} user_id: {}".format(
+                self, len(data), self._local.user.user_id
             )
         )
         data = self._cryptor.encrypt(data)

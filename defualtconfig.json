@@ -8,7 +8,9 @@
             "port": 2345,
             "method": "none",
             "password": "hellotheworld",
-            "total_traffic": 104857600
+            "total_traffic": 104857600,
+            "obfs": "http_simple",
+            "obfs_param": ""
         },
         {
             "user_id": 2,

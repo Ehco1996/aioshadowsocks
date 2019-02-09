@@ -1,4 +1,3 @@
-import gc
 import time
 import logging
 import asyncio
@@ -6,6 +5,7 @@ import asyncio
 from shadowsocks.cryptor import Cryptor
 from shadowsocks.server_pool import pool
 from shadowsocks.utils import parse_header
+from shadowsocks.obfs import HttpSimpleObfs
 from shadowsocks import protocol_flag as flag
 from shadowsocks.ratelimit import UserRateLimitDecorator
 
@@ -56,6 +56,7 @@ class LocalHandler(TimeoutHandler):
         TimeoutHandler.__init__(self)
 
         self.user = user
+        self.obfs = None
         self._key = password
         self._method = method
 
@@ -65,6 +66,10 @@ class LocalHandler(TimeoutHandler):
         self._transport = None
         self._transport_protocol = None
         self._stage = self.STAGE_DESTROY
+
+        if self.user.obfs:
+            # TODO more obfs
+            self.obfs = HttpSimpleObfs(self.user.obfs)
 
     def traffic_filter(self):
         if not pool.filter_user(self.user):
@@ -88,7 +93,7 @@ class LocalHandler(TimeoutHandler):
             raise NotImplementedError
 
     @UserRateLimitDecorator(calls=150, period=1)
-    def write(self, data):
+    def write(self, raw_data):
         """
         针对tcp/udp分别写数据
         ratelimt: 150calls/1s/user
@@ -97,6 +102,10 @@ class LocalHandler(TimeoutHandler):
         if self.traffic_filter() is False:
             self.close()
             return
+        if self.obfs:
+            data = self.obfs.server_encode(raw_data)
+        else:
+            data = raw_data
         if self._transport_protocol == flag.TRANSPORT_TCP:
             self._transport.write(data)
             # 记录下载流量
@@ -150,8 +159,12 @@ class LocalHandler(TimeoutHandler):
             transport.close()
             self.close()
 
-    def handle_data_received(self, data):
-        # 累计并检查用户流量
+    def handle_data_received(self, raw_data):
+        if self.obfs:
+            data, host = self.obfs.server_decode(raw_data)
+            logging.debug(f"user : {self.user} host: {host}")
+        else:
+            data = raw_data
         self.user.once_used_u += len(data)
         try:
             data = self._cryptor.decrypt(data)
@@ -159,7 +172,6 @@ class LocalHandler(TimeoutHandler):
             logging.warning("decrypt data error {}".format(e))
             self.close()
             return
-
         if self._stage == self.STAGE_INIT:
             coro = self._handle_stage_init(data, pool.semaphore)
             asyncio.create_task(coro)

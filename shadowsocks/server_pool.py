@@ -116,7 +116,7 @@ class ServerPool:
             # post user traffic to server
             user_list = cls.get_user_list()
             cls.transfer.update_all_user(user_list)
-            logging.info(f"async user config cronjob current time {time.time}")
+            logging.info(f"async user config cronjob current time {time.time()}")
             # del out of traffic user from pool
             cls._check_user_traffic(user_list)
             # check/init user server

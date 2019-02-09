@@ -11,6 +11,8 @@ class User:
         self.total_traffic = 0
         self.peername = None
         self.user_id = None
+        self.obfs = None
+        self.obfs_param = None
 
         # 记录每次同步间隔间的流量
         self.once_used_u = 0
@@ -18,11 +20,7 @@ class User:
 
         # 活跃的tcp连接数
         self.tcp_count = 0
-        # 状态： 0：norma，1：in black_user_list
-        self.status = 0
-        self.jail_time = -1
         self.ip_list = set()
-
         self.__dict__.update(propertys)
 
         # format for api
@@ -38,7 +36,7 @@ class User:
             self.total_traffic = propertys["transfer_enable"]
 
     def __repr__(self):
-        return "<shadowsocks user object user_id:{}>".format(self.user_id)
+        return "<user_id:{}>".format(self.user_id)
 
     @property
     def used_traffic(self):
