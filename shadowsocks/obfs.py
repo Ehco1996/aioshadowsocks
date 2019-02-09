@@ -50,3 +50,15 @@ class HttpSimpleObfs:
         else:
             return buf, None
 
+
+class AbstractObfs:
+
+    OBFS_CLS_MAP = {"http_simple": HttpSimpleObfs}
+
+    def __new__(cls, method):
+        obfs_cls = cls.OBFS_CLS_MAP.get(method)
+        if obfs_cls:
+            return obfs_cls(method)
+
+    def __getattr__(self, name):
+        return getattr(self._backend, name)

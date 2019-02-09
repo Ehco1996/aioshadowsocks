@@ -4,8 +4,8 @@ import asyncio
 
 from shadowsocks.cryptor import Cryptor
 from shadowsocks.server_pool import pool
+from shadowsocks.obfs import AbstractObfs
 from shadowsocks.utils import parse_header
-from shadowsocks.obfs import HttpSimpleObfs
 from shadowsocks import protocol_flag as flag
 from shadowsocks.ratelimit import UserRateLimitDecorator
 
@@ -68,8 +68,7 @@ class LocalHandler(TimeoutHandler):
         self._stage = self.STAGE_DESTROY
 
         if self.user.obfs:
-            # TODO more obfs
-            self.obfs = HttpSimpleObfs(self.user.obfs)
+            self.obfs = AbstractObfs(self.user.obfs)
 
     def traffic_filter(self):
         if not pool.filter_user(self.user):
