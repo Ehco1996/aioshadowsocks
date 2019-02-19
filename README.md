@@ -93,3 +93,9 @@ sudo curl -L "https://github.com/docker/compose/releases/download/1.23.2/docker-
 ```sh
 sudo chmod +x /usr/local/bin/docker-compose
 ```
+
+4. run server
+
+```sh
+docker-compose up
+```
