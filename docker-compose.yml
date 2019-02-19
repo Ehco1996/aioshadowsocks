@@ -1,0 +1,13 @@
+version: '3'
+
+services:
+  ss:
+    container_name : aioshadowsocks
+    build: .
+    image: aioshadowsocks
+    network_mode: host
+    restart: always
+    volumes:
+      - .:/src/aioshadowsocks
+    working_dir: /src/aioshadowsocks
+    command: python server.py

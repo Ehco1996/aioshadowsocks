@@ -73,3 +73,23 @@ pip3 install -r requirements.txt
 ```python
 python server.py
 ```
+
+## Docker Version
+
+1. install docker
+
+```sh
+curl -sSL https://get.docker.com/ | sh
+```
+
+2. install docker-compose
+
+```sh
+sudo curl -L "https://github.com/docker/compose/releases/download/1.23.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+```
+
+3. apply executable permissions
+
+```sh
+sudo chmod +x /usr/local/bin/docker-compose
+```
