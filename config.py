@@ -5,7 +5,7 @@ TRANSFER_TYPE = "json"  # 本地json
 TOKEN = ""
 WEBAPI_URL = ""
 NODE_ID = 1
-LOACL_ADREES = "0.0.0.0"
+LOCAL_ADDRES = "0.0.0.0"
 
 # 单用户最大tcp连接
 MAX_TCP_CONNECT = 20

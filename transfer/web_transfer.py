@@ -58,8 +58,8 @@ class WebTransfer:
             user.ip_list.clear()
 
         if len(data) > 0:
-            tarffic_data = {"node_id": self.node_id, "data": data}
-            self.api.postApi("/traffic/upload", tarffic_data)
+            traffic_data = {"node_id": self.node_id, "data": data}
+            self.api.postApi("/traffic/upload", traffic_data)
         # 节点人数上报
         online_data = {"node_id": self.node_id, "online_user": alive_user_count}
         self.api.postApi("/nodes/online", online_data)

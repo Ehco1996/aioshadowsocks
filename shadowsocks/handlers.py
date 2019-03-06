@@ -123,7 +123,7 @@ class LocalHandler(TimeoutHandler):
         """
         self._stage = self.STAGE_INIT
         self._transport_protocol = flag.TRANSPORT_TCP
-        # filter tcp connction
+        # filter tcp connection
         if not pool.filter_user(self.user):
             transport.close()
             self.close()
@@ -231,7 +231,7 @@ class LocalHandler(TimeoutHandler):
                     # 记录用户的tcp连接数
                     self.user.tcp_count += 1
                 except (IOError, OSError) as e:
-                    logging.debug("connection faild , {} e: {}".format(type(e), e))
+                    logging.debug("connection failed , {} e: {}".format(type(e), e))
                     self.close()
                     self._stage = self.STAGE_DESTROY
                 except Exception as e:
@@ -276,7 +276,7 @@ class LocalHandler(TimeoutHandler):
         self.close()
 
     def _handle_stage_stream(self, data):
-        logging.debug("realy data length {}".format(len(data)))
+        logging.debug("relay data length {}".format(len(data)))
         self.keep_alive_active()
         self._remote.write(data)
 

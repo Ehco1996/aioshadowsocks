@@ -47,11 +47,11 @@ class ServerPool:
         from shadowsocks.udpreply import LocalUDP
         from shadowsocks.tcpreply import LocalTCP
 
-        # TCP sevcer
-        tcp_server = await loop.create_server(LocalTCP(user), c.LOACL_ADREES, user.port)
+        # TCP server
+        tcp_server = await loop.create_server(LocalTCP(user), c.LOCAL_ADDRES, user.port)
         # UDP server
         udp_server, _ = await loop.create_datagram_endpoint(
-            LocalUDP(user), (c.LOACL_ADREES, user.port)
+            LocalUDP(user), (c.LOCAL_ADDRES, user.port)
         )
         cls.local_handlers[user.user_id] = {
             "user": user,
@@ -60,7 +60,7 @@ class ServerPool:
         }
         logging.info(
             "user_id:{} pass:{} 在 {} 的 {} 端口启动啦！".format(
-                user.user_id, user.password, c.LOACL_ADREES, user.port
+                user.user_id, user.password, c.LOCAL_ADDRES, user.port
             )
         )
 
@@ -68,7 +68,7 @@ class ServerPool:
     def _init_or_update_user_server(cls, loop):
         user_configs = cls.transfer.get_all_user_configs()
         if not user_configs:
-            logging.error("get user config faild")
+            logging.error("get user config failed")
             return
         for user in user_configs:
             if not cls._check_user_exist(user.user_id, user.port):
@@ -106,7 +106,7 @@ class ServerPool:
         if transfer_type == "webapi":
             cls.transfer = WebTransfer(c.TOKEN, c.WEBAPI_URL, c.NODE_ID)
         else:
-            path = os.path.join(os.getcwd(), "defualtconfig.json").encode()
+            path = os.path.join(os.getcwd(), "defaultconfig.json").encode()
             cls.transfer = JsonTransfer(path)
 
     @classmethod
