@@ -7,6 +7,10 @@ services:
     image: aioshadowsocks
     network_mode: host
     restart: always
+    logging:
+      driver: "json-file"
+      options:
+          max-size: "1g"
     volumes:
       - .:/src/aioshadowsocks
     working_dir: /src/aioshadowsocks
