@@ -56,9 +56,9 @@ class LocalHandler(TimeoutHandler):
         TimeoutHandler.__init__(self)
 
         self.user = user
-        self.obfs = None
         self._key = password
         self._method = method
+        self.obfs = None
 
         self._remote = None
         self._cryptor = None
@@ -69,16 +69,6 @@ class LocalHandler(TimeoutHandler):
 
         if self.user.obfs:
             self.obfs = AbstractObfs(self.user.obfs)
-
-    def traffic_filter(self):
-        if not pool.filter_user(self.user):
-            return False
-        elif self._transport is None:
-            return False
-        elif self._transport._sock is None:
-            # cpython selector_events _SelectorTransport
-            return False
-        return True
 
     def close(self):
         if self._transport_protocol == flag.TRANSPORT_TCP:
@@ -95,12 +85,8 @@ class LocalHandler(TimeoutHandler):
     def write(self, raw_data):
         """
         针对tcp/udp分别写数据
-        ratelimt: 150calls/1s/user
+        ratelimit: 150calls/1s/user
         """
-        # filter traffic
-        if self.traffic_filter() is False:
-            self.close()
-            return
         if self.obfs:
             data = self.obfs.server_encode(raw_data)
         else:
@@ -123,11 +109,6 @@ class LocalHandler(TimeoutHandler):
         """
         self._stage = self.STAGE_INIT
         self._transport_protocol = flag.TRANSPORT_TCP
-        # filter tcp connection
-        if not pool.filter_user(self.user):
-            transport.close()
-            self.close()
-            return
         self._transport = transport
         # get the remote address to which the socket is connected
         self._peername = self._transport.get_extra_info("peername")
@@ -154,7 +135,7 @@ class LocalHandler(TimeoutHandler):
             self._cryptor = Cryptor(self._method, self._key, self._transport_protocol)
             logging.debug("udp connection made")
         except NotImplementedError:
-            logging.warning("not support cipher:{}".format(self._method))
+            logging.warning(f"not support cipher:{self._method}")
             transport.close()
             self.close()
 
@@ -168,11 +149,11 @@ class LocalHandler(TimeoutHandler):
         try:
             data = self._cryptor.decrypt(data)
         except Exception as e:
-            logging.warning("decrypt data error {}".format(e))
+            logging.warning(f"decrypt data error {e}")
             self.close()
             return
         if self._stage == self.STAGE_INIT:
-            coro = self._handle_stage_init(data, pool.semaphore)
+            coro = self._handle_stage_init(data)
             asyncio.create_task(coro)
         elif self._stage == self.STAGE_CONNECT:
             coro = self._handle_stage_connect(data)
@@ -182,17 +163,17 @@ class LocalHandler(TimeoutHandler):
         elif self._stage == self.STAGE_ERROR:
             self._handle_stage_error()
         else:
-            logging.warning("unknown stage:{}".format(self._stage))
+            logging.warning(f"unknown stage:{self._stage}")
 
     def handle_eof_received(self):
         logging.debug("eof received")
         self.close()
 
     def handle_connection_lost(self, exc):
-        logging.debug("lost exc={exc}".format(exc=exc))
+        logging.debug(f"lost exc={exc}")
         self.close()
 
-    async def _handle_stage_init(self, data, semaphore):
+    async def _handle_stage_init(self, data):
         """
         初始化连接状态(握手后建立链接)
 
@@ -202,60 +183,55 @@ class LocalHandler(TimeoutHandler):
         from shadowsocks.tcpreply import RemoteTCP
         from shadowsocks.udpreply import RemoteUDP
 
-        async with semaphore:
-            atype, dst_addr, dst_port, header_length = parse_header(data)
-            if not dst_addr:
-                logging.warning(
-                    "not valid data atype：{} user: {}".format(atype, self.user)
-                )
+        atype, dst_addr, dst_port, header_length = parse_header(data)
+        if not dst_addr:
+            logging.warning(f"not valid data atype：{atype} user: {self.user}")
+            self.close()
+            return
+        else:
+            payload = data[header_length:]
+
+        # 获取事件循环
+        loop = asyncio.get_event_loop()
+        if self._transport_protocol == flag.TRANSPORT_TCP:
+            self._stage = self.STAGE_CONNECT
+
+            # 尝试建立tcp连接，成功的话将会返回 (transport,protocol)
+            tcp_coro = loop.create_connection(
+                lambda: RemoteTCP(
+                    dst_addr, dst_port, payload, self._method, self._key, self
+                ),
+                dst_addr,
+                dst_port,
+            )
+            try:
+                remote_transport, remote_instance = await tcp_coro
+                # 记录用户的tcp连接数
+                self.user.tcp_count += 1
+            except (IOError, OSError) as e:
+                logging.debug(f"connection failed , {type(e)} e: {e}")
                 self.close()
-                return
+                self._stage = self.STAGE_DESTROY
+            except Exception as e:
+                logging.warning(f"connection failed, {type(e)} e: {e}")
+                self._stage = self.STAGE_ERROR
+                self.close()
             else:
-                payload = data[header_length:]
-
-            # 获取事件循环
-            loop = asyncio.get_event_loop()
-            if self._transport_protocol == flag.TRANSPORT_TCP:
-                self._stage = self.STAGE_CONNECT
-
-                # 尝试建立tcp连接，成功的话将会返回 (transport,protocol)
-                tcp_coro = loop.create_connection(
-                    lambda: RemoteTCP(
-                        dst_addr, dst_port, payload, self._method, self._key, self
-                    ),
-                    dst_addr,
-                    dst_port,
-                )
-                try:
-                    remote_transport, remote_instance = await tcp_coro
-                    # 记录用户的tcp连接数
-                    self.user.tcp_count += 1
-                except (IOError, OSError) as e:
-                    logging.debug("connection failed , {} e: {}".format(type(e), e))
-                    self.close()
-                    self._stage = self.STAGE_DESTROY
-                except Exception as e:
-                    logging.warning("connection failed, {} e: {}".format(type(e), e))
-                    self._stage = self.STAGE_ERROR
-                    self.close()
-                else:
-                    logging.debug(
-                        "connection established,remote {}".format(remote_instance)
-                    )
-                    self._remote = remote_instance
-                    self._stage = self.STAGE_STREAM
-            elif self._transport_protocol == flag.TRANSPORT_UDP:
-                self._stage = self.STAGE_INIT
-                # 异步建立udp连接，并存入future对象
-                udp_coro = loop.create_datagram_endpoint(
-                    lambda: RemoteUDP(
-                        dst_addr, dst_port, payload, self._method, self._key, self
-                    ),
-                    remote_addr=(dst_addr, dst_port),
-                )
-                asyncio.create_task(udp_coro)
-            else:
-                raise NotImplementedError
+                logging.debug(f"connection established,remote {remote_instance}")
+                self._remote = remote_instance
+                self._stage = self.STAGE_STREAM
+        elif self._transport_protocol == flag.TRANSPORT_UDP:
+            self._stage = self.STAGE_INIT
+            # 异步建立udp连接，并存入future对象
+            udp_coro = loop.create_datagram_endpoint(
+                lambda: RemoteUDP(
+                    dst_addr, dst_port, payload, self._method, self._key, self
+                ),
+                remote_addr=(dst_addr, dst_port),
+            )
+            asyncio.create_task(udp_coro)
+        else:
+            raise NotImplementedError
 
     async def _handle_stage_connect(self, data):
 
@@ -270,13 +246,13 @@ class LocalHandler(TimeoutHandler):
                 self._remote.write(data)
                 return
             else:
-                logging.debug("some error happed stage {}".format(self._stage))
+                logging.debug(f"some error happed stage {self._stage}")
         #  5s之后连接还没建立的话 超时处理
-        logging.warning("time out to connect remote stage {}".format(self._stage))
+        logging.warning(f"time out to connect remote stage {self._stage}")
         self.close()
 
     def _handle_stage_stream(self, data):
-        logging.debug("relay data length {}".format(len(data)))
+        logging.debug(f"relay data length {len(data)}")
         self.keep_alive_active()
         self._remote.write(data)
 

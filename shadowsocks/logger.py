@@ -11,6 +11,6 @@ def init_logger_config(log_level, open=True):
         logging.disable(level)
         return
     logging.basicConfig(
-        format="[%(levelname)s] %(asctime)s - %(process)d - %(name)s - %(funcName)s() - %(message)s",  # noqa
+        format="[%(levelname)s] %(asctime)s - %(process)d - %(name)s - %(funcName)s() - %(message)s",
         level=level,
     )

@@ -15,6 +15,3 @@ RELEASE_TIME = 60 * 10
 
 # 与服务器同步时间间隔
 SYNC_TIME = 60
-
-# 最大INTI协程数量
-MAX_INTI_SEMAPHORE = 10

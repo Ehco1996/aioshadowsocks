@@ -1,7 +1,7 @@
 import logging
 
-from transfer.users import User
 from transfer.utils import EhcoApi
+from shadowsocks.user_pool import User
 
 
 class WebTransfer:
@@ -18,16 +18,16 @@ class WebTransfer:
         node_id = self.node_id
 
         # 获取节点流量比例信息
-        nodeinfo = self.api.getApi("/nodes/{}".format(node_id))
+        nodeinfo = self.api.getApi(f"/nodes/{node_id}")
         if not nodeinfo:
-            logging.warning("没有查询到满足要求的节点，请检查自己的node_id!" "当前节点ID: {}".format(node_id))
+            logging.warning(f"没有查询到满足要求的节点，请检查自己的node_id!" "当前节点ID: {node_id}")
             return
-        logging.info("节点id: {} 流量比例: {}".format(node_id, nodeinfo[0]))
+        logging.info(f"节点id: {node_id} 流量比例: {nodeinfo[0]}")
         # 记录流量比例
         self.transfer_mul = float(nodeinfo[0])
 
         # 获取符合条件的用户信息
-        data = self.api.getApi("/users/nodes/{}".format(node_id))
+        data = self.api.getApi(f"/users/nodes/{node_id}")
         if not data:
             logging.warning("没有查询到满足要求的user，请检查自己的node_id!")
             return

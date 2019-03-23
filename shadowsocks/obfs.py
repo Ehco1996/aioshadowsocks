@@ -9,6 +9,7 @@ class HttpSimpleObfs:
         self.method = method
         self.has_sent_header = False
         self.has_recv_header = False
+        self.host = None
 
     def __repr__(self):
         return self.method
@@ -40,15 +41,15 @@ class HttpSimpleObfs:
     def server_decode(self, buf):
         """return：ret_buf,host"""
         if self.has_recv_header:
-            return buf, None
+            return buf, self.host
 
         if self.HTTP_HEAD_END_FLAG in buf:
             ret_buf = self._get_data_from_http_header(buf)
-            host = self._get_host_from_http_header(buf)
+            self.host = self._get_host_from_http_header(buf)
             self.has_recv_header = True
-            return ret_buf, host
+            return ret_buf, self.host
         else:
-            return buf, None
+            return buf, self.host
 
 
 class AbstractObfs:

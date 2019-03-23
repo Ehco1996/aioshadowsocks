@@ -1,27 +1,9 @@
-import json
 import logging
 import traceback
 
 import requests
 from requests.adapters import Retry
 from requests.adapters import HTTPAdapter
-
-from transfer.users import User
-
-
-def json_config_reader(path):
-    """
-    读取`json`中的userconfig
-    """
-    with open(path, "r") as f:
-        data = json.load(f)
-    objs = list()
-    for user in data["users"]:
-        user = User(**user)
-        if user.enable is True:
-            objs.append(user)
-    data["users"] = objs
-    return data
 
 
 class EhcoApi:
