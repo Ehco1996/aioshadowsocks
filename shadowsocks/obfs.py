@@ -1,6 +1,11 @@
 import datetime
 
 
+class ObfsHeader:
+    def __init__(self, host):
+        self.host = host
+
+
 class HttpSimpleObfs:
 
     HTTP_HEAD_END_FLAG = b"\r\n\r\n"
@@ -9,7 +14,7 @@ class HttpSimpleObfs:
         self.method = method
         self.has_sent_header = False
         self.has_recv_header = False
-        self.host = None
+        self.header = None
 
     def __repr__(self):
         return self.method
@@ -25,34 +30,43 @@ class HttpSimpleObfs:
         self.has_sent_header = True
         return header + buf
 
-    def _get_data_from_http_header(self, buf):
-        return buf[buf.find(self.HTTP_HEAD_END_FLAG) + 4 :]
+    def _split_header_from_buf(self, buf):
+        """return ret_buf,header_buf"""
+        head_index = buf.find(self.HTTP_HEAD_END_FLAG) + len(self.HTTP_HEAD_END_FLAG)
+        return buf[head_index:], buf[:head_index]
 
-    def _get_host_from_http_header(self, buf):
+    def _get_host_from_http_header(self, header_buf):
         host = None
-        http_head = buf[: buf.find(self.HTTP_HEAD_END_FLAG) + 4]
-        for line in http_head.split(b"\r\n"):
+        for line in header_buf.split(b"\r\n"):
             line = line.decode()
             host_index = line.find("Host:")
             if host_index != -1:
                 host = line[host_index + 5 :].strip()
+            if host:
+                break
         return host
 
+    def _parse_http_header(self, header_buf):
+        host = self._get_host_from_http_header(header_buf)
+        header = ObfsHeader(host)
+        return header
+
     def server_decode(self, buf):
-        """return：ret_buf,host"""
+        """return：ret_buf,header"""
         if self.has_recv_header:
-            return buf, self.host
+            return buf, self.header
 
         if self.HTTP_HEAD_END_FLAG in buf:
-            ret_buf = self._get_data_from_http_header(buf)
-            self.host = self._get_host_from_http_header(buf)
+
+            ret_buf, header_buf = self._split_header_from_buf(buf)
             self.has_recv_header = True
-            return ret_buf, self.host
+            self.header = self._parse_http_header(header_buf)
+            return ret_buf, self.header
         else:
-            return buf, self.host
+            return buf, self.header
 
 
-class AbstractObfs:
+class Obfs:
 
     OBFS_CLS_MAP = {"http_simple": HttpSimpleObfs}
 

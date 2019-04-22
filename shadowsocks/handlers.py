@@ -3,8 +3,7 @@ import logging
 import asyncio
 
 from shadowsocks.cryptor import Cryptor
-from shadowsocks.server_pool import pool
-from shadowsocks.obfs import AbstractObfs
+from shadowsocks.obfs import Obfs
 from shadowsocks.utils import parse_header
 from shadowsocks import protocol_flag as flag
 from shadowsocks.ratelimit import UserRateLimitDecorator
@@ -68,7 +67,7 @@ class LocalHandler(TimeoutHandler):
         self._stage = self.STAGE_DESTROY
 
         if self.user.obfs:
-            self.obfs = AbstractObfs(self.user.obfs)
+            self.obfs = Obfs(self.user.obfs)
 
     def close(self):
         if self._transport_protocol == flag.TRANSPORT_TCP:
@@ -141,8 +140,8 @@ class LocalHandler(TimeoutHandler):
 
     def handle_data_received(self, raw_data):
         if self.obfs:
-            data, host = self.obfs.server_decode(raw_data)
-            logging.debug(f"user : {self.user} host: {host}")
+            data, header = self.obfs.server_decode(raw_data)
+            logging.debug(f"user : {self.user} header: {header}")
         else:
             data = raw_data
         self.user.once_used_u += len(data)

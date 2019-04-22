@@ -10,7 +10,7 @@ services:
     logging:
       driver: "json-file"
       options:
-          max-size: "1g"
+          max-size: "10m"
     volumes:
       - .:/src/aioshadowsocks
     working_dir: /src/aioshadowsocks
