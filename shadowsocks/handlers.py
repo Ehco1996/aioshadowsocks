@@ -1,12 +1,13 @@
-import time
-import logging
 import asyncio
+import logging
+import time
 
+from shadowsocks import protocol_flag as flag
 from shadowsocks.cryptor import Cryptor
 from shadowsocks.obfs import Obfs
-from shadowsocks.utils import parse_header
-from shadowsocks import protocol_flag as flag
 from shadowsocks.ratelimit import UserRateLimitDecorator
+from shadowsocks.server_pool import pool
+from shadowsocks.utils import parse_header
 
 
 class TimeoutHandler:
@@ -55,6 +56,7 @@ class LocalHandler(TimeoutHandler):
         TimeoutHandler.__init__(self)
 
         self.user = user
+        self.node_type = user.node_type
         self._key = password
         self._method = method
         self.obfs = None
@@ -139,9 +141,19 @@ class LocalHandler(TimeoutHandler):
             self.close()
 
     def handle_data_received(self, raw_data):
-        if self.obfs:
+        if self.obfs and self.node_type == self.user.NODE_TYPE_ONE_PORT:
             data, header = self.obfs.server_decode(raw_data)
-            logging.debug(f"user : {self.user} header: {header}")
+            switch_user = pool.user_pool.get_by_token(header.token)
+            if not switch_user:
+                logging.warning(
+                    "header not valid, path: {} peername: {}".format(
+                        header.path, self._transport.get_extra_info("peername")
+                    )
+                )
+                self.close()
+                return
+            self.user = switch_user
+            logging.debug(f"server:{self} switch user to {self.user}")
         else:
             data = raw_data
         self.user.once_used_u += len(data)

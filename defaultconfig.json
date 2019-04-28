@@ -1,7 +1,6 @@
 {
     "local_address": "0.0.0.0",
     "node_id": 1,
-    "transfer_mul": 1.0,
     "users": [{
             "user_id": 1,
             "token": "aaaaa",
@@ -10,7 +9,19 @@
             "password": "hellotheworld",
             "total_traffic": 104857600,
             "obfs": "http_simple",
-            "obfs_param": ""
+            "obfs_param": "",
+            "node_type": 1
+        },
+        {
+            "user_id": 3,
+            "token": "ccccc",
+            "port": 2345,
+            "method": "none",
+            "password": "hellotheworld",
+            "total_traffic": 104857600,
+            "obfs": "http_simple",
+            "obfs_param": "",
+            "node_type": 1
         },
         {
             "user_id": 2,
@@ -18,7 +29,8 @@
             "port": 2346,
             "method": "aes-256-cfb",
             "password": "hellotheworld",
-            "total_traffic": 104857600
+            "total_traffic": 104857600,
+            "node_type": 0
         }
     ]
 }

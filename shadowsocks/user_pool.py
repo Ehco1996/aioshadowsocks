@@ -1,4 +1,8 @@
 class User:
+
+    NODE_TYPE_MUL_PORT = 0
+    NODE_TYPE_ONE_PORT = 1
+
     def __init__(self, **properties):
 
         self.upload_traffic = 0
@@ -9,6 +13,7 @@ class User:
         self.obfs = None
         self.obfs_param = None
         self.token = None
+        self.node_type = self.NODE_TYPE_MUL_PORT
 
         # 记录每次同步间隔间的流量
         self.once_used_u = 0
@@ -92,8 +97,9 @@ class UserPool:
 
     @classmethod
     def get_by_token(cls, token):
-        user_id = cls.TOKEN_ID_MAP[token]
-        return cls.get_by_user_id(user_id)
+        user_id = cls.TOKEN_ID_MAP.get(token, "")
+        if user_id:
+            return cls.get_by_user_id(user_id)
 
     @classmethod
     def get_user_list(cls):

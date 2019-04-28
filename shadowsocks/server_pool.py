@@ -15,11 +15,17 @@ class ServerPool:
     transfer = None
     user_pool = None
 
-    # {'user_id': {
+    # {user_id: {
     #     'tcp': 'tcp_local_handler',
     #     'udp': 'udp_local_handler'}
     #  }
     USER_SERVER_MAP = {}
+
+    # {port: {
+    #     'tcp': 'tcp_local_handler',
+    #     'udp': 'udp_local_handler'}
+    #  }
+    ONE_PORT_SERVERS = {}
 
     def __new__(cls, *args, **kw):
         if not cls._instance:
@@ -36,12 +42,8 @@ class ServerPool:
         return cls._instance
 
     @classmethod
-    def check_user_exist(cls, user_id, port):
-        if user_id not in cls.user_pool.USER_MAP:
-            return False
-        elif cls.user_pool.USER_MAP[user_id].port != port:
-            return False
-        return True
+    def check_user_exist(cls, user):
+        return user.user_id in cls.user_pool.USER_MAP
 
     @classmethod
     async def _init_user_server(cls, loop, user):
@@ -61,6 +63,28 @@ class ServerPool:
         )
 
     @classmethod
+    async def _init_one_port_server(cls, loop, user):
+        from shadowsocks.tcpreply import LocalTCP
+        from shadowsocks.udpreply import LocalUDP
+
+        if user.port not in cls.ONE_PORT_SERVERS:
+            cls.ONE_PORT_SERVERS[user.port] = {"tcp": None, "udp": None}
+            # TCP server
+            tcp_server = await loop.create_server(
+                LocalTCP(user), c.LOCAL_ADDRES, user.port
+            )
+            # UDP server
+            udp_server, _ = await loop.create_datagram_endpoint(
+                LocalUDP(user), (c.LOCAL_ADDRES, user.port)
+            )
+            cls.ONE_PORT_SERVERS[user.port]["tcp"] = tcp_server
+            cls.ONE_PORT_SERVERS[user.port]["udp"] = udp_server
+        cls.user_pool.add_user(user)
+        logging.info(
+            f"user:{user} pass:{user.password} 在 {c.LOCAL_ADDRES} 的 {user.port} 端口启动啦"
+        )
+
+    @classmethod
     def _init_or_update_user_server(cls, loop):
         user_configs = cls.transfer.get_all_user_configs()
         if not user_configs:
@@ -68,8 +92,11 @@ class ServerPool:
             return
         for user in user_configs:
             # TODO 更换port的情况还没考虑
-            if not cls.check_user_exist(user.user_id, user.port):
-                loop.create_task(cls._init_user_server(loop, user))
+            if not cls.check_user_exist(user):
+                if user.node_type == user.NODE_TYPE_MUL_PORT:
+                    loop.create_task(cls._init_user_server(loop, user))
+                elif user.node_type == user.NODE_TYPE_ONE_PORT:
+                    loop.create_task(cls._init_one_port_server(loop, user))
             else:
                 # update user config with db/server
                 current_user = cls.user_pool.get_by_user_id(user.user_id)
@@ -102,6 +129,13 @@ class ServerPool:
             user_servers["tcp"].close()
             user_servers["udp"].close()
         cls.user_pool.remove_user_by_user_id(user_id)
+
+    @classmethod
+    def close_one_port_servers(cls):
+        for port, servers in cls.ONE_PORT_SERVERS.items():
+            servers["tcp"].close()
+            servers["udp"].close()
+            logging.info(f"运行在的{port}的单端口server已被关闭")
 
     @classmethod
     def clean_not_valid_user(cls):

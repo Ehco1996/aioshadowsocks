@@ -15,6 +15,7 @@ def run_servers():
         loop.run_forever()
     except KeyboardInterrupt:
         logging.info("正在关闭所有ss server")
+        pool.close_one_port_servers()
         for user in pool.user_pool.get_user_list():
             pool.close_by_user_id(user.user_id)
         loop.stop()

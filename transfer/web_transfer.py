@@ -8,7 +8,6 @@ class WebTransfer:
     def __init__(self, token, url, node_id):
         self.api = EhcoApi(token, url)
         self.node_id = node_id
-        self.transfer_mul = 1.0
 
     def get_all_user_configs(self):
         """
@@ -23,8 +22,6 @@ class WebTransfer:
             logging.warning(f"没有查询到满足要求的节点，请检查自己的node_id!" "当前节点ID: {node_id}")
             return
         logging.info(f"节点id: {node_id} 流量比例: {nodeinfo[0]}")
-        # 记录流量比例
-        self.transfer_mul = float(nodeinfo[0])
 
         # 获取符合条件的用户信息
         data = self.api.getApi(f"/users/nodes/{node_id}")
@@ -47,8 +44,8 @@ class WebTransfer:
                 data.append(
                     {
                         "user_id": user.user_id,
-                        "u": user.once_used_u * self.transfer_mul,
-                        "d": user.once_used_d * self.transfer_mul,
+                        "u": user.once_used_u,
+                        "d": user.once_used_d,
                     }
                 )
                 ip_data[user.user_id] = list(user.ip_list)

@@ -22,7 +22,6 @@ def json_config_reader(path):
 class JsonTransfer:
     def __init__(self, path):
         self.path = path
-        self.transfer_mul = 1.0
         self.local_address = "0.0.0.0"
 
     def get_all_user_configs(self):
@@ -43,11 +42,7 @@ class JsonTransfer:
         data = []
         for user in user_list:
             data.append(
-                {
-                    "user_id": user.user_id,
-                    "u": user.once_used_u * self.transfer_mul,
-                    "d": user.once_used_d * self.transfer_mul,
-                }
+                {"user_id": user.user_id, "u": user.once_used_u, "d": user.once_used_d}
             )
             # reset user used traffic
             user.once_used_u = 0
