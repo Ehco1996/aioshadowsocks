@@ -1,9 +1,54 @@
 import datetime
+from urllib import parse
 
 
-class ObfsHeader:
-    def __init__(self, host):
-        self.host = host
+class BaseHeader:
+    @property
+    def token(self):
+        raise NotImplementedError
+
+
+class HttpHeader(BaseHeader):
+    def __init__(self, content):
+        self.content = content.decode()
+        temp = self.content.split()
+        self.method = temp[0]
+        self.path = temp[1]
+
+        self._query_dict = None
+        self._header_dict = None
+
+    def _parse_header(self):
+        header_content = self.content.split("\r\n\r\n", 1)[0].split("\r\n")[1:]
+        result = {}
+        for line in header_content:
+            k, v = line.split(": ")
+            result[k] = v
+        return result
+
+    def _parse_query(self):
+        qs = parse.urlsplit(self.path).query
+        return {k: v[0] for k, v in parse.parse_qs(qs).items()}
+
+    @property
+    def header_dict(self):
+        if not self._header_dict:
+            self._header_dict = self._parse_header()
+        return self._header_dict
+
+    @property
+    def query_dict(self):
+        if not self._query_dict:
+            self._query_dict = self._parse_query()
+        return self._query_dict
+
+    @property
+    def host(self):
+        return self.header_dict.get("Host", "")
+
+    @property
+    def token(self):
+        return self.query_dict.get("token", "")
 
 
 class HttpSimpleObfs:
@@ -17,7 +62,7 @@ class HttpSimpleObfs:
         self.header = None
 
     def __repr__(self):
-        return self.method
+        return f"<OBFS:{self.method}>"
 
     def server_encode(self, buf):
         if self.has_sent_header:
@@ -35,32 +80,15 @@ class HttpSimpleObfs:
         head_index = buf.find(self.HTTP_HEAD_END_FLAG) + len(self.HTTP_HEAD_END_FLAG)
         return buf[head_index:], buf[:head_index]
 
-    def _get_host_from_http_header(self, header_buf):
-        host = None
-        for line in header_buf.split(b"\r\n"):
-            line = line.decode()
-            host_index = line.find("Host:")
-            if host_index != -1:
-                host = line[host_index + 5 :].strip()
-            if host:
-                break
-        return host
-
-    def _parse_http_header(self, header_buf):
-        host = self._get_host_from_http_header(header_buf)
-        header = ObfsHeader(host)
-        return header
-
     def server_decode(self, buf):
         """return：ret_buf,header"""
         if self.has_recv_header:
             return buf, self.header
 
         if self.HTTP_HEAD_END_FLAG in buf:
-
             ret_buf, header_buf = self._split_header_from_buf(buf)
             self.has_recv_header = True
-            self.header = self._parse_http_header(header_buf)
+            self.header = HttpHeader(header_buf)
             return ret_buf, self.header
         else:
             return buf, self.header
@@ -75,5 +103,6 @@ class Obfs:
         if obfs_cls:
             return obfs_cls(method)
 
-    def __getattr__(self, name):
-        return getattr(self._backend, name)
+    @property
+    def token(self):
+        return self.header.token

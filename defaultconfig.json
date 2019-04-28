@@ -2,9 +2,9 @@
     "local_address": "0.0.0.0",
     "node_id": 1,
     "transfer_mul": 1.0,
-    "users": [
-        {
+    "users": [{
             "user_id": 1,
+            "token": "aaaaa",
             "port": 2345,
             "method": "none",
             "password": "hellotheworld",
@@ -14,6 +14,7 @@
         },
         {
             "user_id": 2,
+            "token": "bbbbb",
             "port": 2346,
             "method": "aes-256-cfb",
             "password": "hellotheworld",
