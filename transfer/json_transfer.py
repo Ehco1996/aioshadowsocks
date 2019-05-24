@@ -1,23 +1,6 @@
 import json
 import logging
 
-from shadowsocks.user_pool import User
-
-
-def json_config_reader(path):
-    """
-    读取`json`中的userconfig
-    """
-    with open(path, "r") as f:
-        data = json.load(f)
-    objs = list()
-    for user in data["users"]:
-        user = User(**user)
-        if user.enable is True:
-            objs.append(user)
-    data["users"] = objs
-    return data
-
 
 class JsonTransfer:
     def __init__(self, path):
@@ -28,8 +11,8 @@ class JsonTransfer:
         """
         拉取符合要求的用户信息
         """
-
-        data = json_config_reader(self.path)
+        with open(self.path, "r") as f:
+            data = json.load(f)
         if not data["users"]:
             logging.warning("没有查询到满足要求的user，请检查自己的config")
             return

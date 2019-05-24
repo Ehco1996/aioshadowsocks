@@ -1,31 +1,14 @@
 {
-    "local_address": "0.0.0.0",
-    "node_id": 1,
-    "users": [{
-            "user_id": 1,
-            "token": "aaaaa",
-            "port": 2345,
-            "method": "none",
-            "password": "hellotheworld",
-            "total_traffic": 104857600,
-            "obfs": "http_simple",
-            "obfs_param": "",
-            "node_type": 1
-        },
+    "users": [
         {
-            "user_id": 3,
-            "token": "ccccc",
+            "user_id": 1,
             "port": 2345,
             "method": "none",
             "password": "hellotheworld",
-            "total_traffic": 104857600,
-            "obfs": "http_simple",
-            "obfs_param": "",
-            "node_type": 1
+            "total_traffic": 104857600
         },
         {
             "user_id": 2,
-            "token": "bbbbb",
             "port": 2346,
             "method": "aes-256-cfb",
             "password": "hellotheworld",

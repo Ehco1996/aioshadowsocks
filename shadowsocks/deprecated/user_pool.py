@@ -26,8 +26,8 @@ class User:
         self.__dict__.update(properties)
 
         # format for api
-        if "passwd" in properties:
-            self.password = properties["passwd"]
+        if "password" in properties:
+            self.password = properties["password"]
         if "id" in properties:
             self.user_id = properties["id"]
         if "u" in properties:

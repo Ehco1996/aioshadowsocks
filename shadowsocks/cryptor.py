@@ -1,8 +1,5 @@
-"""
-不同加密方式的分发
-"""
-from shadowsocks.crypto.aes import AESCipher
-from shadowsocks.crypto.none import NONECipher
+from shadowsocks.ciphers.aes import AESCipher
+from shadowsocks.ciphers.none import NONECipher
 
 
 class Cryptor:
