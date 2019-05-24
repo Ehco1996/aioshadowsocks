@@ -71,5 +71,4 @@ class UserServer(BaseModel):
             }
             logging.info(f"user:{user} password:{user.password} 在端口:{user.port} 启动啦")
         except OSError as e:
-            print(self.__running_servers__)
             logging.warning(e)

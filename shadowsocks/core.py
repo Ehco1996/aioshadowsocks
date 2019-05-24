@@ -297,7 +297,6 @@ class RemoteTCP(asyncio.Protocol, TimeoutHandler):
         logging.debug(
             f"remote_tcp {self} received data len: {len(data)} user: {self.local.user}"
         )
-        print(self.peername, data)
 
     def eof_received(self):
         self.close()

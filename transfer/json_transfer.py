@@ -30,4 +30,3 @@ class JsonTransfer:
             # reset user used traffic
             user.once_used_u = 0
             user.once_used_d = 0
-        print(data)
