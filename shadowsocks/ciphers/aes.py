@@ -7,7 +7,7 @@ from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 
 from shadowsocks.protocol_flag import TRANSPORT_UDP
-from shadowsocks.crypto.utils import evp_bytestokey
+from shadowsocks.ciphers.utils import evp_bytestokey
 
 
 class AESCipher:

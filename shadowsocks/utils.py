@@ -1,9 +1,10 @@
+import logging
 import socket
 import struct
-import logging
-
+import inspect
 
 from shadowsocks import protocol_flag as flag
+from shadowsocks.mdb import models, BaseModel
 
 
 def parse_header(data):
@@ -42,3 +43,25 @@ def parse_header(data):
         logging.warning("unknown atype: {} data: {}".format(atype, data))
 
     return atype, dst_addr, dst_port, header_length
+
+
+def init_logger_config(log_level, open=True):
+    """
+    basic log config
+    """
+    log_levels = {"CRITICAL": 50, "ERROR": 40, "WARNING": 30, "INFO": 20, "DEBUG": 10}
+    level = log_levels.get(log_level.upper(), 10)
+    if open is False:
+        logging.disable(level)
+        return
+    logging.basicConfig(
+        format="[%(levelname)s] %(asctime)s - %(process)d - %(name)s - %(funcName)s() - %(message)s",
+        level=level,
+    )
+
+
+def init_memory_db():
+    for _, model in inspect.getmembers(models, inspect.isclass):
+        if issubclass(model, BaseModel) and model != BaseModel:
+            model.create_table()
+            logging.info(f"正在创建{model}临时数据库")
