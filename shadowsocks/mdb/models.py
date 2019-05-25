@@ -1,3 +1,4 @@
+import json
 import logging
 import asyncio
 import peewee as pw
@@ -27,12 +28,10 @@ class User(BaseModel):
         return self.upload_traffic + self.download_traffic
 
     @classmethod
-    def create_or_update_from_remote(cls):
-        from transfer.json_transfer import JsonTransfer
-
-        c = JsonTransfer("defaultconfig.json")
-        configs = c.get_all_user_configs()
-        for user_config in configs:
+    def create_or_update_from_json(cls, path):
+        with open(path, "r") as f:
+            data = json.load(f)
+        for user_config in data["users"]:
             user_id = user_config.pop("user_id")
             user, created = cls.get_or_create(user_id=user_id, defaults=user_config)
             if not created:

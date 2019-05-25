@@ -1,17 +1,25 @@
 import asyncio
 import logging
 
-from shadowsocks.cron import main_cron_job
+from shadowsocks.mdb.models import User
 from shadowsocks.utils import init_logger_config, init_memory_db
 
 
-def run_servers():
-
+def cron_task():
     loop = asyncio.get_event_loop()
-
     try:
-        # 定时任务
-        main_cron_job()
+        User.create_or_update_from_json("defaultconfig.json")
+        User.init_user_servers()
+    except Exception as e:
+        logging.warning(f"sync user error {e}")
+    # crontab job 60/s
+    loop.call_later(60, cron_task)
+
+
+def run_servers():
+    loop = asyncio.get_event_loop()
+    try:
+        cron_task()
         loop.run_forever()
     except KeyboardInterrupt:
         logging.info("正在关闭所有ss server")
