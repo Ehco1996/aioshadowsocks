@@ -47,6 +47,8 @@ class User(BaseModel, HttpSessionMixin):
         # TODO 用户更换端口/加密方式时
         for user_config in data:
             user_id = user_config.pop("user_id")
+            # NOTE 兼容api
+            user_config.pop("id", None)
             user, created = cls.get_or_create(user_id=user_id, defaults=user_config)
             if not created:
                 user.update_from_dict(user_config)
