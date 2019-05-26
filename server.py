@@ -19,7 +19,7 @@ def cron_task(use_json=False):
     except Exception as e:
         logging.warning(f"sync user error {e}")
     # cron job 60/s
-    loop.call_later(6, cron_task, use_json)
+    loop.call_later(60, cron_task, use_json)
 
 
 def run_servers():
