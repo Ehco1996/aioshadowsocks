@@ -5,15 +5,14 @@
             "port": 2345,
             "method": "none",
             "password": "hellotheworld",
-            "total_traffic": 104857600
+            "transfer": 104857600
         },
         {
             "user_id": 2,
             "port": 2346,
             "method": "aes-256-cfb",
             "password": "hellotheworld",
-            "total_traffic": 104857600,
-            "node_type": 0
+            "transfer": 104857600
         }
     ]
 }

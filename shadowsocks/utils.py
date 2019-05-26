@@ -4,7 +4,6 @@ import struct
 import inspect
 
 from shadowsocks import protocol_flag as flag
-from shadowsocks.mdb import models, BaseModel
 
 
 def parse_header(data):
@@ -61,6 +60,8 @@ def init_logger_config(log_level, open=True):
 
 
 def init_memory_db():
+    from shadowsocks.mdb import models, BaseModel
+
     for _, model in inspect.getmembers(models, inspect.isclass):
         if issubclass(model, BaseModel) and model != BaseModel:
             model.create_table()

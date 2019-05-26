@@ -90,6 +90,8 @@ class LocalHandler(TimeoutHandler):
             self._transport and self._transport.abort()
             return
 
+        self.user.record_traffic(used_u=0, used_d=len(data))
+
         if self._transport_protocol == flag.TRANSPORT_TCP:
             self._transport.write(data)
         elif self._transport_protocol == flag.TRANSPORT_UDP:
@@ -102,10 +104,12 @@ class LocalHandler(TimeoutHandler):
         self._init_transport_and_cryptor(transport, peername)
         self._transport_protocol = flag.TRANSPORT_TCP
         self.keep_alive_open()
+        self.user.record_peername(peername)
 
     def handle_udp_connection_made(self, transport, peername):
         self._init_transport_and_cryptor(transport, peername)
         self._transport_protocol = flag.TRANSPORT_UDP
+        self.user.record_peername(peername)
 
     def handle_eof_received(self):
         self.close()
@@ -122,6 +126,8 @@ class LocalHandler(TimeoutHandler):
             self.close()
             logging.warning(f"decrypt data error {e}")
             return
+
+        self.user.record_traffic(used_u=len(data), used_d=0)
 
         if self._stage == self.STAGE_INIT:
             coro = self._handle_stage_init(data)

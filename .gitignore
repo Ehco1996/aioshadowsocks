@@ -106,3 +106,4 @@ venv.bak/
 # vscode
 .vscode/
 client.py
+shell.py

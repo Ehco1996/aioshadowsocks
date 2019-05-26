@@ -1,3 +1,4 @@
+import os
 import asyncio
 import logging
 
@@ -5,24 +6,31 @@ from shadowsocks.mdb.models import User
 from shadowsocks.utils import init_logger_config, init_memory_db
 
 
-def cron_task():
+def cron_task(use_json=False):
+
     loop = asyncio.get_event_loop()
     try:
-        User.create_or_update_from_json("defaultconfig.json")
+        if use_json:
+            User.create_or_update_from_json("userconfigs.json")
+        else:
+            User.create_or_update_from_remote()
         User.init_user_servers()
+        User.flush_data_to_remote()
     except Exception as e:
         logging.warning(f"sync user error {e}")
-    # crontab job 60/s
-    loop.call_later(60, cron_task)
+    # cron job 60/s
+    loop.call_later(60, cron_task, use_json)
 
 
 def run_servers():
     loop = asyncio.get_event_loop()
+    use_json = os.getenv("API_ENDPOINT", True)
     try:
-        cron_task()
+        cron_task(use_json)
         loop.run_forever()
     except KeyboardInterrupt:
         logging.info("正在关闭所有ss server")
+        User.shutdown_user_servers()
         loop.stop()
 
 
