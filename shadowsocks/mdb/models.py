@@ -16,7 +16,7 @@ class User(BaseModel, HttpSessionMixin):
     port = pw.IntegerField(unique=True)
     method = pw.CharField()
     password = pw.CharField()
-    transfer = pw.BigIntegerField()
+    enable = pw.BooleanField(default=True)
 
     # need sync field
     upload_traffic = pw.BigIntegerField(default=0)
@@ -40,7 +40,7 @@ class User(BaseModel, HttpSessionMixin):
     @classmethod
     def create_or_update_from_remote(cls):
         res = cls.http_session.request("get")
-        res and cls.create_or_update_user_from_data(res.json())
+        res and cls.create_or_update_user_from_data(res.json()["users"])
 
     @classmethod
     def create_or_update_user_from_data(cls, data):
@@ -55,7 +55,7 @@ class User(BaseModel, HttpSessionMixin):
 
     @classmethod
     def init_user_servers(cls):
-        for user in cls.select():
+        for user in cls.select().where(cls.enable == True):
             us, _ = UserServer.get_or_create(user_id=user.user_id)
             loop = asyncio.get_event_loop()
             loop.create_task(us.init_server())
@@ -80,7 +80,7 @@ class User(BaseModel, HttpSessionMixin):
         for user in cls.select().where(*query):
             data.append(user.to_dict(only=need_fields))
         if data:
-            res = cls.http_session.request("post", json=data)
+            res = cls.http_session.request("post", json={"data": data})
             res and cls.update(
                 upload_traffic=0, download_traffic=0, peernames=None
             ).where(*query).execute()
