@@ -3,12 +3,13 @@ version: '3'
 services:
   ss:
     container_name : aioshadowsocks
-    build: .
-    image: aioshadowsocks
+    # build: .
+    image: ehco1996/aioshadowsocks:init
     network_mode: host
     restart: always
     environment:
       API_ENDPOINT: ""
+      LOG_LEVEL: "info"
     logging:
       driver: "json-file"
       options:

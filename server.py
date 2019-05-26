@@ -35,6 +35,6 @@ def run_servers():
 
 
 if __name__ == "__main__":
-    init_logger_config(log_level="info")
+    init_logger_config(log_level=os.getenv("LOG_LEVEL", "info"))
     init_memory_db()
     run_servers()
