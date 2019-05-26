@@ -53,7 +53,7 @@ class User(BaseModel, HttpSessionMixin):
             if not created:
                 user.update_from_dict(user_config)
                 user.save()
-            logging.info(f"正在创建/更新用户:{user}的数据 当前流量{user.used_traffic}")
+            logging.debug(f"正在创建/更新用户:{user}的数据 当前流量{user.used_traffic}")
 
     @classmethod
     def init_user_servers(cls):
@@ -81,11 +81,10 @@ class User(BaseModel, HttpSessionMixin):
         query = [cls.download_traffic > 0]
         for user in cls.select().where(*query):
             data.append(user.to_dict(only=need_fields))
-        if data:
-            res = cls.http_session.request("post", json={"data": data})
-            res and cls.update(
-                upload_traffic=0, download_traffic=0, peernames=None
-            ).where(*query).execute()
+        res = cls.http_session.request("post", json={"data": data})
+        res and cls.update(upload_traffic=0, download_traffic=0, peernames=None).where(
+            *query
+        ).execute()
 
     def record_traffic(self, used_u, used_d):
         self.download_traffic += used_d
