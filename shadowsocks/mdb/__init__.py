@@ -45,7 +45,7 @@ class JSONCharField(pw.CharField):
 
 class HttpSession:
     def __init__(self):
-        self.url = os.getenv("AIO_SS_API_ENDPOINT")
+        self.url = os.getenv("SS_API_ENDPOINT")
         self.session = requests.Session()
 
     def request(self, method, **kw):

@@ -1,6 +1,7 @@
-import os
 import asyncio
 import logging
+import os
+import signal
 
 from shadowsocks.mdb.models import User
 from shadowsocks.utils import init_logger_config, init_memory_db
@@ -22,19 +23,24 @@ def cron_task(sync_time, use_json=False):
 
 
 def run_servers():
+    def shutdown():
+        User.shutdown_user_servers()
+        loop.stop()
+
     loop = asyncio.get_event_loop()
-    use_json = False if os.getenv("AIO_SS_API_ENDPOINT") else True
-    sync_time = int(os.getenv("AIO_SS_SYNC_TIME", 60))
+    loop.add_signal_handler(signal.SIGTERM, shutdown)
+
+    use_json = False if os.getenv("SS_API_ENDPOINT") else True
+    sync_time = int(os.getenv("SS_SYNC_TIME", 60))
     try:
         cron_task(sync_time, use_json)
         loop.run_forever()
     except KeyboardInterrupt:
         logging.info("正在关闭所有ss server")
-        User.shutdown_user_servers()
-        loop.stop()
+        shutdown()
 
 
 if __name__ == "__main__":
-    init_logger_config(log_level=os.getenv("AIO_SS_LOG_LEVEL", "info"))
+    init_logger_config(log_level=os.getenv("SS_LOG_LEVEL", "info"))
     init_memory_db()
     run_servers()

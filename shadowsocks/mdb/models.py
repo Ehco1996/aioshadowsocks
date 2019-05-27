@@ -77,19 +77,20 @@ class User(BaseModel, HttpSessionMixin):
             cls._meta.fields["download_traffic"],
             cls._meta.fields["ip_list"],
         ]
-
-        query = [cls.download_traffic > 0]
-        for user in cls.select().where(*query):
+        need_reset_user_id = []
+        for user in cls.select().where(cls.download_traffic > 0):
             data.append(user.to_dict(only=need_fields))
+            need_reset_user_id.append(user.user_id)
         res = cls.http_session.request("post", json={"data": data})
         res and cls.update(upload_traffic=0, download_traffic=0, ip_list=[]).where(
-            *query
+            cls.user_id << need_reset_user_id
         ).execute()
 
     def record_traffic(self, used_u, used_d):
-        self.download_traffic += used_d
-        self.upload_traffic += used_u
-        self.save(only=["upload_traffic", "download_traffic"])
+        u = User.get_by_id(self.user_id)
+        u.download_traffic += used_d
+        u.upload_traffic += used_u
+        u.save(only=["upload_traffic", "download_traffic"])
 
     def record_ip(self, peername):
         ip = peername[0]

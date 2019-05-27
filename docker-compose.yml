@@ -8,9 +8,9 @@ services:
     network_mode: host
     restart: always
     environment:
-      AIO_SS_API_ENDPOINT: ""
-      AIO_SS_LOG_LEVEL: "info"
-      AIO_SS_SYNC_TIME: 60
+      SS_API_ENDPOINT: ""
+      SS_LOG_LEVEL: "info"
+      SS_SYNC_TIME: 60
     logging:
       driver: "json-file"
       options:
