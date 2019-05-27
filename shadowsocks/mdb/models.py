@@ -87,16 +87,17 @@ class User(BaseModel, HttpSessionMixin):
         ).execute()
 
     def record_traffic(self, used_u, used_d):
-        u = User.get_by_id(self.user_id)
-        u.download_traffic += used_d
-        u.upload_traffic += used_u
-        u.save(only=["upload_traffic", "download_traffic"])
+        User.update(
+            upload_traffic=User.upload_traffic + used_u,
+            download_traffic=User.download_traffic + used_d,
+        ).where(User.user_id == self.user_id).execute()
 
     def record_ip(self, peername):
         ip = peername[0]
-        self.ip_list.append(ip)
-        self.ip_list = list(set(self.ip_list))
-        self.save(only=["ip_list"])
+        user = User.get_by_id(self.user_id)
+        user.ip_list.append(ip)
+        user.ip_list = list(set(user.ip_list))
+        user.save(only=["ip_list"])
 
 
 class UserServer(BaseModel):
