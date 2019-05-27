@@ -107,3 +107,4 @@ venv.bak/
 .vscode/
 client.py
 shell.py
+dev.sh

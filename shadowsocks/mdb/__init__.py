@@ -1,5 +1,6 @@
 import logging
 import os
+import json
 
 import peewee as pw
 import requests
@@ -27,9 +28,24 @@ class BaseModel(pw.Model):
         return shortcuts.model_to_dict(self, **kw)
 
 
+class JSONCharField(pw.CharField):
+    def db_value(self, value):
+        if value is None:
+            return value
+        data = json.dumps(value)
+        if len(data) > self.max_length:
+            raise ValueError("Data too long for field {}.".format(self.name))
+        return data
+
+    def python_value(self, value):
+        if value is None:
+            return value
+        return json.loads(value)
+
+
 class HttpSession:
     def __init__(self):
-        self.url = os.getenv("API_ENDPOINT")
+        self.url = os.getenv("AIO_SS_API_ENDPOINT")
         self.session = requests.Session()
 
     def request(self, method, **kw):

@@ -63,10 +63,11 @@ class LocalHandler(TimeoutHandler):
         self._transport = None
         self._transport_protocol = None
 
-    def _init_transport_and_cryptor(self, transport, peername):
+    def _init_transport_and_cryptor(self, transport, peername, protocol):
         self._stage = self.STAGE_INIT
         self._transport = transport
         self._peername = peername
+        self._transport_protocol = protocol
 
         try:
             self._cryptor = Cryptor(
@@ -101,15 +102,13 @@ class LocalHandler(TimeoutHandler):
             raise NotImplementedError
 
     def handle_tcp_connection_made(self, transport, peername):
-        self._init_transport_and_cryptor(transport, peername)
-        self._transport_protocol = flag.TRANSPORT_TCP
+        self._init_transport_and_cryptor(transport, peername, flag.TRANSPORT_TCP)
         self.keep_alive_open()
-        self.user.record_peername(peername)
+        self.user.record_ip(peername)
 
     def handle_udp_connection_made(self, transport, peername):
-        self._init_transport_and_cryptor(transport, peername)
-        self._transport_protocol = flag.TRANSPORT_UDP
-        self.user.record_peername(peername)
+        self._init_transport_and_cryptor(transport, peername, flag.TRANSPORT_UDP)
+        self.user.record_ip(peername)
 
     def handle_eof_received(self):
         self.close()
@@ -146,7 +145,11 @@ class LocalHandler(TimeoutHandler):
         addr_type, dst_addr, dst_port, header_length = parse_header(data)
         if not dst_addr:
             self.close()
-            logging.warning(f"not valid data addr_type: {addr_type} user: {self.user}")
+            logging.warning(
+                "can't parse addr_type: {} user: {} CMD: {}".format(
+                    addr_type, self.user, self._transport_protocol
+                )
+            )
             return
         else:
             payload = data[header_length:]
@@ -175,7 +178,6 @@ class LocalHandler(TimeoutHandler):
                 logging.debug(f"connection established,remote {remote_tcp}")
         elif self._transport_protocol == flag.TRANSPORT_UDP:
             self._stage = self.STAGE_INIT
-            # 异步建立udp连接，并存入future对象
             udp_coro = loop.create_datagram_endpoint(
                 lambda: RemoteUDP(dst_addr, dst_port, payload, self),
                 remote_addr=(dst_addr, dst_port),
@@ -189,9 +191,9 @@ class LocalHandler(TimeoutHandler):
         logging.debug("wait until the connection established")
         # 在握手之后，会耗费一定时间来来和remote建立连接
         # 但是ss-client并不会等这个时间 所以我们在这里手动sleep一会
-        for _ in range(25):
+        for _ in range(50):
             if self._stage == self.STAGE_CONNECT:
-                await asyncio.sleep(0.2)
+                await asyncio.sleep(0.1)
             elif self._stage == self.STAGE_STREAM:
                 logging.debug("connection established")
                 self._remote.write(data)

@@ -29,7 +29,7 @@ pip3 install -r requirements.txt
 
 * 注入环境变量
 
-`export API_ENDPOINT="https://xxx/com"`
+`export AIO_SS_API_ENDPOINT="https://xxx/com"`
 
 * 使用
 

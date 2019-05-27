@@ -5,7 +5,7 @@ import logging
 import peewee as pw
 
 from shadowsocks.core import LocalTCP, LocalUDP
-from shadowsocks.mdb import BaseModel, HttpSessionMixin
+from shadowsocks.mdb import BaseModel, HttpSessionMixin, JSONCharField
 
 
 class User(BaseModel, HttpSessionMixin):
@@ -21,7 +21,7 @@ class User(BaseModel, HttpSessionMixin):
     # need sync field
     upload_traffic = pw.BigIntegerField(default=0)
     download_traffic = pw.BigIntegerField(default=0)
-    peernames = pw.CharField(null=True)  # Use set to store peername
+    ip_list = JSONCharField(default=[])
 
     @property
     def host(self):
@@ -75,14 +75,14 @@ class User(BaseModel, HttpSessionMixin):
             cls._meta.fields["user_id"],
             cls._meta.fields["upload_traffic"],
             cls._meta.fields["download_traffic"],
-            cls._meta.fields["peernames"],
+            cls._meta.fields["ip_list"],
         ]
 
         query = [cls.download_traffic > 0]
         for user in cls.select().where(*query):
             data.append(user.to_dict(only=need_fields))
         res = cls.http_session.request("post", json={"data": data})
-        res and cls.update(upload_traffic=0, download_traffic=0, peernames=None).where(
+        res and cls.update(upload_traffic=0, download_traffic=0, ip_list=[]).where(
             *query
         ).execute()
 
@@ -91,13 +91,11 @@ class User(BaseModel, HttpSessionMixin):
         self.upload_traffic += used_u
         self.save(only=["upload_traffic", "download_traffic"])
 
-    def record_peername(self, peername):
-        # only record ip
-        if not self.peernames:
-            self.peernames = {peername[0]}
-        else:
-            self.peernames.add(peername[0])
-        self.save(only=["peernames"])
+    def record_ip(self, peername):
+        ip = peername[0]
+        self.ip_list.append(ip)
+        self.ip_list = list(set(self.ip_list))
+        self.save(only=["ip_list"])
 
 
 class UserServer(BaseModel):
@@ -121,7 +119,11 @@ class UserServer(BaseModel):
                 "tcp": tcp_server,
                 "udp": udp_server,
             }
-            logging.info(f"user:{user} password:{user.password} 在端口:{user.port} 启动啦")
+            logging.info(
+                "user_id:{} method:{} password:{} port:{} 已启动".format(
+                    user.user_id, user.method, user.password, user.port
+                )
+            )
         except OSError as e:
             logging.warning(e)
 
@@ -135,5 +137,4 @@ class UserServer(BaseModel):
         server_data["tcp"].close()
         server_data["udp"].close()
         user = User.get_by_id(self.user_id)
-        logging.info(f"user_id:{user} password:{user.password} 在端口:{user.port} 已关闭")
-
+        logging.info(f"user_id:{user} prot:{user.port} 已关闭!")
