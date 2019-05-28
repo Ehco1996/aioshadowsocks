@@ -28,13 +28,11 @@ class BaseModel(pw.Model):
         return shortcuts.model_to_dict(self, **kw)
 
 
-class JSONCharField(pw.CharField):
+class JsonField(pw.TextField):
     def db_value(self, value):
         if value is None:
             return value
         data = json.dumps(value)
-        if len(data) > self.max_length:
-            raise ValueError("Data too long for field {}.".format(self.name))
         return data
 
     def python_value(self, value):

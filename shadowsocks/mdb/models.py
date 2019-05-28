@@ -6,7 +6,7 @@ from collections import defaultdict
 import peewee as pw
 
 from shadowsocks.core import LocalTCP, LocalUDP
-from shadowsocks.mdb import BaseModel, HttpSessionMixin, JSONCharField
+from shadowsocks.mdb import BaseModel, HttpSessionMixin, JsonField
 
 
 class User(BaseModel, HttpSessionMixin):
@@ -22,7 +22,7 @@ class User(BaseModel, HttpSessionMixin):
     # need sync field
     upload_traffic = pw.BigIntegerField(default=0)
     download_traffic = pw.BigIntegerField(default=0)
-    ip_list = JSONCharField(default=[])
+    ip_list = JsonField(default=[])
 
     @property
     def host(self):
