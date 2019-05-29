@@ -11,7 +11,8 @@ from shadowsocks.mdb import BaseModel, HttpSessionMixin, JsonField
 
 class User(BaseModel, HttpSessionMixin):
 
-    __attr_protected__ = {"used_u", "used_d", "peernames"}
+    __attr_protected__ = {"upload_traffic", "download_traffic", "ip_list", "user_id"}
+    __attr_accessible__ = {"port", "method", "password", "enable"}
 
     user_id = pw.IntegerField(primary_key=True, unique=True)
     port = pw.IntegerField(unique=True)
