@@ -125,7 +125,6 @@ class LocalHandler(TimeoutHandler):
             self.close()
             logging.warning(f"decrypt data error {e}")
             return
-
         self.user.record_traffic(used_u=len(data), used_d=0)
 
         if self._stage == self.STAGE_INIT:
@@ -153,7 +152,6 @@ class LocalHandler(TimeoutHandler):
             return
         else:
             payload = data[header_length:]
-
         loop = asyncio.get_event_loop()
         if self._transport_protocol == flag.TRANSPORT_TCP:
             self._stage = self.STAGE_CONNECT
@@ -328,15 +326,16 @@ class RemoteUDP(asyncio.DatagramProtocol, TimeoutHandler):
         self.transport = None
 
     def write(self, data):
-        self._transport and self._transport.sendto(data, self._peername)
+        self.transport and self.transport.sendto(data, self.peername)
 
     def close(self):
-        self._transport and self._transport.close()
+        self.transport and self.transport.close()
 
     def connection_made(self, transport):
         self.keep_alive_open()
         self.transport = transport
         self.peername = self.transport.get_extra_info("peername")
+        self.write(self.data)
         logging.debug(
             f"remote_udp connection made, addr: {self.peername} user: {self.local.user}"
         )
