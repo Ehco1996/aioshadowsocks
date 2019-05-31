@@ -276,22 +276,22 @@ class RemoteTCP(asyncio.Protocol, TimeoutHandler):
         )
 
         self.peername = None
-        self.transport = None
+        self._transport = None
 
     def write(self, data):
-        if not self.transport or self.transport.is_closing():
-            self.transport and self.transport.abort()
+        if not self._transport or self._transport.is_closing():
+            self._transport and self._transport.abort()
             return
-        self.transport.write(data)
+        self._transport.write(data)
 
     def close(self):
-        self.transport and self.transport.close()
+        self._transport and self._transport.close()
 
     def connection_made(self, transport):
         self.keep_alive_open()
 
-        self.transport = transport
-        self.peername = self.transport.get_extra_info("peername")
+        self._transport = transport
+        self.peername = self._transport.get_extra_info("peername")
         self.write(self.data)
         logging.debug(
             f"remote_tcp connection made, addr: {self.peername} user: {self.local.user}"
@@ -323,18 +323,18 @@ class RemoteUDP(asyncio.DatagramProtocol, TimeoutHandler):
         )
 
         self.peername = None
-        self.transport = None
+        self._transport = None
 
     def write(self, data):
-        self.transport and self.transport.sendto(data, self.peername)
+        self._transport and self._transport.sendto(data, self.peername)
 
     def close(self):
-        self.transport and self.transport.close()
+        self._transport and self._transport.close()
 
     def connection_made(self, transport):
         self.keep_alive_open()
-        self.transport = transport
-        self.peername = self.transport.get_extra_info("peername")
+        self._transport = transport
+        self.peername = self._transport.get_extra_info("peername")
         self.write(self.data)
         logging.debug(
             f"remote_udp connection made, addr: {self.peername} user: {self.local.user}"
