@@ -165,6 +165,7 @@ class UserServer(BaseModel):
             not user.enable
             or tcp_user.port != user.port
             or tcp_user.password != user.password
+            or tcp_user.method != user.method
         ):
             self.close_server()
 
