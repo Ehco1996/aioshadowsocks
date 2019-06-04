@@ -1,3 +1,5 @@
 cryptography
 requests
 peewee
+grpclib
+protobuf

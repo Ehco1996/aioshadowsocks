@@ -1,19 +1,70 @@
 # aioshadowsocks
-用 asyncio 重写 shadowsocks ~
+用 asyncio 重写 shadowsocks
 
 ## 为什么要重写shadowsocks
 
-最近对异步IO非常感兴趣
+主要想通过这个项目的推进来深入了解 `asyncio`
 
-想通过这个项目的推进来深入了解 `asyncio`
+另外我的一个项目: [django-sspanel](https://github.com/Ehco1996/django-sspanel) 依赖`shadowsocksr`
 
-我的另外一个项目 `django-sspanel` 依赖 `ssr`
+但该项目已经停止开发了，所以决定重新造个轮子
 
-但该项目已经停止开发了，并且代码写的稍显晦涩
+## 主要功能
 
-虽然我也尝试过二开，最终还是放弃了
+* tcp/udp 代理
+* 开放了grpc接口(类似ss-manager)
 
-最后考虑了一番，还是决定重新造个轮子
+
+## rpc proto
+
+```proto3
+syntax = "proto3";
+
+package aioshadowsocks;
+
+// REQ
+message UserIdReq { int32 user_id = 1; }
+
+message UserReq {
+  int32 user_id = 1;
+  int32 port = 2;
+  string method = 3;
+  string password = 4;
+  bool enable = 5;
+}
+
+// OBJ
+message Empty {}
+
+message User {
+  int32 user_id = 1;
+  int32 port = 2;
+  string method = 3;
+  string password = 4;
+  bool enable = 5;
+}
+
+message UserServer {
+  int32 user_id = 1;
+  int64 upload_traffic = 2;
+  int64 download_traffic = 3;
+  repeated string ip_list = 4;
+  bool is_running = 5;
+}
+// service
+service ss {
+  rpc CreateUser(UserReq) returns (User) {}
+  rpc UpdateUser(UserReq) returns (User) {}
+  rpc GetUser(UserIdReq) returns (User) {}
+  rpc DeleteUser(UserIdReq) returns (Empty) {}
+  rpc InitUserServer(UserIdReq) returns (UserServer) {}
+  rpc GetUserServer(UserIdReq) returns (UserServer) {}
+  rpc StopUserServer(UserIdReq) returns (Empty) {}
+}
+```
+
+
+
 
 ## 使用
 

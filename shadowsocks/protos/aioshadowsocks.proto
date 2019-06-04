@@ -1,0 +1,43 @@
+syntax = "proto3";
+
+package aioshadowsocks;
+
+// REQ
+message UserIdReq { int32 user_id = 1; }
+
+message UserReq {
+  int32 user_id = 1;
+  int32 port = 2;
+  string method = 3;
+  string password = 4;
+  bool enable = 5;
+}
+
+// OBJ
+message Empty {}
+
+message User {
+  int32 user_id = 1;
+  int32 port = 2;
+  string method = 3;
+  string password = 4;
+  bool enable = 5;
+}
+
+message UserServer {
+  int32 user_id = 1;
+  int64 upload_traffic = 2;
+  int64 download_traffic = 3;
+  repeated string ip_list = 4;
+  bool is_running = 5;
+}
+// service
+service ss {
+  rpc CreateUser(UserReq) returns (User) {}
+  rpc UpdateUser(UserReq) returns (User) {}
+  rpc GetUser(UserIdReq) returns (User) {}
+  rpc DeleteUser(UserIdReq) returns (Empty) {}
+  rpc InitUserServer(UserIdReq) returns (UserServer) {}
+  rpc GetUserServer(UserIdReq) returns (UserServer) {}
+  rpc StopUserServer(UserIdReq) returns (Empty) {}
+}

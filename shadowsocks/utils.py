@@ -1,9 +1,14 @@
+import asyncio
+import inspect
 import logging
 import socket
 import struct
-import inspect
+
+from grpclib.server import Server
+from grpclib.utils import graceful_exit
 
 from shadowsocks import protocol_flag as flag
+from shadowsocks.services import AioShadowsocksServicer
 
 
 def parse_header(data):
@@ -11,7 +16,7 @@ def parse_header(data):
     try:
         atype = data[0]
     except IndexError:
-        logging.warning("not vaild data {}".format(data))
+        logging.warning("not valid data {}".format(data))
 
     if atype == flag.ATYPE_IPV4:
         if len(data) >= 7:
@@ -66,3 +71,27 @@ def init_memory_db():
         if issubclass(model, BaseModel) and model != BaseModel:
             model.create_table()
             logging.info(f"正在创建{model}临时数据库")
+
+
+def start_ss_cron_job(sync_time, use_json=False):
+    from shadowsocks.mdb.models import User, UserServer
+
+    loop = asyncio.get_event_loop()
+    try:
+        if use_json:
+            User.create_or_update_from_json("userconfigs.json")
+        else:
+            User.create_or_update_from_remote()
+            UserServer.flush_data_to_remote()
+        User.init_user_servers()
+    except Exception as e:
+        logging.warning(f"sync user error {e}")
+    loop.call_later(sync_time, start_ss_cron_job, sync_time, use_json)
+
+
+async def start_grpc_server(loop, host="0.0.0.0", port=5000):
+    server = Server([AioShadowsocksServicer()], loop=loop)
+    with graceful_exit([server], loop=loop):
+        await server.start(host, port)
+        logging.info(f"Start Grpc Server on {host}:{port}")
+        await server.wait_closed()
