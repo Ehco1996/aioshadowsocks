@@ -13,7 +13,7 @@ message UserReq {
   bool enable = 5;
 }
 
-// OBJ
+// RES
 message Empty {}
 
 message User {

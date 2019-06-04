@@ -17,7 +17,7 @@
 
 ## rpc proto
 
-```proto3
+```protobuf
 syntax = "proto3";
 
 package aioshadowsocks;
