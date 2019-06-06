@@ -7,7 +7,7 @@ COPY requirements.txt /tmp/requirements.txt
 
 RUN set -e; \
     apk update \
-    && apk add --virtual .build-deps gcc python3-dev musl-dev libffi-dev \
+    && apk add --virtual .build-deps libffi-dev build-base \
     # TODO workaround start
     && apk del libressl-dev \
     && apk add openssl-dev \

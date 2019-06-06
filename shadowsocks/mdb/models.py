@@ -46,15 +46,11 @@ class User(BaseModel, HttpSessionMixin):
     @classmethod
     def init_user_servers(cls):
         for user in cls.select():
-            us, _ = UserServer.get_or_create(user_id=user.user_id)
+            data = user.to_dict()
+            user_id = data.pop("user_id")
+            us, _ = UserServer.get_or_create(user_id=user_id, defaults=data)
             loop = asyncio.get_event_loop()
             loop.create_task(us.init_server(user))
-
-    @classmethod
-    def shutdown_user_servers(cls):
-        for user in cls.select():
-            us, _ = UserServer.get_or_create(user_id=user.user_id)
-            us.close_server()
 
     @property
     def server(self):
@@ -63,21 +59,39 @@ class User(BaseModel, HttpSessionMixin):
 
 class UserServer(BaseModel, HttpSessionMixin):
 
+    __attr_accessible__ = {"port", "method", "password", "enable"}
+
     HOST = "0.0.0.0"
     __running_servers__ = defaultdict(dict)
 
     user_id = pw.IntegerField(primary_key=True)
+    port = pw.IntegerField(unique=True)
+    method = pw.CharField()
+    password = pw.CharField()
+    enable = pw.BooleanField(default=True)
+
     # need sync field
     upload_traffic = pw.BigIntegerField(default=0)
     download_traffic = pw.BigIntegerField(default=0)
     ip_list = JsonField(default=[])
 
     @classmethod
+    def shutdown(cls):
+        for us in cls.select():
+            us.close_server()
+
+    @classmethod
     def flush_data_to_remote(cls):
         data = []
         need_reset_user_id = []
+        fields = [
+            cls._meta.fields["user_id"],
+            cls._meta.fields["upload_traffic"],
+            cls._meta.fields["download_traffic"],
+            cls._meta.fields["ip_list"],
+        ]
         for us in cls.select().where(cls.download_traffic > 0):
-            data.append(us.to_dict())
+            data.append(us.to_dict(only=fields))
             need_reset_user_id.append(us.user_id)
         res = cls.http_session.request("post", json={"data": data})
         res and cls.update(upload_traffic=0, download_traffic=0, ip_list=[]).where(
@@ -125,7 +139,7 @@ class UserServer(BaseModel, HttpSessionMixin):
     async def init_server(self, user):
         self.is_running and self.check_user_server(user)
 
-        if self.is_running or not user.enable:
+        if self.is_running or user.enable is False:
             return
         loop = asyncio.get_event_loop()
         try:
@@ -135,35 +149,32 @@ class UserServer(BaseModel, HttpSessionMixin):
             )
             self.tcp_server = tcp_server
             self.udp_server = udp_server
+            self.update_from_dict(user.to_dict())
+            self.save()
             logging.info(
-                "user_id:{} method:{} password:{} port:{} 已启动".format(
-                    user.user_id, user.method, user.password, user.port
+                "user:{} method:{} password:{} port:{} 已启动".format(
+                    user, user.method, user.password, user.port
                 )
             )
         except OSError as e:
             logging.warning(e)
 
     def check_user_server(self, user):
-        # get running server user
-        tcp_user = self.tcp_server._protocol_factory.user
-        if (
-            not user.enable
-            or tcp_user.port != user.port
-            or tcp_user.password != user.password
-            or tcp_user.method != user.method
-        ):
-            self.close_server()
+        need_check_fields = ["method", "port", "password"]
+        for field in need_check_fields:
+            if getattr(self, field) != getattr(user, field) or user.enable is False:
+                self.close_server()
+                return
 
     def close_server(self):
 
         if self.user_id not in self.__running_servers__:
             return
 
-        user = self.tcp_server._protocol_factory.user
         server_data = self.__running_servers__.pop(self.user_id)
         server_data["tcp"].close()
         server_data["udp"].close()
-        logging.info(f"user_id:{user} port:{user.port} 已关闭!")
+        logging.info(f"user:{self.user_id} port:{self.port} 已关闭!")
 
     def record_ip(self, peername):
         ip = peername[0]

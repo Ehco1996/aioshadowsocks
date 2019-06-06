@@ -3,3 +3,4 @@ requests
 peewee
 grpclib
 protobuf
+uvloop

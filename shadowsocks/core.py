@@ -13,7 +13,7 @@ class TimeoutHandler:
     def __init__(self):
         self._transport = None
         self._last_active_time = time.time()
-        self._timeout_limit = 20
+        self._timeout_limit = 10
 
     def close(self):
         raise NotImplementedError
@@ -189,11 +189,11 @@ class LocalHandler(TimeoutHandler):
         logging.debug("wait until the connection established")
         # 在握手之后，会耗费一定时间来来和remote建立连接
         # 但是ss-client并不会等这个时间 所以我们在这里手动sleep一会
-        for _ in range(50):
+        for i in range(50):
             if self._stage == self.STAGE_CONNECT:
                 await asyncio.sleep(0.1)
             elif self._stage == self.STAGE_STREAM:
-                logging.debug("connection established")
+                logging.debug(f"connection established total time {i * 0.1 * 1e3}s")
                 self._remote.write(data)
                 return
             else:
