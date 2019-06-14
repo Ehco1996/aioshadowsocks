@@ -10,7 +10,7 @@ services:
       SS_API_ENDPOINT: ""
       SS_LOG_LEVEL: "info"
       SS_SYNC_TIME: 60
-      SS_GRPC_HOST: "0.0.0.0"
+      SS_GRPC_HOST: "127.0.0.1"
       SS_GRPC_PORT: 5000
     logging:
       driver: "json-file"

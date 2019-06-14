@@ -1,9 +1,14 @@
 import logging
 import socket
 import struct
-
+from functools import lru_cache
 
 from shadowsocks import protocol_flag as flag
+
+
+@lru_cache(2 ** 10)
+def get_ip_from_domain(domain):
+    return socket.gethostbyname(domain)
 
 
 def parse_header(data):
@@ -32,6 +37,8 @@ def parse_header(data):
             addrlen = data[1]
             if len(data) >= 4 + addrlen:
                 dst_addr = data[2 : 2 + addrlen]
+                dst_addr = get_ip_from_domain(dst_addr)
+                logging.debug(get_ip_from_domain.cache_info())
                 dst_port = struct.unpack("!H", data[2 + addrlen : addrlen + 4])[0]
                 header_length = 4 + addrlen
             else:
