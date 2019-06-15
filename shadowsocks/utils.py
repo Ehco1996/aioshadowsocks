@@ -6,7 +6,7 @@ from functools import lru_cache
 from shadowsocks import protocol_flag as flag
 
 
-@lru_cache(2 ** 10)
+@lru_cache(2 ** 14)
 def get_ip_from_domain(domain):
     return socket.gethostbyname(domain)
 
