@@ -1,3 +1,5 @@
+[![Build Status](http://ci.onpushman.com/api/badges/Ehco1996/aioshadowsocks/status.svg)](http://ci.onpushman.com/Ehco1996/aioshadowsocks)
+
 # aioshadowsocks
 用 asyncio 重写 shadowsocks
 

@@ -16,3 +16,12 @@ steps:
         include:
           - push
           - pull_request
+
+  - name: build-image
+    image: plugins/docker
+    settings:
+      repo: ehco1996/aioshadowsocks
+      username: ehco1996
+      password:
+        from_secret: DOCKER_PASSWORD
+      auto_tag: true
