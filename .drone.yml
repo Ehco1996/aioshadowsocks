@@ -1,0 +1,19 @@
+---
+kind: pipeline
+name: deploy
+
+steps:
+  - name: unit-test
+    image: ehco1996/aioshadowsocks:latest
+    commands:
+      - python test/test.py
+    when:
+      branch:
+        include:
+          - feature/*
+          - master
+          - dev
+      event:
+        include:
+          - push
+          - pull_request
