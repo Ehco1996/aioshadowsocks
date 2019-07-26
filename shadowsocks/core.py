@@ -13,25 +13,25 @@ class TimeoutHandler:
     def __init__(self):
         self._transport = None
         self._last_active_time = time.time()
-        self._timeout_limit = 10
+        self._timeout_limit = 60 * 5
 
     def close(self):
         raise NotImplementedError
 
-    def keep_alive_open(self):
-        asyncio.create_task(self._keep_alive())
+    def check_conn_timeout(self):
+        asyncio.create_task(self._check_conn_timeout())
 
     def keep_alive_active(self):
         self._last_active_time = time.time()
 
-    async def _keep_alive(self):
-        while self._transport is not None:
+    async def _check_conn_timeout(self):
+        while True:
             current_time = time.time()
             if current_time - self._last_active_time > self._timeout_limit:
                 self.close()
                 break
             else:
-                await asyncio.sleep(1)
+                await asyncio.sleep(2)
 
 
 class LocalHandler(TimeoutHandler):
@@ -103,7 +103,7 @@ class LocalHandler(TimeoutHandler):
 
     def handle_tcp_connection_made(self, transport, peername):
         self._init_transport_and_cryptor(transport, peername, flag.TRANSPORT_TCP)
-        self.keep_alive_open()
+        self.check_conn_timeout()
         self.user.server.record_ip(peername)
 
     def handle_udp_connection_made(self, transport, peername):
@@ -288,7 +288,7 @@ class RemoteTCP(asyncio.Protocol, TimeoutHandler):
         self._transport and self._transport.close()
 
     def connection_made(self, transport):
-        self.keep_alive_open()
+        self.check_conn_timeout()
 
         self._transport = transport
         self.peername = self._transport.get_extra_info("peername")
@@ -332,7 +332,7 @@ class RemoteUDP(asyncio.DatagramProtocol, TimeoutHandler):
         self._transport and self._transport.close()
 
     def connection_made(self, transport):
-        self.keep_alive_open()
+        self.check_conn_timeout()
         self._transport = transport
         self.peername = self._transport.get_extra_info("peername")
         self.write(self.data)
