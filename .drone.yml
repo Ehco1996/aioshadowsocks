@@ -17,11 +17,14 @@ steps:
           - push
           - pull_request
 
-  - name: build-image
-    image: plugins/docker
+  - name: deploy
+    image: sinlead/drone-kubectl
     settings:
-      repo: ehco1996/aioshadowsocks
-      username: ehco1996
-      password:
-        from_secret: DOCKER_PASSWORD
-      auto_tag: true
+      kubernetes_server:
+        from_secret: k8s_server
+      kubernetes_cert:
+        from_secret: k8s_cert
+      kubernetes_token:
+        from_secret: k8s_token
+    commands:
+      - kubectl delete pods -l app=ss -n shadowsocks
