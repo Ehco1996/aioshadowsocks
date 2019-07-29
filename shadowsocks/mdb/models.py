@@ -177,6 +177,8 @@ class UserServer(BaseModel, HttpSessionMixin):
         logging.info(f"user:{self.user_id} port:{self.port} 已关闭!")
 
     def record_ip(self, peername):
+        if not peername:
+            return
         ip = peername[0]
         self.ip_list.append(ip)
         self.ip_list = list(set(self.ip_list))

@@ -1,3 +1,4 @@
+import os
 import socket
 import struct
 import asyncio
@@ -13,7 +14,7 @@ class TimeoutHandler:
     def __init__(self):
         self._transport = None
         self._last_active_time = time.time()
-        self._timeout_limit = 60 * 5
+        self._timeout_limit = os.getenv("SS_TIME_OUT_LIMIT", 60)
 
     def close(self):
         raise NotImplementedError
