@@ -293,10 +293,17 @@ class RemoteTCP(asyncio.Protocol, TimeoutHandler):
         self.peername = None
         self._transport = None
 
+    def _ratelimit(self, data_lens):
+        if self.local.user.server.check_is_limited(data_lens):
+            self.close()
+            self.local.close()
+
     def write(self, data):
         if not self._transport or self._transport.is_closing():
             self._transport and self._transport.abort()
             return
+
+        self._ratelimit(len(data))
         self._transport.write(data)
 
     def close(self):
@@ -313,6 +320,7 @@ class RemoteTCP(asyncio.Protocol, TimeoutHandler):
         )
 
     def data_received(self, data):
+        self._ratelimit(len(data))
         self.keep_alive_active()
         self.local.write(self.cryptor.encrypt(data))
         logging.debug(

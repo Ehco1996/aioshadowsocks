@@ -6,19 +6,21 @@ from collections import defaultdict
 import peewee as pw
 
 from shadowsocks.core import LocalTCP, LocalUDP
+from shadowsocks.ratelimit import TrafficRateLimit
 from shadowsocks.mdb import BaseModel, HttpSessionMixin, JsonField
 
 
 class User(BaseModel, HttpSessionMixin):
 
     __attr_protected__ = {"user_id"}
-    __attr_accessible__ = {"port", "method", "password", "enable"}
+    __attr_accessible__ = {"port", "method", "password", "enable", "speed_limit"}
 
     user_id = pw.IntegerField(primary_key=True, unique=True)
     port = pw.IntegerField(unique=True)
     method = pw.CharField()
     password = pw.CharField()
     enable = pw.BooleanField(default=True)
+    speed_limit = pw.IntegerField(default=0)
 
     @classmethod
     def create_or_update_from_json(cls, path):
@@ -63,6 +65,7 @@ class UserServer(BaseModel, HttpSessionMixin):
 
     HOST = "0.0.0.0"
     __running_servers__ = defaultdict(dict)
+    __user_limiters__ = defaultdict(dict)
 
     user_id = pw.IntegerField(primary_key=True)
     port = pw.IntegerField(unique=True)
@@ -124,6 +127,10 @@ class UserServer(BaseModel, HttpSessionMixin):
         except KeyError:
             return None
 
+    @property
+    def limiter(self):
+        return self.__user_limiters__.get(self.user_id)
+
     @tcp_server.setter
     def tcp_server(self, server):
         if self.tcp_server:
@@ -135,6 +142,10 @@ class UserServer(BaseModel, HttpSessionMixin):
         if self.udp_server:
             self.udp_server.close()
         self.__running_servers__[self.user_id]["udp"] = server
+
+    @limiter.setter
+    def limiter(self, limiter):
+        self.__user_limiters__[self.user_id] = limiter
 
     async def init_server(self, user):
         self.is_running and self.check_user_server(user)
@@ -149,6 +160,7 @@ class UserServer(BaseModel, HttpSessionMixin):
             )
             self.tcp_server = tcp_server
             self.udp_server = udp_server
+            self.limiter = TrafficRateLimit(user.speed_limit, user.speed_limit)
             self.update_from_dict(user.to_dict())
             self.save()
             logging.info(
@@ -190,3 +202,12 @@ class UserServer(BaseModel, HttpSessionMixin):
             upload_traffic=cls.upload_traffic + used_u,
             download_traffic=cls.download_traffic + used_d,
         ).where(cls.user_id == self.user_id).execute()
+
+    def check_is_limited(self, data_lens):
+        limiter = self.limiter
+        if limiter.consume(data_lens):
+            logging.warning(
+                f"reach rate limit: {limiter.human_rate}Mbps user_id: {self.user_id}"
+            )
+            return True
+        return False
