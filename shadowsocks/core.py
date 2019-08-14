@@ -181,7 +181,16 @@ class LocalHandler(TimeoutHandler):
                 lambda: RemoteUDP(dst_addr, dst_port, payload, self),
                 remote_addr=(dst_addr, dst_port),
             )
-            asyncio.create_task(udp_coro)
+            try:
+                await udp_coro
+            except (IOError, OSError) as e:
+                self.close()
+                self._stage = self.STAGE_DESTROY
+                logging.debug(f"connection failed , {type(e)} e: {e}")
+            except Exception as e:
+                self._stage = self.STAGE_ERROR
+                self.close()
+                logging.warning(f"connection failed, {type(e)} e: {e}")
         else:
             raise NotImplementedError
 
