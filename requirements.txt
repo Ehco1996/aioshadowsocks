@@ -4,3 +4,4 @@ peewee
 grpclib
 protobuf
 uvloop
+raven-aiohttp

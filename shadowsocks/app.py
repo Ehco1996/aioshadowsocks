@@ -1,11 +1,13 @@
-import uvloop
 import asyncio
 import inspect
 import logging
 import os
 import signal
 
+import raven
+import uvloop
 from grpclib.server import Server
+from raven_aiohttp import AioHttpTransport
 
 from shadowsocks.mdb import BaseModel, models
 from shadowsocks.services import AioShadowsocksServicer
@@ -23,14 +25,17 @@ class App:
             "GRPC_PORT": os.getenv("SS_GRPC_PORT"),
             "SYNC_TIME": int(os.getenv("SS_SYNC_TIME", 60)),
             "LOG_LEVEL": os.getenv("SS_LOG_LEVEL", "info"),
+            "SENTRY_DSN": os.getenv("SS_SENTRY_DSN"),
         }
 
-        self.api_endpoint = self.config.get("API_ENDPOINT")
-        self.grpc_host = self.config.get("GRPC_HOST")
-        self.grpc_port = self.config.get("GRPC_PORT")
+        self.api_endpoint = self.config["API_ENDPOINT"]
+        self.grpc_host = self.config["GRPC_HOST"]
+        self.grpc_port = self.config["GRPC_PORT"]
+        self.sentry_dsn = self.config["SENTRY_DSN"]
 
         self.use_json = False if self.api_endpoint else True
         self.use_grpc = True if self.grpc_host and self.grpc_port else False
+        self.use_sentry = True if self.sentry_dsn else False
 
         self._prepared = False
 
@@ -57,11 +62,24 @@ class App:
                 model.create_table()
                 logging.info(f"正在创建{model}临时数据库")
 
+    def __sentry_exception_handler(self, loop, context):
+        try:
+            raise context["exception"]
+        except Exception:
+            logging.error(context["message"])
+            self.sentry_client.captureException(**context)
+
+    def _init_sentry_client(self):
+        self.sentry_client = raven.Client(self.sentry_dsn, transport=AioHttpTransport)
+        self.loop.set_exception_handler(self.__sentry_exception_handler)
+        logging.info("Init Sentry Client...")
+
     def _prepare(self):
         if self._prepared:
             return
         self._init_logger_config()
         self._init_memory_db()
+        self.use_sentry and self._init_sentry_client()
         self._prepared = True
 
     def start_json_server(self):
@@ -87,6 +105,7 @@ class App:
         if self.use_grpc:
             self.grpc_server.close()
             logging.info(f"Grpc Server on {self.grpc_host}:{self.grpc_port} Closed!")
+
         self.loop.stop()
 
     def run(self):
