@@ -40,16 +40,15 @@ def parse_header(data):
         if len(data) > 2:
             addrlen = data[1]
             if len(data) >= 4 + addrlen:
-                dst_addr = data[2: 2 + addrlen]
+                dst_addr = data[2 : 2 + addrlen]
                 dst_addr = get_ip_from_domain(dst_addr)
-                logging.debug(get_ip_from_domain.cache_info())
-                dst_port = struct.unpack("!H", data[2 + addrlen: addrlen + 4])[0]
+                dst_port = struct.unpack("!H", data[2 + addrlen : addrlen + 4])[0]
                 header_length = 4 + addrlen
             else:
                 logging.warning("header is too short")
         else:
             logging.warning("header is too short")
     else:
-        logging.warning("unknown atype: {} data: {}".format(atype, data))
+        logging.warning(f"unknown atype: {atype}")
 
     return atype, dst_addr, dst_port, header_length

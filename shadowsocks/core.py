@@ -142,7 +142,12 @@ class LocalHandler(TimeoutHandler):
             logging.warning(f"unknown stage:{self._stage}")
 
     async def _handle_stage_init(self, data):
-        addr_type, dst_addr, dst_port, header_length = parse_header(data)
+        try:
+            addr_type, dst_addr, dst_port, header_length = parse_header(data)
+        except Exception as e:
+            self.close()
+            logging.warning(f"parse header error: {str(e)}")
+            return
         if not dst_addr:
             self.close()
             logging.warning(
@@ -350,7 +355,7 @@ class RemoteUDP(asyncio.DatagramProtocol, TimeoutHandler):
             f"remote_udp connection made, addr: {self.peername} user: {self.local.user}"
         )
 
-    def datagram_received(self, data, peername):
+    def datagram_received(self, data, peername, *arg):
         self.keep_alive_active()
 
         logging.debug(
