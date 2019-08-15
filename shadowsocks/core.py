@@ -200,22 +200,20 @@ class LocalHandler(TimeoutHandler):
             raise NotImplementedError
 
     async def _handle_stage_connect(self, data):
-
-        logging.debug("wait until the connection established")
         # 在握手之后，会耗费一定时间来来和remote建立连接
         # 但是ss-client并不会等这个时间 所以我们在这里手动sleep一会
-        for i in range(50):
+        sleep_time = 0.3
+        for i in range(10):
+            sleep_time += 0.1
             if self._stage == self.STAGE_CONNECT:
-                await asyncio.sleep(0.1)
+                await asyncio.sleep(sleep_time)
             elif self._stage == self.STAGE_STREAM:
-                logging.debug(f"connection established total time {i * 0.1 * 1e3}s")
                 self._remote.write(data)
                 return
-            else:
-                logging.debug(f"some error happed stage {self._stage}")
-        #  5s之后连接还没建立的话 超时处理
         self.close()
-        logging.warning(f"time out to connect remote stage {self._stage}")
+        logging.warning(
+            f"timeout to connect remote user: {self.user} peername: {self._peername}"
+        )
 
     def _handle_stage_stream(self, data):
         self.keep_alive_active()
