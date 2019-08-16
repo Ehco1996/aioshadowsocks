@@ -3,7 +3,6 @@ import inspect
 import logging
 import os
 import signal
-import socket
 
 import raven
 import uvloop
@@ -66,7 +65,7 @@ class App:
     def __sentry_exception_handler(self, loop, context):
         try:
             raise context["exception"]
-        except socket.timeout:
+        except TimeoutError:
             logging.error(f"socket timeout msg: {context['message']}")
         except Exception:
             logging.error(f"unhandled error msg: {context['message']}")

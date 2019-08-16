@@ -82,6 +82,7 @@ class LocalHandler(TimeoutHandler):
     def close(self):
         if self._transport_protocol == flag.TRANSPORT_TCP:
             self._transport and self._transport.close()
+            self._remote and self._remote.close()
         elif self._transport_protocol == flag.TRANSPORT_UDP:
             pass
         else:
@@ -362,7 +363,8 @@ class RemoteUDP(asyncio.DatagramProtocol, TimeoutHandler):
 
         assert self.peername == peername
         # 源地址和端口
-        bind_addr, bind_port = peername
+        bind_addr = peername[0]
+        bind_port = peername[1]
         addr = socket.inet_pton(socket.AF_INET, bind_addr)
         port = struct.pack("!H", bind_port)
         # 构造返回的报文结构
