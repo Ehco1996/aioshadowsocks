@@ -80,9 +80,13 @@ class LocalHandler(TimeoutHandler):
             logging.warning("not support cipher")
 
     def close(self):
+        self._stage = self.STAGE_DESTROY
         if self._transport_protocol == flag.TRANSPORT_TCP:
             self._transport and self._transport.close()
-            self._remote and self._remote.close()
+            if self._remote:
+                self._remote.close()
+                # NOTE for circular reference
+                self._remote = None
         elif self._transport_protocol == flag.TRANSPORT_UDP:
             pass
         else:
@@ -168,7 +172,7 @@ class LocalHandler(TimeoutHandler):
                 lambda: RemoteTCP(dst_addr, dst_port, payload, self), dst_addr, dst_port
             )
             try:
-                remote_transport, remote_tcp = await tcp_coro
+                _, remote_tcp = await tcp_coro
             except (IOError, OSError) as e:
                 self.close()
                 self._stage = self.STAGE_DESTROY
@@ -226,12 +230,18 @@ class LocalHandler(TimeoutHandler):
 
 
 class LocalTCP(asyncio.Protocol):
+    """
+    Local Tcp Factory
+    """
+
     def __init__(self, user):
         self._handler = None
         self.user = user
 
     def _init_handler(self):
-        self._handler = LocalHandler(self.user)
+        if not self._handler:
+            self._handler = LocalHandler(self.user)
+        return self._handler
 
     def __call__(self):
         local = LocalTCP(self.user)
@@ -254,6 +264,10 @@ class LocalTCP(asyncio.Protocol):
 
 
 class LocalUDP(asyncio.DatagramProtocol):
+    """
+    Local Tcp Factory
+    """
+
     def __init__(self, user):
         self.user = user
         self._protocols = {}
@@ -300,6 +314,9 @@ class RemoteTCP(asyncio.Protocol, TimeoutHandler):
 
     def close(self):
         self._transport and self._transport.close()
+        # NOTE for circular reference
+        self.data = None
+        self.local = None
 
     def connection_made(self, transport):
         self.check_conn_timeout()
@@ -344,6 +361,9 @@ class RemoteUDP(asyncio.DatagramProtocol, TimeoutHandler):
 
     def close(self):
         self._transport and self._transport.close()
+        # NOTE for circular reference
+        self.data = None
+        self.local = None
 
     def connection_made(self, transport):
         self.check_conn_timeout()

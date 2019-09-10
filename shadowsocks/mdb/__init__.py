@@ -56,17 +56,15 @@ class JsonField(pw.TextField):
 
 class HttpSession:
     def __init__(self):
-        self.url = os.getenv("SS_API_ENDPOINT")
         self.session = requests.Session()
 
-    def request(self, method, **kw):
+    def request(self, method, url, **kw):
         req_method = getattr(self.session, method)
         try:
-            url = kw.get("url", self.url)
             logging.debug(f"url: {url},method: {method},kw: {kw}")
             return req_method(url, **kw)
         except (requests.exceptions.HTTPError, requests.exceptions.MissingSchema) as e:
-            logging.warning(f"请求错误 url:{self.url} error: {e}")
+            logging.warning(f"请求错误 url:{url} error: {e}")
 
 
 class HttpSessionMixin:

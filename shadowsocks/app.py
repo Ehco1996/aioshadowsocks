@@ -90,8 +90,8 @@ class App:
 
     def start_remote_sync_server(self):
         try:
-            models.User.create_or_update_from_remote()
-            models.UserServer.flush_data_to_remote()
+            models.User.create_or_update_from_remote(self.api_endpoint)
+            models.UserServer.flush_data_to_remote(self.api_endpoint)
             models.User.init_user_servers()
         except Exception as e:
             logging.warning(f"sync user error {e}")

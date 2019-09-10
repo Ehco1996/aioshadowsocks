@@ -28,8 +28,8 @@ class User(BaseModel, HttpSessionMixin):
             cls.create_or_update_user_from_data(user_data)
 
     @classmethod
-    def create_or_update_from_remote(cls):
-        res = cls.http_session.request("get")
+    def create_or_update_from_remote(cls, url):
+        res = cls.http_session.request("get", url)
         for user_data in res.json()["users"]:
             cls.create_or_update_user_from_data(user_data)
 
@@ -81,7 +81,7 @@ class UserServer(BaseModel, HttpSessionMixin):
             us.close_server()
 
     @classmethod
-    def flush_data_to_remote(cls):
+    def flush_data_to_remote(cls, url):
         data = []
         need_reset_user_id = []
         fields = [
@@ -93,7 +93,7 @@ class UserServer(BaseModel, HttpSessionMixin):
         for us in cls.select().where(cls.download_traffic > 0):
             data.append(us.to_dict(only=fields))
             need_reset_user_id.append(us.user_id)
-        res = cls.http_session.request("post", json={"data": data})
+        res = cls.http_session.request("post", url, json={"data": data})
         res and cls.update(upload_traffic=0, download_traffic=0, ip_list=[]).where(
             cls.user_id << need_reset_user_id
         ).execute()
