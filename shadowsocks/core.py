@@ -16,6 +16,8 @@ class TimeoutHandler:
         self._last_active_time = time.time()
         self._timeout_limit = os.getenv("SS_TIME_OUT_LIMIT", 60)
 
+        self._is_cancelled = False
+
     def close(self):
         raise NotImplementedError
 
@@ -26,7 +28,7 @@ class TimeoutHandler:
         self._last_active_time = time.time()
 
     async def _check_conn_timeout(self):
-        while True:
+        while not self._is_cancelled:
             current_time = time.time()
             if current_time - self._last_active_time > self._timeout_limit:
                 self.close()
@@ -81,6 +83,7 @@ class LocalHandler(TimeoutHandler):
 
     def close(self):
         self._stage = self.STAGE_DESTROY
+        self._is_cancelled = True
         if self._transport_protocol == flag.TRANSPORT_TCP:
             self._transport and self._transport.close()
             if self._remote:
@@ -313,6 +316,7 @@ class RemoteTCP(asyncio.Protocol, TimeoutHandler):
         self._transport.write(data)
 
     def close(self):
+        self._is_cancelled = True
         self._transport and self._transport.close()
         # NOTE for circular reference
         self.data = None
@@ -336,6 +340,8 @@ class RemoteTCP(asyncio.Protocol, TimeoutHandler):
         )
 
     def eof_received(self):
+        # NOTE tell ss-local
+        self.local and self.local.handle_eof_received()
         self.close()
         logging.debug("eof received")
 
@@ -360,6 +366,7 @@ class RemoteUDP(asyncio.DatagramProtocol, TimeoutHandler):
         self._transport and self._transport.sendto(data, self.peername)
 
     def close(self):
+        self._is_cancelled = True
         self._transport and self._transport.close()
         # NOTE for circular reference
         self.data = None
