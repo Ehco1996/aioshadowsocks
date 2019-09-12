@@ -1,11 +1,11 @@
-import os
-import socket
-import struct
 import asyncio
 import logging
+import socket
+import struct
 import time
 
 from shadowsocks import protocol_flag as flag
+from shadowsocks.app import current_app
 from shadowsocks.cryptor import Cryptor
 from shadowsocks.utils import parse_header
 
@@ -14,7 +14,7 @@ class TimeoutHandler:
     def __init__(self):
         self._transport = None
         self._last_active_time = time.time()
-        self._timeout_limit = os.getenv("SS_TIME_OUT_LIMIT", 60)
+        self._timeout_limit = current_app.timeout_limit
 
         self._is_cancelled = False
 
@@ -54,6 +54,8 @@ class LocalHandler(TimeoutHandler):
     STAGE_DESTROY = -1
     STAGE_ERROR = 255
 
+    USER_TCP_CONN_LIMIT = current_app.user_tcp_conn_limit
+
     def __init__(self, user):
         TimeoutHandler.__init__(self)
 
@@ -65,13 +67,15 @@ class LocalHandler(TimeoutHandler):
         self._cryptor = None
         self._transport = None
         self._transport_protocol = None
+        self._is_closing = False
 
-    def _init_transport_and_cryptor(self, transport, peername, protocol):
+    def _init_transport(self, transport, peername, protocol):
         self._stage = self.STAGE_INIT
         self._transport = transport
         self._peername = peername
         self._transport_protocol = protocol
 
+    def _init_cryptor(self):
         try:
             self._cryptor = Cryptor(
                 self.user.method, self.user.password, self._transport_protocol
@@ -82,9 +86,13 @@ class LocalHandler(TimeoutHandler):
             logging.warning("not support cipher")
 
     def close(self):
+        if self._is_closing:
+            return
         self._stage = self.STAGE_DESTROY
         self._is_cancelled = True
+        self._is_closing = True
         if self._transport_protocol == flag.TRANSPORT_TCP:
+            self.user.server.incr_tcp_conn_num(-1)
             self._transport and self._transport.close()
             if self._remote:
                 self._remote.close()
@@ -99,9 +107,6 @@ class LocalHandler(TimeoutHandler):
         if not self._transport or self._transport.is_closing():
             self._transport and self._transport.abort()
             return
-
-        self.user.server.record_traffic(used_u=0, used_d=len(data))
-
         if self._transport_protocol == flag.TRANSPORT_TCP:
             self._transport.write(data)
         elif self._transport_protocol == flag.TRANSPORT_UDP:
@@ -111,13 +116,20 @@ class LocalHandler(TimeoutHandler):
             raise NotImplementedError
 
     def handle_tcp_connection_made(self, transport, peername):
-        self._init_transport_and_cryptor(transport, peername, flag.TRANSPORT_TCP)
-        self.check_conn_timeout()
-        self.user.server.record_ip(peername)
+        self._init_transport(transport, peername, flag.TRANSPORT_TCP)
+        now_tcp_num = self.user.server.tcp_conn_num
+        if now_tcp_num > self.USER_TCP_CONN_LIMIT:
+            logging.warning(
+                f"user: {self.user} reach tcp_conn_limit current :{now_tcp_num}"
+            )
+            self.close()
+        else:
+            self._init_cryptor()
+            self.check_conn_timeout()
 
     def handle_udp_connection_made(self, transport, peername):
-        self._init_transport_and_cryptor(transport, peername, flag.TRANSPORT_UDP)
-        self.user.server.record_ip(peername)
+        self._init_transport(transport, peername, flag.TRANSPORT_UDP)
+        self._init_cryptor()
 
     def handle_eof_received(self):
         self.close()
@@ -134,7 +146,6 @@ class LocalHandler(TimeoutHandler):
             self.close()
             logging.warning(f"decrypt data error {e}")
             return
-        self.user.server.record_traffic(used_u=len(data), used_d=0)
 
         if self._stage == self.STAGE_INIT:
             coro = self._handle_stage_init(data)
@@ -254,9 +265,13 @@ class LocalTCP(asyncio.Protocol):
     def connection_made(self, transport):
         self._transport = transport
         peername = self._transport.get_extra_info("peername")
+        # NOTE 只记录 client->ss-local的ip和tcp_conn_num
+        self.user.server.record_ip(peername)
+        self.user.server.incr_tcp_conn_num(1)
         self._handler.handle_tcp_connection_made(transport, peername)
 
     def data_received(self, data):
+        self.user.server.record_traffic(used_u=len(data), used_d=0)
         self._handler.handle_data_received(data)
 
     def eof_received(self):
@@ -290,6 +305,8 @@ class LocalUDP(asyncio.DatagramProtocol):
             handler = LocalHandler(self.user)
             self._protocols[peername] = handler
             handler.handle_udp_connection_made(self._transport, peername)
+
+        self.user.server.record_traffic(used_u=len(data), used_d=0)
         handler.handle_data_received(data)
 
     def error_received(self, exc):
@@ -334,6 +351,7 @@ class RemoteTCP(asyncio.Protocol, TimeoutHandler):
 
     def data_received(self, data):
         self.keep_alive_active()
+        self.local.user.server.record_traffic(used_u=0, used_d=len(data))
         self.local.write(self.cryptor.encrypt(data))
         logging.debug(
             f"remote_tcp {self} received data len: {len(data)} user: {self.local.user}"
@@ -397,6 +415,7 @@ class RemoteUDP(asyncio.DatagramProtocol, TimeoutHandler):
         # 构造返回的报文结构
         data = b"\x01" + addr + port + data
         data = self.cryptor.encrypt(data)
+        self.local.user.server.record_traffic(used_u=0, used_d=len(data))
         self.local.write(data)
 
     def error_received(self, exc):

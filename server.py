@@ -1,9 +1,4 @@
-def run_server():
-    from shadowsocks.app import App
-
-    app = App()
-    app.run()
-
+from shadowsocks.app import current_app
 
 if __name__ == "__main__":
-    run_server()
+    current_app.run()
