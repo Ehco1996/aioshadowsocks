@@ -26,7 +26,7 @@ class App:
             "SENTRY_DSN": os.getenv("SS_SENTRY_DSN"),
             "API_ENDPOINT": os.getenv("SS_API_ENDPOINT"),
             "LOG_LEVEL": os.getenv("SS_LOG_LEVEL", "info"),
-            "SYNC_TIME": int(os.getenv("SS_SYNC_TIME", 6)),
+            "SYNC_TIME": int(os.getenv("SS_SYNC_TIME", 60)),
             "TIME_OUT_LIMIT": os.getenv("SS_TIME_OUT_LIMIT", 60),
             "USER_TCP_CONN_LIMIT": os.getenv("SS_TCP_CONN_LIMIT", 30),
         }
