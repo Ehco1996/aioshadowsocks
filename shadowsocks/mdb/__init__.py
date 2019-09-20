@@ -1,12 +1,30 @@
 import logging
-import os
-import json
 
 import peewee as pw
 import requests
 from playhouse import shortcuts
 
 db = pw.SqliteDatabase(":memory:")
+
+
+class cached_property(property):
+    def __init__(self, func, name=None, doc=None):
+        self.__name__ = name or func.__name__
+        self.__module__ = func.__module__
+        self.__doc__ = doc or func.__doc__
+        self.func = func
+
+    def __set__(self, obj, value):
+        obj.__dict__[self.__name__] = value
+
+    def __get__(self, obj, type=None):
+        if obj is None:
+            return self
+        value = obj.__dict__.get(self.__name__, "no value")
+        if value is "no value":
+            value = self.func(obj)
+            obj.__dict__[self.__name__] = value
+        return value
 
 
 class BaseModel(pw.Model):
@@ -41,32 +59,17 @@ class BaseModel(pw.Model):
         return shortcuts.model_to_dict(self, **kw)
 
 
-class JsonField(pw.TextField):
-    def db_value(self, value):
-        if value is None:
-            return value
-        data = json.dumps(value)
-        return data
-
-    def python_value(self, value):
-        if value is None:
-            return value
-        return json.loads(value)
-
-
 class HttpSession:
     def __init__(self):
-        self.url = os.getenv("SS_API_ENDPOINT")
         self.session = requests.Session()
 
-    def request(self, method, **kw):
+    def request(self, method, url, **kw):
         req_method = getattr(self.session, method)
         try:
-            url = kw.get("url", self.url)
             logging.debug(f"url: {url},method: {method},kw: {kw}")
             return req_method(url, **kw)
         except (requests.exceptions.HTTPError, requests.exceptions.MissingSchema) as e:
-            logging.warning(f"请求错误 url:{self.url} error: {e}")
+            logging.warning(f"请求错误 url:{url} error: {e}")
 
 
 class HttpSessionMixin:

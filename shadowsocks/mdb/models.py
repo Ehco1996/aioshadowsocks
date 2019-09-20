@@ -7,7 +7,7 @@ import peewee as pw
 
 from shadowsocks.core import LocalTCP, LocalUDP
 from shadowsocks.ratelimit import TrafficRateLimit
-from shadowsocks.mdb import BaseModel, HttpSessionMixin, JsonField
+from shadowsocks.mdb import BaseModel, HttpSessionMixin, cached_property
 
 
 class User(BaseModel, HttpSessionMixin):
@@ -30,8 +30,8 @@ class User(BaseModel, HttpSessionMixin):
             cls.create_or_update_user_from_data(user_data)
 
     @classmethod
-    def create_or_update_from_remote(cls):
-        res = cls.http_session.request("get")
+    def create_or_update_from_remote(cls, url):
+        res = cls.http_session.request("get", url)
         for user_data in res.json()["users"]:
             cls.create_or_update_user_from_data(user_data)
 
@@ -47,25 +47,27 @@ class User(BaseModel, HttpSessionMixin):
 
     @classmethod
     def init_user_servers(cls):
+        loop = asyncio.get_event_loop()
         for user in cls.select():
             data = user.to_dict()
             user_id = data.pop("user_id")
             us, _ = UserServer.get_or_create(user_id=user_id, defaults=data)
-            loop = asyncio.get_event_loop()
             loop.create_task(us.init_server(user))
 
-    @property
+    @cached_property
     def server(self):
         return UserServer.get_by_id(self.user_id)
 
 
 class UserServer(BaseModel, HttpSessionMixin):
+    HOST = "0.0.0.0"
+    METRIC_FIELDS = {"upload_traffic", "download_traffic", "tcp_conn_num", "ip_list"}
 
     __attr_accessible__ = {"port", "method", "password", "enable"}
 
-    HOST = "0.0.0.0"
     __running_servers__ = defaultdict(dict)
     __user_limiters__ = defaultdict(dict)
+    __user_metrics__ = defaultdict(dict)
 
     user_id = pw.IntegerField(primary_key=True)
     port = pw.IntegerField(unique=True)
@@ -73,41 +75,30 @@ class UserServer(BaseModel, HttpSessionMixin):
     password = pw.CharField()
     enable = pw.BooleanField(default=True)
 
-    # need sync field
-    upload_traffic = pw.BigIntegerField(default=0)
-    download_traffic = pw.BigIntegerField(default=0)
-    ip_list = JsonField(default=[])
-
     @classmethod
     def shutdown(cls):
         for us in cls.select():
             us.close_server()
 
     @classmethod
-    def flush_data_to_remote(cls):
+    def flush_metrics_to_remote(cls, url):
         data = []
-        need_reset_user_id = []
-        fields = [
-            cls._meta.fields["user_id"],
-            cls._meta.fields["upload_traffic"],
-            cls._meta.fields["download_traffic"],
-            cls._meta.fields["ip_list"],
-        ]
-        for us in cls.select().where(cls.download_traffic > 0):
-            data.append(us.to_dict(only=fields))
-            need_reset_user_id.append(us.user_id)
-        res = cls.http_session.request("post", json={"data": data})
-        res and cls.update(upload_traffic=0, download_traffic=0, ip_list=[]).where(
-            cls.user_id << need_reset_user_id
-        ).execute()
+        need_reset_user_ids = []
+        for user_id, metric in cls.__user_metrics__.items():
+            if (metric["upload_traffic"] + metric["download_traffic"]) > 0:
+                metric["user_id"] = user_id
+                metric["ip_list"] = list(metric["ip_list"])
+                data.append(metric)
+                need_reset_user_ids.append(user_id)
+        cls.http_session.request("post", url, json={"data": data})
+        for user_id in need_reset_user_ids:
+            new_metric = cls.init_new_metric()
+            new_metric.pop("tcp_conn_num")
+            cls.__user_metrics__[user_id].update(new_metric)
 
     @property
     def host(self):
         return "0.0.0.0"
-
-    @property
-    def used_traffic(self):
-        return self.upload_traffic + self.download_traffic
 
     @property
     def is_running(self):
@@ -115,21 +106,31 @@ class UserServer(BaseModel, HttpSessionMixin):
 
     @property
     def tcp_server(self):
-        try:
-            return self.__running_servers__[self.user_id]["tcp"]
-        except KeyError:
-            return None
+        return self.__running_servers__[self.user_id].get("tcp")
 
     @property
     def udp_server(self):
-        try:
-            return self.__running_servers__[self.user_id]["udp"]
-        except KeyError:
-            return None
+        return self.__running_servers__[self.user_id].get("udp")
 
     @property
-    def limiter(self):
+    def metrics(self):
+        return self.__user_metrics__[self.user_id]
+
+    @metrics.setter
+    def metrics(self, data):
+        self.__user_metrics__[self.user_id].update(data)
+
+    @property
+    def tcp_conn_num(self):
+        return self.metrics["tcp_conn_num"]
+
+    @property
+    def traffic_limiter(self):
         return self.__user_limiters__.get(self.user_id)
+
+    @traffic_limiter.setter
+    def traffic_limiter(self, limiter):
+        self.__user_limiters__[self.user_id] = limiter
 
     @tcp_server.setter
     def tcp_server(self, server):
@@ -143,9 +144,14 @@ class UserServer(BaseModel, HttpSessionMixin):
             self.udp_server.close()
         self.__running_servers__[self.user_id]["udp"] = server
 
-    @limiter.setter
-    def limiter(self, limiter):
-        self.__user_limiters__[self.user_id] = limiter
+    @staticmethod
+    def init_new_metric():
+        return {
+            "upload_traffic": 0,
+            "download_traffic": 0,
+            "tcp_conn_num": 0,
+            "ip_list": set(),
+        }
 
     async def init_server(self, user):
         self.is_running and self.check_user_server(user)
@@ -160,7 +166,8 @@ class UserServer(BaseModel, HttpSessionMixin):
             )
             self.tcp_server = tcp_server
             self.udp_server = udp_server
-            self.limiter = TrafficRateLimit(user.speed_limit, user.speed_limit)
+            self.traffic_limiter = TrafficRateLimit(user.speed_limit)
+            self.metrics = self.init_new_metric()
             self.update_from_dict(user.to_dict())
             self.save()
             logging.info(
@@ -191,23 +198,19 @@ class UserServer(BaseModel, HttpSessionMixin):
     def record_ip(self, peername):
         if not peername:
             return
-        ip = peername[0]
-        self.ip_list.append(ip)
-        self.ip_list = list(set(self.ip_list))
-        self.save(only=["ip_list"])
+        self.metrics["ip_list"].add(peername[0])
 
     def record_traffic(self, used_u, used_d):
-        cls = type(self)
-        cls.update(
-            upload_traffic=cls.upload_traffic + used_u,
-            download_traffic=cls.download_traffic + used_d,
-        ).where(cls.user_id == self.user_id).execute()
+        self.metrics["upload_traffic"] += used_u
+        self.metrics["download_traffic"] += used_d
 
-    def check_is_limited(self, data_lens):
-        limiter = self.limiter
-        if limiter.consume(data_lens):
+    def incr_tcp_conn_num(self, num):
+        self.metrics["tcp_conn_num"] += num
+
+    def check_traffic_rate(self, data_lens):
+        if self.traffic_limiter.consume(data_lens):
             logging.warning(
-                f"reach rate limit: {limiter.human_rate}Mbps user_id: {self.user_id}"
+                f"reach traffic limit: {self.traffic_limiter.human_rate} user_id: {self.user_id}"
             )
             return True
         return False

@@ -52,6 +52,7 @@ class AioShadowsocksServicer(aioshadowsocks_grpc.ssBase):
         )
 
     async def GetUserServer(self, stream):
+        # TODO  修改proto 增加字段
         request = await stream.recv_message()
         user_server = m.UserServer.get_by_id(request.user_id)
         await stream.send_message(
