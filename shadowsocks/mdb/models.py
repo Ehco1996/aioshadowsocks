@@ -6,19 +6,21 @@ from collections import defaultdict
 import peewee as pw
 
 from shadowsocks.core import LocalTCP, LocalUDP
+from shadowsocks.ratelimit import TrafficRateLimit
 from shadowsocks.mdb import BaseModel, HttpSessionMixin, cached_property
 
 
 class User(BaseModel, HttpSessionMixin):
 
     __attr_protected__ = {"user_id"}
-    __attr_accessible__ = {"port", "method", "password", "enable"}
+    __attr_accessible__ = {"port", "method", "password", "enable", "speed_limit"}
 
     user_id = pw.IntegerField(primary_key=True, unique=True)
     port = pw.IntegerField(unique=True)
     method = pw.CharField()
     password = pw.CharField()
     enable = pw.BooleanField(default=True)
+    speed_limit = pw.IntegerField(default=0)
 
     @classmethod
     def create_or_update_from_json(cls, path):
@@ -64,7 +66,7 @@ class UserServer(BaseModel, HttpSessionMixin):
     __attr_accessible__ = {"port", "method", "password", "enable"}
 
     __running_servers__ = defaultdict(dict)
-
+    __user_limiters__ = defaultdict(dict)
     __user_metrics__ = defaultdict(dict)
 
     user_id = pw.IntegerField(primary_key=True)
@@ -122,6 +124,14 @@ class UserServer(BaseModel, HttpSessionMixin):
     def tcp_conn_num(self):
         return self.metrics["tcp_conn_num"]
 
+    @property
+    def traffic_limiter(self):
+        return self.__user_limiters__.get(self.user_id)
+
+    @traffic_limiter.setter
+    def traffic_limiter(self, limiter):
+        self.__user_limiters__[self.user_id] = limiter
+
     @tcp_server.setter
     def tcp_server(self, server):
         if self.tcp_server:
@@ -156,6 +166,7 @@ class UserServer(BaseModel, HttpSessionMixin):
             )
             self.tcp_server = tcp_server
             self.udp_server = udp_server
+            self.traffic_limiter = TrafficRateLimit(user.speed_limit)
             self.metrics = self.init_new_metric()
             self.update_from_dict(user.to_dict())
             self.save()
@@ -195,3 +206,11 @@ class UserServer(BaseModel, HttpSessionMixin):
 
     def incr_tcp_conn_num(self, num):
         self.metrics["tcp_conn_num"] += num
+
+    def check_traffic_rate(self, data_lens):
+        if self.traffic_limiter.consume(data_lens):
+            logging.warning(
+                f"reach traffic limit: {self.traffic_limiter.human_rate} user_id: {self.user_id}"
+            )
+            return True
+        return False

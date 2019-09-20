@@ -60,6 +60,7 @@ class LocalHandler(TimeoutHandler):
         TimeoutHandler.__init__(self)
 
         self.user = user
+        self.server = user.server
 
         self._stage = self.STAGE_DESTROY
         self._peername = None
@@ -92,7 +93,7 @@ class LocalHandler(TimeoutHandler):
         self._is_cancelled = True
         self._is_closing = True
         if self._transport_protocol == flag.TRANSPORT_TCP:
-            self.user.server.incr_tcp_conn_num(-1)
+            self.server.incr_tcp_conn_num(-1)
             self._transport and self._transport.close()
             if self._remote:
                 self._remote.close()
@@ -117,7 +118,7 @@ class LocalHandler(TimeoutHandler):
 
     def handle_tcp_connection_made(self, transport, peername):
         self._init_transport(transport, peername, flag.TRANSPORT_TCP)
-        now_tcp_num = self.user.server.tcp_conn_num
+        now_tcp_num = self.server.tcp_conn_num
         if now_tcp_num > self.USER_TCP_CONN_LIMIT:
             logging.warning(
                 f"user: {self.user} reach tcp_conn_limit current :{now_tcp_num}"
@@ -251,6 +252,7 @@ class LocalTCP(asyncio.Protocol):
     def __init__(self, user):
         self._handler = None
         self.user = user
+        self.server = user.server
 
     def _init_handler(self):
         if not self._handler:
@@ -266,12 +268,12 @@ class LocalTCP(asyncio.Protocol):
         self._transport = transport
         peername = self._transport.get_extra_info("peername")
         # NOTE 只记录 client->ss-local的ip和tcp_conn_num
-        self.user.server.record_ip(peername)
-        self.user.server.incr_tcp_conn_num(1)
+        self.server.record_ip(peername)
+        self.server.incr_tcp_conn_num(1)
         self._handler.handle_tcp_connection_made(transport, peername)
 
     def data_received(self, data):
-        self.user.server.record_traffic(used_u=len(data), used_d=0)
+        self.server.record_traffic(used_u=len(data), used_d=0)
         self._handler.handle_data_received(data)
 
     def eof_received(self):
@@ -288,6 +290,7 @@ class LocalUDP(asyncio.DatagramProtocol):
 
     def __init__(self, user):
         self.user = user
+        self.server = user.server
         self._protocols = {}
         self._transport = None
 
@@ -306,7 +309,7 @@ class LocalUDP(asyncio.DatagramProtocol):
             self._protocols[peername] = handler
             handler.handle_udp_connection_made(self._transport, peername)
 
-        self.user.server.record_traffic(used_u=len(data), used_d=0)
+        self.server.record_traffic(used_u=len(data), used_d=0)
         handler.handle_data_received(data)
 
     def error_received(self, exc):
@@ -330,6 +333,7 @@ class RemoteTCP(asyncio.Protocol, TimeoutHandler):
         if not self._transport or self._transport.is_closing():
             self._transport and self._transport.abort()
             return
+
         self._transport.write(data)
 
     def close(self):
@@ -350,8 +354,11 @@ class RemoteTCP(asyncio.Protocol, TimeoutHandler):
         )
 
     def data_received(self, data):
+        if self.local.server.check_traffic_rate(len(data)):
+            self.local.close()
+            return
         self.keep_alive_active()
-        self.local.user.server.record_traffic(used_u=0, used_d=len(data))
+        self.local.server.record_traffic(used_u=0, used_d=len(data))
         self.local.write(self.cryptor.encrypt(data))
         logging.debug(
             f"remote_tcp {self} received data len: {len(data)} user: {self.local.user}"
@@ -415,7 +422,7 @@ class RemoteUDP(asyncio.DatagramProtocol, TimeoutHandler):
         # 构造返回的报文结构
         data = b"\x01" + addr + port + data
         data = self.cryptor.encrypt(data)
-        self.local.user.server.record_traffic(used_u=0, used_d=len(data))
+        self.local.server.record_traffic(used_u=0, used_d=len(data))
         self.local.write(data)
 
     def error_received(self, exc):

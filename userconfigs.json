@@ -5,14 +5,16 @@
             "port": 2345,
             "method": "aes-256-cfb",
             "password": "hellotheworld",
-            "transfer": 104857600
+            "transfer": 104857600,
+            "speed_limit": 0
         },
         {
             "user_id": 2,
             "port": 2346,
             "method": "none",
             "password": "hellotheworld",
-            "transfer": 104857600
+            "transfer": 104857600,
+            "speed_limit": 384000
         }
     ]
 }
