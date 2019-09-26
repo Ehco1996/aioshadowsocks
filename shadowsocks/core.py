@@ -54,8 +54,6 @@ class LocalHandler(TimeoutHandler):
     STAGE_DESTROY = -1
     STAGE_ERROR = 255
 
-    USER_TCP_CONN_LIMIT = current_app.user_tcp_conn_limit
-
     def __init__(self, user):
         TimeoutHandler.__init__(self)
 
@@ -94,6 +92,7 @@ class LocalHandler(TimeoutHandler):
         self._is_closing = True
         if self._transport_protocol == flag.TRANSPORT_TCP:
             self.server.incr_tcp_conn_num(-1)
+            self.server.traffic_limiter.fill()
             self._transport and self._transport.close()
             if self._remote:
                 self._remote.close()
@@ -118,11 +117,7 @@ class LocalHandler(TimeoutHandler):
 
     def handle_tcp_connection_made(self, transport, peername):
         self._init_transport(transport, peername, flag.TRANSPORT_TCP)
-        now_tcp_num = self.server.tcp_conn_num
-        if now_tcp_num > self.USER_TCP_CONN_LIMIT:
-            logging.warning(
-                f"user: {self.user} reach tcp_conn_limit current :{now_tcp_num}"
-            )
+        if self.server.limited:
             self.close()
         else:
             self._init_cryptor()
@@ -349,30 +344,20 @@ class RemoteTCP(asyncio.Protocol, TimeoutHandler):
         self._transport = transport
         self.peername = self._transport.get_extra_info("peername")
         self.write(self.data)
-        logging.debug(
-            f"remote_tcp connection made, addr: {self.peername} user: {self.local.user}"
-        )
 
     def data_received(self, data):
-        if self.local.server.check_traffic_rate(len(data)):
-            self.local.close()
-            return
         self.keep_alive_active()
+        self.local.server.record_traffic_rate(len(data))
         self.local.server.record_traffic(used_u=0, used_d=len(data))
         self.local.write(self.cryptor.encrypt(data))
-        logging.debug(
-            f"remote_tcp {self} received data len: {len(data)} user: {self.local.user}"
-        )
 
     def eof_received(self):
         # NOTE tell ss-local
         self.local and self.local.handle_eof_received()
         self.close()
-        logging.debug("eof received")
 
     def connection_lost(self, exc):
         self.close()
-        logging.debug("lost exc={exc}".format(exc=exc))
 
 
 class RemoteUDP(asyncio.DatagramProtocol, TimeoutHandler):
