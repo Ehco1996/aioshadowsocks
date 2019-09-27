@@ -77,7 +77,6 @@ class LocalHandler(TimeoutMixin):
     def close(self):
         if self._is_closing:
             return
-        self._stage = self.STAGE_DESTROY
         self._is_closing = True
         if self._transport_protocol == flag.TRANSPORT_TCP:
             self.server.incr_tcp_conn_num(-1)
@@ -90,6 +89,7 @@ class LocalHandler(TimeoutMixin):
             pass
         else:
             raise NotImplementedError
+        self._stage = self.STAGE_DESTROY
 
     def write(self, data):
         if not self._transport or self._transport.is_closing():
@@ -141,6 +141,8 @@ class LocalHandler(TimeoutMixin):
             self._handle_stage_stream(data)
         elif self._stage == self.STAGE_ERROR:
             self._handle_stage_error()
+        elif self._stage == self.STAGE_DESTROY:
+            self.close()
         else:
             logging.warning(f"unknown stage:{self._stage}")
 
@@ -397,22 +399,20 @@ class RemoteUDP(asyncio.DatagramProtocol, TimeoutMixin):
         self._transport = transport
         self.peername = self._transport.get_extra_info("peername")
         self.write(self.data)
-        logging.debug(
-            f"remote_udp connection made, addr: {self.peername} user: {self.local.user}"
-        )
 
     def datagram_received(self, data, peername, *arg):
         self.keep_alive()
-
-        logging.debug(
-            f"remote_udp {self} received data len: {len(data)} user: {self.local.user}"
-        )
 
         assert self.peername == peername
         # 源地址和端口
         bind_addr = peername[0]
         bind_port = peername[1]
-        addr = socket.inet_pton(socket.AF_INET, bind_addr)
+        if "." in bind_addr:
+            addr = socket.inet_pton(socket.AF_INET, bind_addr)
+        elif ":" in bind_addr:
+            addr = socket.inet_pton(socket.AF_INET6, bind_addr)
+        else:
+            raise Exception("add not valid")
         port = struct.pack("!H", bind_port)
         # 构造返回的报文结构
         data = b"\x01" + addr + port + data
