@@ -27,8 +27,7 @@ class TrafficRateLimit:
 
         # NOTE _remain_traffic 可以为负数
         self._remain_traffic -= traffic_lens
-        if self._remain_traffic > 0:
-            self._cur_rate = traffic_lens / time_delta
+        self._cur_rate = traffic_lens / time_delta
 
     def fill(self, time_delta=None):
         if not time_delta:
@@ -55,7 +54,14 @@ class TrafficRateLimit:
     def limited(self):
         if self.capacity == float(0):
             return False
+        self.fill()
         return self._remain_traffic < 0
+
+    def get_sleep_time(self):
+        if self._remain_traffic > 0:
+            return 0
+        else:
+            return abs(self._remain_traffic) / self.rate
 
 
 class TcpConnRateLimit:

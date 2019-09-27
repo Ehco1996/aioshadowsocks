@@ -2,7 +2,6 @@ import asyncio
 import logging
 import socket
 import struct
-import time
 
 from shadowsocks import protocol_flag as flag
 from shadowsocks.app import current_app
@@ -10,34 +9,25 @@ from shadowsocks.cryptor import Cryptor
 from shadowsocks.utils import parse_header
 
 
-class TimeoutHandler:
-    def __init__(self):
-        self._transport = None
-        self._last_active_time = time.time()
-        self._timeout_limit = current_app.timeout_limit
+class TimeoutMixin:
+    TIMEOUT = current_app.timeout_limit
 
-        self._is_cancelled = False
+    def __init__(self):
+        self.loop = asyncio.get_running_loop()
+        self.timeout_handle = self.loop.call_later(self.TIMEOUT, self._timeout)
 
     def close(self):
         raise NotImplementedError
 
-    def check_conn_timeout(self):
-        asyncio.create_task(self._check_conn_timeout())
+    def _timeout(self):
+        self.close()
 
-    def keep_alive_active(self):
-        self._last_active_time = time.time()
-
-    async def _check_conn_timeout(self):
-        while not self._is_cancelled:
-            current_time = time.time()
-            if current_time - self._last_active_time > self._timeout_limit:
-                self.close()
-                break
-            else:
-                await asyncio.sleep(2)
+    def keep_alive(self):
+        self.timeout_handle.cancel()
+        self.timeout_handle = self.loop.call_later(self.TIMEOUT, self._timeout)
 
 
-class LocalHandler(TimeoutHandler):
+class LocalHandler(TimeoutMixin):
     """
     事件循环一共处理五个状态
 
@@ -55,7 +45,7 @@ class LocalHandler(TimeoutHandler):
     STAGE_ERROR = 255
 
     def __init__(self, user):
-        TimeoutHandler.__init__(self)
+        super().__init__()
 
         self.user = user
         self.server = user.server
@@ -88,11 +78,9 @@ class LocalHandler(TimeoutHandler):
         if self._is_closing:
             return
         self._stage = self.STAGE_DESTROY
-        self._is_cancelled = True
         self._is_closing = True
         if self._transport_protocol == flag.TRANSPORT_TCP:
             self.server.incr_tcp_conn_num(-1)
-            self.server.traffic_limiter.fill()
             self._transport and self._transport.close()
             if self._remote:
                 self._remote.close()
@@ -118,10 +106,10 @@ class LocalHandler(TimeoutHandler):
     def handle_tcp_connection_made(self, transport, peername):
         self._init_transport(transport, peername, flag.TRANSPORT_TCP)
         if self.server.limited:
+            self.server.log_limited_msg()
             self.close()
         else:
             self._init_cryptor()
-            self.check_conn_timeout()
 
     def handle_udp_connection_made(self, transport, peername):
         self._init_transport(transport, peername, flag.TRANSPORT_UDP)
@@ -231,7 +219,7 @@ class LocalHandler(TimeoutHandler):
         )
 
     def _handle_stage_stream(self, data):
-        self.keep_alive_active()
+        self.keep_alive()
         self._remote.write(data)
         logging.debug(f"relay data length {len(data)}")
 
@@ -258,6 +246,12 @@ class LocalTCP(asyncio.Protocol):
         local = LocalTCP(self.user)
         local._init_handler()
         return local
+
+    def pause_writing(self):
+        self._handler._remote._transport.pause_reading()
+
+    def resume_writing(self):
+        self._handler._remote._transport.resume_reading()
 
     def connection_made(self, transport):
         self._transport = transport
@@ -311,9 +305,9 @@ class LocalUDP(asyncio.DatagramProtocol):
         pass
 
 
-class RemoteTCP(asyncio.Protocol, TimeoutHandler):
+class RemoteTCP(asyncio.Protocol, TimeoutMixin):
     def __init__(self, addr, port, data, local_handler):
-        TimeoutHandler.__init__(self)
+        super().__init__()
 
         self.data = data
         self.local = local_handler
@@ -323,6 +317,7 @@ class RemoteTCP(asyncio.Protocol, TimeoutHandler):
 
         self.peername = None
         self._transport = None
+        self.loop = asyncio.get_running_loop()
 
     def write(self, data):
         if not self._transport or self._transport.is_closing():
@@ -332,24 +327,33 @@ class RemoteTCP(asyncio.Protocol, TimeoutHandler):
         self._transport.write(data)
 
     def close(self):
-        self._is_cancelled = True
         self._transport and self._transport.close()
         # NOTE for circular reference
         self.data = None
         self.local = None
 
     def connection_made(self, transport):
-        self.check_conn_timeout()
 
         self._transport = transport
         self.peername = self._transport.get_extra_info("peername")
         self.write(self.data)
 
     def data_received(self, data):
-        self.keep_alive_active()
-        self.local.server.record_traffic_rate(len(data))
-        self.local.server.record_traffic(used_u=0, used_d=len(data))
+        self.keep_alive()
+        server = self.local.server
+        server.record_traffic_rate(len(data))
+        server.record_traffic(used_u=0, used_d=len(data))
         self.local.write(self.cryptor.encrypt(data))
+        if server.traffic_limiter.limited:
+            self.pause_reading()
+            t = server.traffic_limiter.get_sleep_time()
+            self.loop.call_later(t, self.resume_reading)
+
+    def pause_reading(self):
+        self._transport.pause_reading()
+
+    def resume_reading(self):
+        self._transport.resume_reading()
 
     def eof_received(self):
         # NOTE tell ss-local
@@ -360,9 +364,9 @@ class RemoteTCP(asyncio.Protocol, TimeoutHandler):
         self.close()
 
 
-class RemoteUDP(asyncio.DatagramProtocol, TimeoutHandler):
+class RemoteUDP(asyncio.DatagramProtocol, TimeoutMixin):
     def __init__(self, addr, port, data, local_hander):
-        TimeoutHandler.__init__(self)
+        super().__init__()
         self.data = data
         self.local = local_hander
         self.cryptor = Cryptor(
@@ -376,14 +380,12 @@ class RemoteUDP(asyncio.DatagramProtocol, TimeoutHandler):
         self._transport and self._transport.sendto(data, self.peername)
 
     def close(self):
-        self._is_cancelled = True
         self._transport and self._transport.close()
         # NOTE for circular reference
         self.data = None
         self.local = None
 
     def connection_made(self, transport):
-        self.check_conn_timeout()
         self._transport = transport
         self.peername = self._transport.get_extra_info("peername")
         self.write(self.data)
@@ -392,7 +394,7 @@ class RemoteUDP(asyncio.DatagramProtocol, TimeoutHandler):
         )
 
     def datagram_received(self, data, peername, *arg):
-        self.keep_alive_active()
+        self.keep_alive()
 
         logging.debug(
             f"remote_udp {self} received data len: {len(data)} user: {self.local.user}"

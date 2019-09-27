@@ -153,12 +153,6 @@ class UserServer(BaseModel, HttpSessionMixin):
     @property
     def limited(self):
         if self.tcp_limiter.limited or self.traffic_limiter.limited:
-            msg = "user: {} reach limit now tcp_conn_num:{} traffic_rate: {}".format(
-                self.user_id,
-                self.tcp_limiter.tcp_conn_num,
-                self.traffic_limiter.cur_rate,
-            )
-            logging.warning(msg)
             return True
         else:
             return False
@@ -191,6 +185,12 @@ class UserServer(BaseModel, HttpSessionMixin):
             )
         except OSError as e:
             logging.warning(e)
+
+    def log_limited_msg(self):
+        msg = "user: {} reach limit now tcp_conn_num:{} traffic_rate: {}".format(
+            self.user_id, self.tcp_limiter.tcp_conn_num, self.traffic_limiter.cur_rate
+        )
+        logging.warning(msg)
 
     def check_user_server(self, user):
         need_check_fields = ["method", "port", "password"]
