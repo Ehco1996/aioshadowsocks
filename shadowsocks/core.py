@@ -248,10 +248,16 @@ class LocalTCP(asyncio.Protocol):
         return local
 
     def pause_writing(self):
-        self._handler._remote._transport.pause_reading()
+        try:
+            self._handler._remote._transport.pause_reading()
+        except AttributeError:
+            pass
 
     def resume_writing(self):
-        self._handler._remote._transport.resume_reading()
+        try:
+            self._handler._remote._transport.resume_reading()
+        except AttributeError:
+            pass
 
     def connection_made(self, transport):
         self._transport = transport
@@ -350,10 +356,12 @@ class RemoteTCP(asyncio.Protocol, TimeoutMixin):
             self.loop.call_later(t, self.resume_reading)
 
     def pause_reading(self):
-        self._transport.pause_reading()
+        if self._transport:
+            self._transport.pause_reading()
 
     def resume_reading(self):
-        self._transport.resume_reading()
+        if self._transport:
+            self._transport.resume_reading()
 
     def eof_received(self):
         # NOTE tell ss-local
