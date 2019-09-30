@@ -57,6 +57,7 @@ class LocalHandler(TimeoutMixin):
         self._transport = None
         self._transport_protocol = None
         self._is_closing = False
+        self._connect_buffer = bytearray()
 
     def _init_transport(self, transport, peername, protocol):
         self._stage = self.STAGE_INIT
@@ -166,8 +167,6 @@ class LocalHandler(TimeoutMixin):
         loop = asyncio.get_event_loop()
         if self._transport_protocol == flag.TRANSPORT_TCP:
             self._stage = self.STAGE_CONNECT
-
-            # 尝试建立tcp连接，成功的话将会返回 (transport,protocol)
             tcp_coro = loop.create_connection(
                 lambda: RemoteTCP(dst_addr, dst_port, payload, self), dst_addr, dst_port
             )
@@ -184,7 +183,9 @@ class LocalHandler(TimeoutMixin):
             else:
                 self._remote = remote_tcp
                 self._stage = self.STAGE_STREAM
-                logging.debug(f"connection established,remote {remote_tcp}")
+                self._remote.write(self._connect_buffer)
+                logging.debug(f"connection ok buffer lens：{len(self._connect_buffer)}")
+
         elif self._transport_protocol == flag.TRANSPORT_UDP:
             self._stage = self.STAGE_INIT
             udp_coro = loop.create_datagram_endpoint(
@@ -206,19 +207,8 @@ class LocalHandler(TimeoutMixin):
 
     async def _handle_stage_connect(self, data):
         # 在握手之后，会耗费一定时间来来和remote建立连接
-        # 但是ss-client并不会等这个时间 所以我们在这里手动sleep一会
-        sleep_time = 0.3
-        for i in range(10):
-            sleep_time += 0.1
-            if self._stage == self.STAGE_CONNECT:
-                await asyncio.sleep(sleep_time)
-            elif self._stage == self.STAGE_STREAM:
-                self._remote.write(data)
-                return
-        self.close()
-        logging.warning(
-            f"timeout to connect remote user: {self.user} peername: {self._peername}"
-        )
+        # 但是ss-client并不会等这个时间 把数据线放进buffer
+        self._connect_buffer.extend(data)
 
     def _handle_stage_stream(self, data):
         self.keep_alive()
