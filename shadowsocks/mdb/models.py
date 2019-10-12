@@ -86,9 +86,14 @@ class UserServer(BaseModel, HttpSessionMixin):
         need_reset_user_ids = []
         for user_id, metric in cls.__user_metrics__.items():
             if (metric["upload_traffic"] + metric["download_traffic"]) > 0:
-                metric["user_id"] = user_id
-                metric["ip_list"] = list(metric["ip_list"])
-                data.append(metric)
+                data.append(
+                    {
+                        "user_id": user_id,
+                        "upload_traffic": metric["upload_traffic"],
+                        "download_traffic": metric["download_traffic"],
+                        "ip_list": list(metric["ip_list"]),
+                    }
+                )
                 need_reset_user_ids.append(user_id)
         cls.http_session.request("post", url, json={"data": data})
         for user_id in need_reset_user_ids:
