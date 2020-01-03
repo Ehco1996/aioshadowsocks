@@ -1,0 +1,9 @@
+FROM ehco1996/aioshadowsocks:runtime
+
+LABEL Name="aio-shadowsocks" Maintainer="Ehco1996"
+
+WORKDIR /src/aioshadowsocks
+
+COPY . /src/aioshadowsocks
+
+CMD ["python", "server.py"]
