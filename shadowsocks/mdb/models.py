@@ -61,13 +61,14 @@ class User(BaseModel, HttpSessionMixin):
 
 class UserServer(BaseModel, HttpSessionMixin):
     HOST = "0.0.0.0"
-    METRIC_FIELDS = {"upload_traffic", "download_traffic", "tcp_conn_num", "ip_list"}
+    METRIC_FIELDS = {"upload_traffic", "download_traffic", "ip_list"}
 
     __attr_accessible__ = {"port", "method", "password", "enable"}
 
     __running_servers__ = defaultdict(dict)
     __user_metrics__ = defaultdict(dict)
     __user_limiters__ = defaultdict(dict)
+    __active_user_ids__ = []
 
     user_id = pw.IntegerField(primary_key=True)
     port = pw.IntegerField(unique=True)
@@ -79,6 +80,13 @@ class UserServer(BaseModel, HttpSessionMixin):
     def shutdown(cls):
         for us in cls.select():
             us.close_server()
+
+    @classmethod
+    def get_total_connection_count(cls):
+        cnt = 0
+        for us in cls.select().where(cls.user_id << cls.__active_user_ids__):
+            cnt += us.tcp_limiter.tcp_conn_num
+        return cnt
 
     @classmethod
     def flush_metrics_to_remote(cls, url):
@@ -98,6 +106,8 @@ class UserServer(BaseModel, HttpSessionMixin):
         cls.http_session.request("post", url, json={"data": data})
         for user_id in need_reset_user_ids:
             cls.__user_metrics__[user_id].update(cls.init_new_metric())
+        # set active user
+        cls.__active_user_ids__ = need_reset_user_ids
 
     @property
     def host(self):

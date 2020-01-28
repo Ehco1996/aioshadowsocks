@@ -164,10 +164,9 @@ class LocalHandler(TimeoutMixin):
             return
         else:
             payload = data[header_length:]
-        loop = asyncio.get_event_loop()
         if self._transport_protocol == flag.TRANSPORT_TCP:
             self._stage = self.STAGE_CONNECT
-            tcp_coro = loop.create_connection(
+            tcp_coro = self.loop.create_connection(
                 lambda: RemoteTCP(dst_addr, dst_port, payload, self), dst_addr, dst_port
             )
             try:
@@ -188,7 +187,7 @@ class LocalHandler(TimeoutMixin):
 
         elif self._transport_protocol == flag.TRANSPORT_UDP:
             self._stage = self.STAGE_INIT
-            udp_coro = loop.create_datagram_endpoint(
+            udp_coro = self.loop.create_datagram_endpoint(
                 lambda: RemoteUDP(dst_addr, dst_port, payload, self),
                 remote_addr=(dst_addr, dst_port),
             )

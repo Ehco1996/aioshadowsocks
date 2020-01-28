@@ -14,8 +14,10 @@ from raven_aiohttp import AioHttpTransport
 
 class App:
     def __init__(self, debug=False):
-        if not debug:
+        self.debug = debug
+        if not self.debug:
             uvloop.install()
+
         self.loop = asyncio.get_event_loop()
         self.prepared = False
 
@@ -29,6 +31,7 @@ class App:
             "SYNC_TIME": int(os.getenv("SS_SYNC_TIME", 60)),
             "TIME_OUT_LIMIT": int(os.getenv("SS_TIME_OUT_LIMIT", 60)),
             "USER_TCP_CONN_LIMIT": int(os.getenv("SS_TCP_CONN_LIMIT", 60)),
+            "ENABLE_METRICS": bool(os.getenv("SS_ENABLE_METRICS")),
         }
 
         self.grpc_host = self.config["GRPC_HOST"]
@@ -43,6 +46,7 @@ class App:
         self.use_json = False if self.api_endpoint else True
         self.use_grpc = True if self.grpc_host and self.grpc_port else False
         self.use_sentry = True if self.sentry_dsn else False
+        self.enable_metrics = self.config["ENABLE_METRICS"]
 
     def _init_logger(self):
         """
@@ -55,9 +59,13 @@ class App:
             "INFO": 20,
             "DEBUG": 10,
         }
-        level = log_levels.get(self.log_level.upper(), 10)
+        if self.debug:
+            level = 10
+        else:
+            level = log_levels.get(self.log_level.upper(), 10)
         logging.basicConfig(
-            format="[%(levelname)s]%(asctime)s-%(name)s - %(funcName)s() - %(message)s",
+            format="[%(levelname)s]%(asctime)s - PID:%(process)d - %(funcName)s"
+            " - %(message)s",
             level=level,
         )
 
@@ -126,7 +134,6 @@ class App:
         if self.use_grpc:
             self.grpc_server.close()
             logging.info(f"Grpc Server on {self.grpc_host}:{self.grpc_port} Closed!")
-
         self.loop.stop()
 
     def run(self):
@@ -139,6 +146,12 @@ class App:
 
         if self.use_grpc:
             self.loop.create_task(self.start_grpc_server())
+
+        if self.enable_metrics:
+            from shadowsocks.metrics import run_metrics_server
+
+            logging.info(f"Start Metrics Server At: http://0.0.0.0:9000/metrics ")
+            self.loop.create_task(run_metrics_server())
 
         try:
             self.loop.run_forever()

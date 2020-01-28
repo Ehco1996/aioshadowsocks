@@ -75,4 +75,3 @@ class TcpConnRateLimit:
     @property
     def limited(self):
         return self.tcp_conn_num > self.capacity
-
