@@ -21,3 +21,4 @@ six==1.13.0
 urllib3==1.25.7
 uvloop==0.14.0
 yarl==1.4.2
+dnspython==1.16.0

@@ -4,7 +4,7 @@ import socket
 import struct
 
 from shadowsocks import protocol_flag as flag
-from shadowsocks.app import current_app
+from shadowsocks import current_app
 from shadowsocks.cryptor import Cryptor
 from shadowsocks.utils import parse_header
 

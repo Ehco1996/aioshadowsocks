@@ -1,17 +1,39 @@
+import re
 import logging
 import socket
 import struct
 from functools import lru_cache
 
+import dns.resolver
+from dns.exception import DNSException
+
 from shadowsocks import protocol_flag as flag
+
+STREAM_HOST_PATTERN = re.compile(".*(netflix|nflx|hulu|hbo).*")
+
+
+def is_stream_domain(domain):
+    # 目前只匹配 netflix、hulu、HBO
+    if STREAM_HOST_PATTERN.search(domain):
+        return True
+    return False
 
 
 @lru_cache(2 ** 14)
 def get_ip_from_domain(domain):
+    from shadowsocks import current_app
+
+    resolver = dns.resolver.Resolver()
+    if current_app.stream_dns_server and is_stream_domain(domain):
+        resolver.nameservers = [current_app.stream_dns_server]
     try:
-        return socket.gethostbyname(domain)
-    except socket.gaierror:
+        res = resolver.query(domain, "A")
+        return res[0].to_text()
+    except DNSException:
         # fallback to raw domain
+        logging.warning(
+            f"Failed to query DNS: {domain} now dns server:{resolver.nameservers}"
+        )
         return domain
 
 
@@ -41,7 +63,7 @@ def parse_header(data):
             addrlen = data[1]
             if len(data) >= 4 + addrlen:
                 dst_addr = data[2 : 2 + addrlen]
-                dst_addr = get_ip_from_domain(dst_addr)
+                dst_addr = get_ip_from_domain(dst_addr.decode())
                 dst_port = struct.unpack("!H", data[2 + addrlen : addrlen + 4])[0]
                 header_length = 4 + addrlen
             else:

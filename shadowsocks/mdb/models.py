@@ -174,7 +174,7 @@ class UserServer(BaseModel, HttpSessionMixin):
 
     async def init_server(self, user):
         # TODO remove this
-        from shadowsocks.app import current_app
+        from shadowsocks import current_app
 
         self.is_running and self.check_user_server(user)
 

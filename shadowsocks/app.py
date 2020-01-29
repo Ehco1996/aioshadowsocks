@@ -29,9 +29,10 @@ class App:
             "API_ENDPOINT": os.getenv("SS_API_ENDPOINT"),
             "LOG_LEVEL": os.getenv("SS_LOG_LEVEL", "info"),
             "SYNC_TIME": int(os.getenv("SS_SYNC_TIME", 60)),
+            "STREAM_DNS_SERVER": os.getenv("SS_STREAM_DNS_SERVER"),
+            "ENABLE_METRICS": bool(os.getenv("SS_ENABLE_METRICS")),
             "TIME_OUT_LIMIT": int(os.getenv("SS_TIME_OUT_LIMIT", 60)),
             "USER_TCP_CONN_LIMIT": int(os.getenv("SS_TCP_CONN_LIMIT", 60)),
-            "ENABLE_METRICS": bool(os.getenv("SS_ENABLE_METRICS")),
         }
 
         self.grpc_host = self.config["GRPC_HOST"]
@@ -41,12 +42,13 @@ class App:
         self.sentry_dsn = self.config["SENTRY_DSN"]
         self.api_endpoint = self.config["API_ENDPOINT"]
         self.timeout_limit = self.config["TIME_OUT_LIMIT"]
+        self.stream_dns_server = self.config["STREAM_DNS_SERVER"]
         self.user_tcp_conn_limit = self.config["USER_TCP_CONN_LIMIT"]
 
+        self.enable_metrics = self.config["ENABLE_METRICS"]
+        self.use_sentry = True if self.sentry_dsn else False
         self.use_json = False if self.api_endpoint else True
         self.use_grpc = True if self.grpc_host and self.grpc_port else False
-        self.use_sentry = True if self.sentry_dsn else False
-        self.enable_metrics = self.config["ENABLE_METRICS"]
 
     def _init_logger(self):
         """
@@ -158,6 +160,3 @@ class App:
         except KeyboardInterrupt:
             logging.info("正在关闭所有ss server")
             self.shutdown()
-
-
-current_app = App()
