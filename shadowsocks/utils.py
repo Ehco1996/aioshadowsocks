@@ -29,6 +29,7 @@ def get_ip_from_domain(domain):
         resolver.nameservers = [current_app.stream_dns_server]
         try:
             res = resolver.query(domain, "A")
+            logging.debug(f"hit stream DNS: {domain} res: {res[0].to_text()}")
             return res[0].to_text()
         except DNSException:
             logging.warning(

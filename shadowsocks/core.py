@@ -50,7 +50,7 @@ class LocalHandler(TimeoutMixin):
         self.user = user
         self.server = user.server
 
-        self._stage = self.STAGE_DESTROY
+        self._stage = None
         self._peername = None
         self._remote = None
         self._cryptor = None
@@ -149,19 +149,11 @@ class LocalHandler(TimeoutMixin):
     async def _handle_stage_init(self, data):
         if not data:
             return
-        try:
-            addr_type, dst_addr, dst_port, header_length = parse_header(data)
-        except Exception as e:
+
+        addr_type, dst_addr, dst_port, header_length = parse_header(data)
+        if not all([addr_type, dst_addr, dst_port, header_length]):
+            logging.warning(f"parse error: {addr_type} user{self.user}")
             self.close()
-            logging.warning(f"parse header error: {str(e)}")
-            return
-        if not dst_addr:
-            self.close()
-            logging.warning(
-                "can't parse addr_type: {} user: {} CMD: {}".format(
-                    addr_type, self.user, self._transport_protocol
-                )
-            )
             return
         else:
             payload = data[header_length:]
