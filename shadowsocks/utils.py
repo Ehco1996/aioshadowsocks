@@ -10,6 +10,7 @@ from dns.exception import DNSException
 from shadowsocks import protocol_flag as flag
 
 STREAM_HOST_PATTERN = re.compile(".*(netflix|nflx|hulu|hbo).*")
+resolver = dns.resolver.Resolver()
 
 
 def is_stream_domain(domain):
@@ -23,27 +24,27 @@ def is_stream_domain(domain):
 def get_ip_from_domain(domain):
     from shadowsocks import current_app
 
-    resolver = dns.resolver.Resolver()
     if current_app.stream_dns_server and is_stream_domain(domain):
+        # use dnspython to query extra dns nameservers
         resolver.nameservers = [current_app.stream_dns_server]
+        try:
+            res = resolver.query(domain, "A")
+            return res[0].to_text()
+        except DNSException:
+            logging.warning(
+                f"Failed to query DNS: {domain} now dns server:{resolver.nameservers}"
+            )
+            return domain
     try:
-        res = resolver.query(domain, "A")
-        return res[0].to_text()
-    except DNSException:
-        # fallback to raw domain
-        logging.warning(
-            f"Failed to query DNS: {domain} now dns server:{resolver.nameservers}"
-        )
+        return socket.gethostbyname(domain)
+    except socket.gaierror:
+        logging.warning(f"Failed to query DNS: {domain}")
         return domain
 
 
 def parse_header(data):
-    atype, dst_addr, dst_port, header_length = None, None, None, 0
-    try:
-        atype = data[0]
-    except IndexError:
-        logging.warning("not valid data {}".format(data))
-
+    # shadowsocks protocol https://shadowsocks.org/en/spec/Protocol.html
+    atype, dst_addr, dst_port, header_length = data[0], None, None, 0
     if atype == flag.ATYPE_IPV4:
         if len(data) >= 7:
             dst_addr = socket.inet_ntop(socket.AF_INET, data[1:5])

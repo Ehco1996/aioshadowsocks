@@ -70,7 +70,6 @@ class LocalHandler(TimeoutMixin):
             self._cryptor = Cryptor(
                 self.user.method, self.user.password, self._transport_protocol
             )
-            logging.debug("tcp connection made")
         except NotImplementedError:
             self.close()
             logging.warning("not support cipher")
@@ -148,6 +147,8 @@ class LocalHandler(TimeoutMixin):
             logging.warning(f"unknown stage:{self._stage}")
 
     async def _handle_stage_init(self, data):
+        if not data:
+            return
         try:
             addr_type, dst_addr, dst_port, header_length = parse_header(data)
         except Exception as e:
@@ -164,6 +165,11 @@ class LocalHandler(TimeoutMixin):
             return
         else:
             payload = data[header_length:]
+
+        logging.debug(
+            f"[HEADER:] {addr_type} {dst_addr}:{dst_port} - {self._transport_protocol}"
+        )
+
         if self._transport_protocol == flag.TRANSPORT_TCP:
             self._stage = self.STAGE_CONNECT
             tcp_coro = self.loop.create_connection(
@@ -186,7 +192,6 @@ class LocalHandler(TimeoutMixin):
                 logging.debug(f"connection ok buffer lens：{len(self._connect_buffer)}")
 
         elif self._transport_protocol == flag.TRANSPORT_UDP:
-            self._stage = self.STAGE_INIT
             udp_coro = self.loop.create_datagram_endpoint(
                 lambda: RemoteUDP(dst_addr, dst_port, payload, self),
                 remote_addr=(dst_addr, dst_port),
@@ -259,8 +264,8 @@ class LocalTCP(asyncio.Protocol):
         self._handler.handle_tcp_connection_made(transport, peername)
 
     def data_received(self, data):
-        self.server.record_traffic(used_u=len(data), used_d=0)
         self._handler.handle_data_received(data)
+        self.server.record_traffic(used_u=len(data), used_d=0)
 
     def eof_received(self):
         self._handler.handle_eof_received()
@@ -271,7 +276,7 @@ class LocalTCP(asyncio.Protocol):
 
 class LocalUDP(asyncio.DatagramProtocol):
     """
-    Local Tcp Factory
+    Local Udp Factory
     """
 
     def __init__(self, user):
@@ -295,11 +300,22 @@ class LocalUDP(asyncio.DatagramProtocol):
             self._protocols[peername] = handler
             handler.handle_udp_connection_made(self._transport, peername)
 
-        self.server.record_traffic(used_u=len(data), used_d=0)
         handler.handle_data_received(data)
+        self.server.record_traffic(used_u=len(data), used_d=0)
+        self._clear_closed_handlers()
 
     def error_received(self, exc):
         pass
+
+    def _clear_closed_handlers(self):
+        logging.debug(f"now udp handler {len(self._protocols)}")
+        need_clear_peers = []
+        for peername, handler in self._protocols.items():
+            if handler._stage == LocalHandler.STAGE_DESTROY:
+                need_clear_peers.append(peername)
+        for peer in need_clear_peers:
+            del self._protocols[peer]
+        logging.debug(f"after clear {len(self._protocols)}")
 
 
 class RemoteTCP(asyncio.Protocol, TimeoutMixin):

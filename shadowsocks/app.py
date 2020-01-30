@@ -66,8 +66,8 @@ class App:
         else:
             level = log_levels.get(self.log_level.upper(), 10)
         logging.basicConfig(
-            format="[%(levelname)s]%(asctime)s - PID:%(process)d - %(funcName)s"
-            " - %(message)s",
+            format="[%(levelname)s]%(asctime)s - %(filename)s - %(funcName)s "
+            "line:%(lineno)d: - %(message)s",
             level=level,
         )
 
