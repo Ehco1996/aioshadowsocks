@@ -100,6 +100,7 @@ class UserServer(BaseModel, HttpSessionMixin):
                         "upload_traffic": metric["upload_traffic"],
                         "download_traffic": metric["download_traffic"],
                         "ip_list": list(metric["ip_list"]),
+                        "tcp_conn_num": cls.get_by_id(user_id).tcp_limiter.tcp_conn_num,
                     }
                 )
                 need_reset_user_ids.append(user_id)

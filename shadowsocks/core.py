@@ -152,7 +152,7 @@ class LocalHandler(TimeoutMixin):
 
         addr_type, dst_addr, dst_port, header_length = parse_header(data)
         if not all([addr_type, dst_addr, dst_port, header_length]):
-            logging.warning(f"parse error: {addr_type} user{self.user}")
+            logging.warning(f"parse error addr_type: {addr_type} user: {self.user}")
             self.close()
             return
         else:
