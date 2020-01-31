@@ -24,12 +24,13 @@ def is_stream_domain(domain):
 def get_ip_from_domain(domain):
     from shadowsocks import current_app
 
+    logging.debug(f"domain:{domain} cache_info: {get_ip_from_domain.cache_info()}")
     if current_app.stream_dns_server and is_stream_domain(domain):
         # use dnspython to query extra dns nameservers
         resolver.nameservers = [current_app.stream_dns_server]
         try:
             res = resolver.query(domain, "A")
-            logging.debug(f"hit stream DNS: {domain} res: {res[0].to_text()}")
+            logging.info(f"hit stream DNS: {domain} res: {res[0].to_text()}")
             return res[0].to_text()
         except DNSException:
             logging.warning(

@@ -16,15 +16,22 @@ class TimeoutMixin:
         self.loop = asyncio.get_running_loop()
         self.timeout_handle = self.loop.call_later(self.TIMEOUT, self._timeout)
 
+        self._need_clean = False
+
     def close(self):
         raise NotImplementedError
 
     def _timeout(self):
         self.close()
+        self._need_clean = True
 
     def keep_alive(self):
         self.timeout_handle.cancel()
         self.timeout_handle = self.loop.call_later(self.TIMEOUT, self._timeout)
+
+    @property
+    def need_clean(self):
+        return self._need_clean
 
 
 class LocalHandler(TimeoutMixin):
@@ -303,7 +310,7 @@ class LocalUDP(asyncio.DatagramProtocol):
         logging.debug(f"now udp handler {len(self._protocols)}")
         need_clear_peers = []
         for peername, handler in self._protocols.items():
-            if handler._stage == LocalHandler.STAGE_DESTROY:
+            if handler.need_clean:
                 need_clear_peers.append(peername)
         for peer in need_clear_peers:
             del self._protocols[peer]
