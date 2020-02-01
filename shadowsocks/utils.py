@@ -20,11 +20,22 @@ def is_stream_domain(domain):
     return False
 
 
-@lru_cache(2 ** 14)
+def logging_cahce_info():
+    def wrapper(func):
+        def decorated(*args, **kwargs):
+            logging.debug(f"domain:{args[0]} cache_info: {func.cache_info()}")
+            return func(*args, **kwargs)
+
+        return decorated
+
+    return wrapper
+
+
+@logging_cahce_info()
+@lru_cache(2 ** 8)
 def get_ip_from_domain(domain):
     from shadowsocks import current_app
 
-    logging.debug(f"domain:{domain} cache_info: {get_ip_from_domain.cache_info()}")
     if current_app.stream_dns_server and is_stream_domain(domain):
         # use dnspython to query extra dns nameservers
         resolver.nameservers = [current_app.stream_dns_server]
