@@ -1,6 +1,8 @@
 # aioshadowsocks
 用 asyncio 重写 shadowsocks
 
+![Publish Docker](https://github.com/Ehco1996/aioshadowsocks/workflows/Publish%20Docker/badge.svg?branch=master)
+
 ## 为什么要重写shadowsocks
 
 主要想通过这个项目的推进来深入了解 `asyncio`
