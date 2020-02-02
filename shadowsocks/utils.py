@@ -49,7 +49,7 @@ def get_ip_from_domain(domain):
             )
             return domain
     try:
-        return socket.gethostbyname(domain)
+        return socket.gethostbyname(domain.encode())
     except socket.gaierror:
         logging.warning(f"Failed to query DNS: {domain}")
         return domain
