@@ -5,7 +5,6 @@ import struct
 from functools import lru_cache
 
 import dns.resolver
-from dns.exception import DNSException
 
 from shadowsocks import protocol_flag as flag
 
@@ -43,14 +42,14 @@ def get_ip_from_domain(domain):
             res = resolver.query(domain, "A")
             logging.info(f"hit stream DNS: {domain} res: {res[0].to_text()}")
             return res[0].to_text()
-        except DNSException:
+        except Exception:
             logging.warning(
                 f"Failed to query DNS: {domain} now dns server:{resolver.nameservers}"
             )
             return domain
     try:
         return socket.gethostbyname(domain.encode())
-    except socket.gaierror:
+    except Exception:
         logging.warning(f"Failed to query DNS: {domain}")
         return domain
 
