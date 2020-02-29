@@ -107,3 +107,4 @@ venv.bak/
 .vscode/
 dev/
 env.sh
+dev.sh
