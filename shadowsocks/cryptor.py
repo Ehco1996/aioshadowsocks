@@ -32,7 +32,6 @@ class Cryptor:
 
     @ENCRYPT_DATA_TIME.time()
     def encrypt(self, data):
-        t1 = time.time()
         return self._crypto.encrypt(data)
 
     @DECRYPT_DATA_TIME.time()
