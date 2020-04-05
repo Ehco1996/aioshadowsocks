@@ -22,3 +22,4 @@ urllib3==1.25.8
 uvloop==0.14.0
 yarl==1.4.2
 dnspython==1.16.0
+prometheus_async[aiohttp]==19.2.0

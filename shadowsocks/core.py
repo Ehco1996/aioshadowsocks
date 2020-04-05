@@ -8,6 +8,12 @@ from shadowsocks import current_app
 from shadowsocks.cryptor import Cryptor
 from shadowsocks.utils import parse_header
 
+from shadowsocks.metrics import (
+    ACTIVE_CONNECTION_COUNT,
+    CONNECTION_MADE_COUNT,
+    NETWORK_TRANSMIT_BYTES,
+)
+
 
 class TimeoutMixin:
     TIMEOUT = current_app.timeout_limit
@@ -98,6 +104,8 @@ class LocalHandler(TimeoutMixin):
             raise NotImplementedError
         self._stage = self.STAGE_DESTROY
 
+        ACTIVE_CONNECTION_COUNT.dec()
+
     def write(self, data):
         if not self._transport or self._transport.is_closing():
             self._transport and self._transport.abort()
@@ -110,17 +118,15 @@ class LocalHandler(TimeoutMixin):
         else:
             raise NotImplementedError
 
-    def handle_tcp_connection_made(self, transport, peername):
-        self._init_transport(transport, peername, flag.TRANSPORT_TCP)
-        if self.server.limited:
+    def handle_connection_made(self, transport_type, transport, peername):
+        self._init_transport(transport, peername, transport_type)
+        if transport_type == flag.TRANSPORT_TCP and self.server.limited:
             self.server.log_limited_msg()
             self.close()
-        else:
-            self._init_cryptor()
-
-    def handle_udp_connection_made(self, transport, peername):
-        self._init_transport(transport, peername, flag.TRANSPORT_UDP)
         self._init_cryptor()
+
+        CONNECTION_MADE_COUNT.inc()
+        ACTIVE_CONNECTION_COUNT.inc()
 
     def handle_eof_received(self):
         self.close()
@@ -260,7 +266,7 @@ class LocalTCP(asyncio.Protocol):
         # NOTE 只记录 client->ss-local的ip和tcp_conn_num
         self.server.record_ip(peername)
         self.server.incr_tcp_conn_num(1)
-        self._handler.handle_tcp_connection_made(transport, peername)
+        self._handler.handle_connection_made(flag.TRANSPORT_TCP, transport, peername)
 
     def data_received(self, data):
         self._handler.handle_data_received(data)
@@ -297,7 +303,9 @@ class LocalUDP(asyncio.DatagramProtocol):
         else:
             handler = LocalHandler(self.user)
             self._protocols[peername] = handler
-            handler.handle_udp_connection_made(self._transport, peername)
+            handler.handle_connection_made(
+                flag.TRANSPORT_UDP, self._transport, peername
+            )
 
         handler.handle_data_received(data)
         self.server.record_traffic(used_u=len(data), used_d=0)
@@ -345,7 +353,6 @@ class RemoteTCP(asyncio.Protocol, TimeoutMixin):
         self.local = None
 
     def connection_made(self, transport):
-
         self._transport = transport
         self.peername = self._transport.get_extra_info("peername")
         self.write(self.data)
@@ -360,6 +367,8 @@ class RemoteTCP(asyncio.Protocol, TimeoutMixin):
             self.pause_reading()
             t = server.traffic_limiter.get_sleep_time()
             self.loop.call_later(t, self.resume_reading)
+
+        NETWORK_TRANSMIT_BYTES.inc(len(data))
 
     def pause_reading(self):
         if self._transport:
@@ -424,8 +433,12 @@ class RemoteUDP(asyncio.DatagramProtocol, TimeoutMixin):
         self.local.server.record_traffic(used_u=0, used_d=len(data))
         self.local.write(data)
 
+        NETWORK_TRANSMIT_BYTES.inc(len(data))
+
     def error_received(self, exc):
         logging.debug("error received exc {}".format(exc))
+        self.close()
 
     def connection_lost(self, exc):
         logging.debug("udp connetcion lost exc {}".format(exc))
+        self.close()

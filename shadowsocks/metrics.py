@@ -1,27 +1,18 @@
-from aiohttp import web
+from prometheus_client import Counter, Gauge, Histogram
 
-
-routes = web.RouteTableDef()
-app = web.Application()
-
-
-@routes.get("/metrics")
-async def metrics_handler(request):
-    from shadowsocks.mdb.models import UserServer
-
-    active_user_count = len(UserServer.__active_user_ids__)
-    total_connection_count = UserServer.get_total_connection_count()
-    return web.json_response(
-        {
-            "active_user_count": active_user_count,
-            "total_connection_count": total_connection_count,
-        }
-    )
-
-
-async def run_metrics_server():
-    app.add_routes(routes)
-    runner = web.AppRunner(app)
-    await runner.setup()
-    site = web.TCPSite(runner, "0.0.0.0", 9000)
-    await site.start()
+# METRICS
+CONNECTION_MADE_COUNT = Counter(
+    "connection_made_count", "shadowsocks connection made number"
+)
+ACTIVE_CONNECTION_COUNT = Gauge(
+    "active_connection_count", "shadowsocks active connection count"
+)
+NETWORK_TRANSMIT_BYTES = Counter(
+    "network_transmit_bytes", "shadowsocks network transmit bytes"
+)
+ENCRYPT_DATA_TIME = Histogram(
+    "encrypt_data_time_seconds", "shadowsocks encrypt data time seconds"
+)
+DECRYPT_DATA_TIME = Histogram(
+    "decrypt_data_time_seconds", "shadowsocks decrypt data time seconds"
+)

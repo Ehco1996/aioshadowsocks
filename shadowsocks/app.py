@@ -6,7 +6,9 @@ import signal
 
 import raven
 import uvloop
+from aiohttp import web
 from grpclib.server import Server
+from prometheus_async import aio
 from raven_aiohttp import AioHttpTransport
 
 # TODO Don't use Model here
@@ -30,7 +32,7 @@ class App:
             "LOG_LEVEL": os.getenv("SS_LOG_LEVEL", "info"),
             "SYNC_TIME": int(os.getenv("SS_SYNC_TIME", 60)),
             "STREAM_DNS_SERVER": os.getenv("SS_STREAM_DNS_SERVER"),
-            "ENABLE_METRICS": bool(os.getenv("SS_ENABLE_METRICS")),
+            "ENABLE_METRICS": bool(os.getenv("SS_ENABLE_METRICS", True)),
             "TIME_OUT_LIMIT": int(os.getenv("SS_TIME_OUT_LIMIT", 60)),
             "USER_TCP_CONN_LIMIT": int(os.getenv("SS_TCP_CONN_LIMIT", 60)),
         }
@@ -80,10 +82,19 @@ class App:
                 logging.info(f"正在创建{model}内存数据库")
 
     def _init_sentry(self):
+        def sentry_exception_handler(loop, context):
+            try:
+                raise context["exception"]
+            except TimeoutError:
+                logging.error(f"socket timeout msg: {context['message']}")
+            except Exception:
+                logging.error(f"unhandled error msg: {context['message']}")
+                self.sentry_client.captureException(**context)
+
         if not self.use_sentry:
             return
         self.sentry_client = raven.Client(self.sentry_dsn, transport=AioHttpTransport)
-        self.loop.set_exception_handler(self.__sentry_exception_handler)
+        self.loop.set_exception_handler(sentry_exception_handler)
         logging.info("Init Sentry Client...")
 
     def _prepare(self):
@@ -96,21 +107,21 @@ class App:
         self.loop.add_signal_handler(signal.SIGTERM, self.shutdown)
         self.prepared = True
 
-    def __sentry_exception_handler(self, loop, context):
-        try:
-            raise context["exception"]
-        except TimeoutError:
-            logging.error(f"socket timeout msg: {context['message']}")
-        except Exception:
-            logging.error(f"unhandled error msg: {context['message']}")
-            self.sentry_client.captureException(**context)
-
     async def start_grpc_server(self):
         from shadowsocks.services import AioShadowsocksServicer
 
         self.grpc_server = Server([AioShadowsocksServicer()], loop=self.loop)
         await self.grpc_server.start(self.grpc_host, self.grpc_port)
         logging.info(f"Start Grpc Server on {self.grpc_host}:{self.grpc_port}")
+
+    async def start_metrics_server(self):
+        app = web.Application()
+        app.router.add_get("/metrics", aio.web.server_stats)
+        runner = web.AppRunner(app)
+        await runner.setup()
+        self.metrics_server = web.TCPSite(runner, "0.0.0.0", 9888)
+        await self.metrics_server.start()
+        logging.info(f"Start Metrics Server At: http://0.0.0.0:9888/metrics ")
 
     def start_json_server(self):
         from shadowsocks.mdb import models
@@ -129,15 +140,6 @@ class App:
             logging.warning(f"sync user error {e}")
         self.loop.call_later(self.sync_time, self.start_remote_sync_server)
 
-    def shutdown(self):
-        from shadowsocks.mdb import models
-
-        models.UserServer.shutdown()
-        if self.use_grpc:
-            self.grpc_server.close()
-            logging.info(f"Grpc Server on {self.grpc_host}:{self.grpc_port} Closed!")
-        self.loop.stop()
-
     def run(self):
         self._prepare()
 
@@ -150,13 +152,23 @@ class App:
             self.loop.create_task(self.start_grpc_server())
 
         if self.enable_metrics:
-            from shadowsocks.metrics import run_metrics_server
-
-            logging.info(f"Start Metrics Server At: http://0.0.0.0:9000/metrics ")
-            self.loop.create_task(run_metrics_server())
+            self.loop.create_task(self.start_metrics_server())
 
         try:
             self.loop.run_forever()
         except KeyboardInterrupt:
             logging.info("正在关闭所有ss server")
             self.shutdown()
+
+    def shutdown(self):
+        from shadowsocks.mdb import models
+
+        models.UserServer.shutdown()
+        if self.use_grpc:
+            self.grpc_server.close()
+            logging.info(f"grpc server closed!")
+        if self.enable_metrics:
+            self.metrics_server.stop()
+            logging.info(f"metrics on closed!")
+
+        self.loop.stop()

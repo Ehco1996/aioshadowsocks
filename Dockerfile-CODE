@@ -1,4 +1,4 @@
-FROM ehco1996/aioshadowsocks:runtime
+FROM ehco1996/aioshadowsocks:runtime as runtime
 
 LABEL Name="aio-shadowsocks" Maintainer="Ehco1996"
 
