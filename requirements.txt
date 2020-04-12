@@ -9,7 +9,7 @@ grpclib==0.3.1
 h2==3.2.0
 hpack==3.0.0
 hyperframe==5.2.0
-idna==2.8
+idna==2.9
 multidict==4.7.4
 peewee==3.13.1
 protobuf==3.11.2
