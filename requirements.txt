@@ -13,7 +13,7 @@ idna==2.9
 multidict==4.7.4
 peewee==3.13.1
 protobuf==3.11.3
-pycparser==2.19
+pycparser==2.20
 raven==6.10.0
 raven-aiohttp==0.7.0
 requests==2.23.0
