@@ -18,7 +18,7 @@ raven==6.10.0
 raven-aiohttp==0.7.0
 requests==2.23.0
 six==1.14.0
-urllib3==1.25.8
+urllib3==1.25.9
 uvloop==0.14.0
 yarl==1.4.2
 dnspython==1.16.0
