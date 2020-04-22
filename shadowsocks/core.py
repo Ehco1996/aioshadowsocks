@@ -80,9 +80,7 @@ class LocalHandler(TimeoutMixin):
 
     def _init_cryptor(self):
         try:
-            self._cryptor = Cryptor(
-                self.user.method, self.user.password, self._transport_protocol
-            )
+            self._cryptor = Cryptor(self.user.method, self.user.password)
         except NotImplementedError:
             self.close()
             logging.warning("not support cipher")
@@ -331,9 +329,7 @@ class RemoteTCP(asyncio.Protocol, TimeoutMixin):
 
         self.data = data
         self.local = local_handler
-        self.cryptor = Cryptor(
-            self.local.user.method, self.local.user.password, flag.TRANSPORT_TCP
-        )
+        self.cryptor = Cryptor(self.local.user.method, self.local.user.password)
 
         self.peername = None
         self._transport = None
@@ -392,9 +388,7 @@ class RemoteUDP(asyncio.DatagramProtocol, TimeoutMixin):
         super().__init__()
         self.data = data
         self.local = local_hander
-        self.cryptor = Cryptor(
-            self.local.user.method, self.local.user.password, flag.TRANSPORT_UDP
-        )
+        self.cryptor = Cryptor(self.local.user.method, self.local.user.password)
 
         self.peername = None
         self._transport = None

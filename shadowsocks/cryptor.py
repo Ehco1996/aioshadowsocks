@@ -1,39 +1,30 @@
-from shadowsocks.ciphers.aes import AESCipher
-from shadowsocks.ciphers.none import NONECipher
+from shadowsocks.ciphers.base import AES256CFB
 from shadowsocks.metrics import ENCRYPT_DATA_TIME, DECRYPT_DATA_TIME
+
+
+SUPPORT_METHODS = {"aes-256-cfb": AES256CFB}
 
 
 class Cryptor:
 
     # 注册所有加密方式
-    SUPPORT_METHODS = {}
 
-    def __init__(self, method, password, flag):
-        self._crypto = None
-        self._register_chipher()
+    def __init__(self, method, password):
+        self.cipher_cls = SUPPORT_METHODS.get(method)
+        self.cipher = self.cipher_cls(password)
 
-        # 找到指定的cipher
-        for name, methods in self.SUPPORT_METHODS.items():
-            if method in methods:
-                if name == "aes":
-                    self._crypto = AESCipher(method, password, flag)
-                elif name == "none":
-                    self._crypto = NONECipher(method, password, flag)
-
-        if self._crypto is None:
-            raise NotImplementedError
-
-    def _register_chipher(self):
-        """注册所有的chiper"""
-        # aes
-        self.SUPPORT_METHODS["aes"] = AESCipher.SUPPORT_METHODS
-        # none
-        self.SUPPORT_METHODS["none"] = NONECipher.SUPPORT_METHODS
+        self.encrypt_func = None
+        self.decrypt_func = None
 
     @ENCRYPT_DATA_TIME.time()
-    def encrypt(self, data):
-        return self._crypto.encrypt(data)
+    def encrypt(self, data: bytes):
+        if not self.encrypt_func:
+            self.encrypt_func = self.cipher.init_encrypt_func()
+        return self.encrypt_func(data)
 
     @DECRYPT_DATA_TIME.time()
-    def decrypt(self, data):
-        return self._crypto.decrypt(data)
+    def decrypt(self, data: bytes):
+        if not self.decrypt_func:
+            iv, data = data[: self.cipher_cls.IV_SIZE], data[self.cipher_cls.IV_SIZE :]
+            self.decrypt_func = self.cipher.init_decrypt_func(iv)
+        return self.decrypt_func(data)

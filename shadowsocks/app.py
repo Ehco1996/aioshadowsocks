@@ -4,12 +4,10 @@ import logging
 import os
 import signal
 
-import raven
 import uvloop
 from aiohttp import web
 from grpclib.server import Server
 from prometheus_async import aio
-from raven_aiohttp import AioHttpTransport
 
 # TODO Don't use Model here
 
@@ -29,7 +27,7 @@ class App:
             "GRPC_PORT": os.getenv("SS_GRPC_PORT"),
             "SENTRY_DSN": os.getenv("SS_SENTRY_DSN"),
             "API_ENDPOINT": os.getenv("SS_API_ENDPOINT"),
-            "LOG_LEVEL": os.getenv("SS_LOG_LEVEL", "info"),
+            "LOG_LEVEL": os.getenv("SS_LOG_LEVEL", "debug"),
             "SYNC_TIME": int(os.getenv("SS_SYNC_TIME", 60)),
             "STREAM_DNS_SERVER": os.getenv("SS_STREAM_DNS_SERVER"),
             "ENABLE_METRICS": bool(os.getenv("SS_ENABLE_METRICS", True)),
@@ -81,21 +79,22 @@ class App:
                 model.create_table()
                 logging.info(f"正在创建{model}内存数据库")
 
-    def _init_sentry(self):
-        def sentry_exception_handler(loop, context):
-            try:
-                raise context["exception"]
-            except TimeoutError:
-                logging.error(f"socket timeout msg: {context['message']}")
-            except Exception:
-                logging.error(f"unhandled error msg: {context['message']}")
-                self.sentry_client.captureException(**context)
+    # def _init_sentry(self):
+    # TODO 升级到最新的sentry-sdk
+    # def sentry_exception_handler(loop, context):
+    #     try:
+    #         raise context["exception"]
+    #     except TimeoutError:
+    #         logging.error(f"socket timeout msg: {context['message']}")
+    #     except Exception:
+    #         logging.error(f"unhandled error msg: {context['message']}")
+    #         self.sentry_client.captureException(**context)
 
-        if not self.use_sentry:
-            return
-        self.sentry_client = raven.Client(self.sentry_dsn, transport=AioHttpTransport)
-        self.loop.set_exception_handler(sentry_exception_handler)
-        logging.info("Init Sentry Client...")
+    # if not self.use_sentry:
+    #     return
+    # self.sentry_client = raven.Client(self.sentry_dsn, transport=AioHttpTransport)
+    # self.loop.set_exception_handler(sentry_exception_handler)
+    # logging.info("Init Sentry Client...")
 
     def _prepare(self):
         if self.prepared:
@@ -103,7 +102,7 @@ class App:
         self._init_config()
         self._init_logger()
         self._init_memory_db()
-        self._init_sentry()
+        # self._init_sentry()
         self.loop.add_signal_handler(signal.SIGTERM, self.shutdown)
         self.prepared = True
 
