@@ -1,7 +1,10 @@
 name: Publish Docker
-on: [push]
+on:
+  push:
+    branches:
+      - master
 jobs:
-  build-runtime:
+  build-code:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@master
@@ -13,9 +16,6 @@ jobs:
           password: ${{ secrets.DOCKER_PASSWORD }}
           tags: "runtime"
           dockerfile: Dockerfile
-  build-code:
-    runs-on: ubuntu-latest
-    steps:
       - uses: actions/checkout@master
       - name: Publish to Registry
         uses: elgohr/Publish-Docker-Github-Action@master
