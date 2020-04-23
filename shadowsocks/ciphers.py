@@ -4,7 +4,6 @@ import os
 
 from Crypto.Cipher import AES
 
-from shadowsocks.ciphers.base import AES256CFB, NONE
 from shadowsocks.metrics import DECRYPT_DATA_TIME, ENCRYPT_DATA_TIME
 
 
@@ -110,7 +109,7 @@ class CipherMan:
     SUPPORT_METHODS = {"aes-256-cfb": AES256CFB, "none": NONE}
 
     def __init__(self, method, password):
-        self.cipher_cls = SUPPORT_METHODS.get(method)
+        self.cipher_cls = self.SUPPORT_METHODS.get(method)
         self.cipher = self.cipher_cls(password)
 
         self.encrypt_func = None
