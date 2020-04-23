@@ -1,15 +1,27 @@
 name: Publish Docker
 on: [push]
 jobs:
-  build:
+  build-runtime:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@master
-    - name: Publish to Registry
-      uses: elgohr/Publish-Docker-Github-Action@master
-      with:
-        name: ehco1996/aioshadowsocks
-        username: ${{ secrets.DOCKER_USERNAME }}
-        password: ${{ secrets.DOCKER_PASSWORD }}
-        tags: "latest,code"
-        dockerfile: Dockerfile-CODE
+      - uses: actions/checkout@master
+      - name: Publish Runtime to Registry
+        uses: elgohr/Publish-Docker-Github-Action@master
+        with:
+          name: ehco1996/aioshadowsocks
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+          tags: "runtime"
+          dockerfile: Dockerfile
+  build-code:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@master
+      - name: Publish to Registry
+        uses: elgohr/Publish-Docker-Github-Action@master
+        with:
+          name: ehco1996/aioshadowsocks
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+          tags: "latest,code"
+          dockerfile: Dockerfile-CODE

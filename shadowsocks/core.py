@@ -5,7 +5,7 @@ import struct
 
 from shadowsocks import protocol_flag as flag
 from shadowsocks import current_app
-from shadowsocks.cryptor import Cryptor
+from shadowsocks.ciphers import CipherMan
 from shadowsocks.utils import parse_header
 
 from shadowsocks.metrics import (
@@ -66,7 +66,7 @@ class LocalHandler(TimeoutMixin):
         self._stage = None
         self._peername = None
         self._remote = None
-        self._cryptor = None
+        self.cipher = None
         self._transport = None
         self._transport_protocol = None
         self._is_closing = False
@@ -78,9 +78,10 @@ class LocalHandler(TimeoutMixin):
         self._peername = peername
         self._transport_protocol = protocol
 
-    def _init_cryptor(self):
+    def _init_cipher(self):
+        # TODO 将加密解密的逻辑抽离出主流程
         try:
-            self._cryptor = Cryptor(self.user.method, self.user.password)
+            self.cipher = CipherMan(self.user.method, self.user.password)
         except NotImplementedError:
             self.close()
             logging.warning("not support cipher")
@@ -121,7 +122,7 @@ class LocalHandler(TimeoutMixin):
         if transport_type == flag.TRANSPORT_TCP and self.server.limited:
             self.server.log_limited_msg()
             self.close()
-        self._init_cryptor()
+        self._init_cipher()
 
         CONNECTION_MADE_COUNT.inc()
         ACTIVE_CONNECTION_COUNT.inc()
@@ -136,7 +137,7 @@ class LocalHandler(TimeoutMixin):
 
     def handle_data_received(self, data):
         try:
-            data = self._cryptor.decrypt(data)
+            data = self.cipher.decrypt(data)
         except Exception as e:
             self.close()
             logging.warning(f"decrypt data error {e}")
@@ -329,7 +330,7 @@ class RemoteTCP(asyncio.Protocol, TimeoutMixin):
 
         self.data = data
         self.local = local_handler
-        self.cryptor = Cryptor(self.local.user.method, self.local.user.password)
+        self.cipher = CipherMan(self.local.user.method, self.local.user.password)
 
         self.peername = None
         self._transport = None
@@ -358,7 +359,7 @@ class RemoteTCP(asyncio.Protocol, TimeoutMixin):
         server = self.local.server
         server.record_traffic_rate(len(data))
         server.record_traffic(used_u=0, used_d=len(data))
-        self.local.write(self.cryptor.encrypt(data))
+        self.local.write(self.cipher.encrypt(data))
         if server.traffic_limiter.limited:
             self.pause_reading()
             t = server.traffic_limiter.get_sleep_time()

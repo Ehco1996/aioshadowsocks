@@ -27,7 +27,7 @@ class App:
             "GRPC_PORT": os.getenv("SS_GRPC_PORT"),
             "SENTRY_DSN": os.getenv("SS_SENTRY_DSN"),
             "API_ENDPOINT": os.getenv("SS_API_ENDPOINT"),
-            "LOG_LEVEL": os.getenv("SS_LOG_LEVEL", "debug"),
+            "LOG_LEVEL": os.getenv("SS_LOG_LEVEL", "info"),
             "SYNC_TIME": int(os.getenv("SS_SYNC_TIME", 60)),
             "STREAM_DNS_SERVER": os.getenv("SS_STREAM_DNS_SERVER"),
             "ENABLE_METRICS": bool(os.getenv("SS_ENABLE_METRICS", True)),
@@ -167,7 +167,8 @@ class App:
             self.grpc_server.close()
             logging.info(f"grpc server closed!")
         if self.enable_metrics:
-            self.metrics_server.stop()
-            logging.info(f"metrics on closed!")
-
+            self.loop.create_task(self.metrics_server.stop())
+            logging.info(f"metrics server closed!")
+        pending = asyncio.all_tasks(self.loop)
+        self.loop.run_until_complete(asyncio.gather(*pending))
         self.loop.stop()
