@@ -136,12 +136,14 @@ class LocalHandler(TimeoutMixin):
         logging.debug(f"lost exc={exc}")
 
     def handle_data_received(self, data):
-        try:
-            data = self.cipher.decrypt(data)
-        except Exception as e:
-            self.close()
-            logging.warning(f"decrypt data error {e}")
-            return
+        data = self.cipher.decrypt(data)
+
+        # try:
+        #     data = self.cipher.decrypt(data)
+        # except Exception as e:
+        #     self.close()
+        #     logging.warning(f"decrypt data error {e}")
+        #     return
 
         if self._stage == self.STAGE_INIT:
             coro = self._handle_stage_init(data)

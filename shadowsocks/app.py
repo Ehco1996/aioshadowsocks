@@ -15,8 +15,8 @@ from prometheus_async import aio
 class App:
     def __init__(self, debug=False):
         self.debug = debug
-        if not self.debug:
-            uvloop.install()
+        # if not self.debug:
+            # uvloop.install()
 
         self.loop = asyncio.get_event_loop()
         self.prepared = False
