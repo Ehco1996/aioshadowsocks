@@ -389,7 +389,7 @@ class RemoteUDP(asyncio.DatagramProtocol, TimeoutMixin):
         super().__init__()
         self.data = data
         self.local = local_hander
-        self.cryptor = Cryptor(self.local.user.method, self.local.user.password)
+        self.cipher = CipherMan(self.local.user.method, self.local.user.password)
 
         self.peername = None
         self._transport = None
@@ -424,7 +424,7 @@ class RemoteUDP(asyncio.DatagramProtocol, TimeoutMixin):
         port = struct.pack("!H", bind_port)
         # 构造返回的报文结构
         data = b"\x01" + addr + port + data
-        data = self.cryptor.encrypt(data)
+        data = self.cipher.encrypt(data)
         self.local.server.record_traffic(used_u=0, used_d=len(data))
         self.local.write(data)
 
