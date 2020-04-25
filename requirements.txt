@@ -27,3 +27,4 @@ uvloop==0.14.0
 wrapt==1.12.1
 yarl==1.4.2
 hkdf==0.0.3
+protobuf==3.11.3

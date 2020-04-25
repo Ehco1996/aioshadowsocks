@@ -23,8 +23,8 @@ class App:
 
     def _init_config(self):
         self.config = {
-            "GRPC_HOST": os.getenv("SS_GRPC_HOST"),
-            "GRPC_PORT": os.getenv("SS_GRPC_PORT"),
+            "GRPC_HOST": os.getenv("SS_GRPC_HOST", "127.0.0.1"),
+            "GRPC_PORT": os.getenv("SS_GRPC_PORT", "5000"),
             "SENTRY_DSN": os.getenv("SS_SENTRY_DSN"),
             "API_ENDPOINT": os.getenv("SS_API_ENDPOINT"),
             "LOG_LEVEL": os.getenv("SS_LOG_LEVEL", "info"),
