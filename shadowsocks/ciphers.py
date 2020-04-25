@@ -45,6 +45,12 @@ class BaseStreamCipher(BaseCipher, metaclass=abc.ABCMeta):
     AEAD_CIPHER = False
     IV_SIZE = 0
 
+    def __init__(self, password: str):
+        super().__init__(password)
+
+        self.encrypt_func = None
+        self.decrypt_func = None
+
     def make_random_iv(self):
         return os.urandom(self.IV_SIZE)
 
@@ -52,7 +58,7 @@ class BaseStreamCipher(BaseCipher, metaclass=abc.ABCMeta):
     def new_cipher(self, key: bytes, iv: bytes):
         return
 
-    def init_encrypt_func(self):
+    def _init_encrypt_func(self):
         first_package = True
         iv = self.make_random_iv()
         cipher = self.new_cipher(self.key, iv)
@@ -67,7 +73,7 @@ class BaseStreamCipher(BaseCipher, metaclass=abc.ABCMeta):
 
         return encrypt
 
-    def init_decrypt_func(self, iv: bytes):
+    def _init_decrypt_func(self, iv: bytes):
         cipher = self.new_cipher(self.key, iv)
 
         def decrypt(ciphertext: bytes) -> bytes:
@@ -75,25 +81,42 @@ class BaseStreamCipher(BaseCipher, metaclass=abc.ABCMeta):
 
         return decrypt
 
+    def encrypt(self, data: bytes):
+        if not self.encrypt_func:
+            self.encrypt_func = self._init_encrypt_func()
+        return self.encrypt_func(data)
+
+    def decrypt(self, data: bytes):
+        if not self.decrypt_func:
+            iv, data = data[: self.IV_SIZE], data[self.IV_SIZE :]
+            self.decrypt_func = self._init_decrypt_func(iv)
+        return self.decrypt_func(data)
+
 
 class BaseAEADCipher(BaseCipher):
-    AEAD_CIPHER = True
     INFO = b"ss-subkey"
-    PACKET_LIMIT = 0x3FF
-
+    PACKET_LIMIT = 16 * 1024 - 1
     SALT_SIZE = -1
     NONCE_SIZE = -1
     TAG_SIZE = -1
 
+    def __init__(self, password: str):
+        super().__init__(password)
+        self._buffer = bytearray()
+        self._payload_len = None
+
+        self.encrypt_func = None
+        self.decrypt_func = None
+
     def _derive_subkey(self, salt: bytes):
         return hkdf.Hkdf(salt, self.key, hashlib.sha1).expand(self.INFO, self.KEY_SIZE)
 
-    def make_random_salt(self):
+    def _make_random_salt(self):
         return os.urandom(self.SALT_SIZE)
 
-    def init_encrypt_func(self, salt: bytes):
+    def _init_encrypt_func(self, salt: bytes):
         counter = 0
-        salt = salt if salt is not None else self.make_random_salt()
+        salt = salt if salt is not None else self._make_random_salt()
         subkey = self._derive_subkey(salt)
 
         def encrypt(plaintext: bytes):
@@ -101,18 +124,11 @@ class BaseAEADCipher(BaseCipher):
             nonce = counter.to_bytes(self.NONCE_SIZE, "little")
             counter += 1
             cipher = self.new_cipher(subkey, nonce)
-            if len(plaintext) <= self.PACKET_LIMIT:
-                return cipher.encrypt_and_digest(plaintext)
-            else:
-                with memoryview(plaintext) as data:
-                    # 分包发出去
-                    return cipher.encrypt_and_digest(
-                        data[: self.PACKET_LIMIT]
-                    ) + encrypt(data[self.PACKET_LIMIT :])
+            return cipher.encrypt_and_digest(plaintext)
 
         return salt, encrypt
 
-    def init_decrypt_func(self, salt: bytes):
+    def _init_decrypt_func(self, salt: bytes):
         counter = 0
         subkey = self._derive_subkey(salt)
 
@@ -125,6 +141,58 @@ class BaseAEADCipher(BaseCipher):
 
         return decrypt
 
+    def encrypt(self, data: bytes):
+        ret = bytearray()
+        if not self.encrypt_func:
+            salt, self.encrypt_func = self._init_encrypt_func(None)
+            ret.extend(salt)
+
+        for i in range(0, len(data), self.PACKET_LIMIT):
+            buf = data[i : i + self.PACKET_LIMIT]
+            len_chunk, len_tag = self.encrypt_func(len(buf).to_bytes(2, "big"))
+            body_chunk, body_tag = self.encrypt_func(buf)
+            ret.extend(len_chunk + len_tag + body_chunk + body_tag)
+
+        return bytes(ret)
+
+    def decrypt(self, data: bytes):
+        ret = bytearray()
+        if not self.decrypt_func:
+            salt, data = data[: self.SALT_SIZE], data[self.SALT_SIZE :]
+            self.decrypt_func = self._init_decrypt_func(salt)
+
+        self._buffer.extend(data)
+
+        while True:
+            if not self._payload_len:
+                # 从data里拿出payload_length
+                if len(self._buffer) < 2 + self.TAG_SIZE:
+                    break
+                else:
+                    self._payload_len = int.from_bytes(
+                        self.decrypt_func(
+                            self._buffer[:2], self._buffer[2 : 2 + self.TAG_SIZE]
+                        ),
+                        "big",
+                    )
+                    assert self._payload_len < self.PACKET_LIMIT
+                    del self._buffer[: 2 + self.TAG_SIZE]
+            else:
+                if len(self._buffer) < self._payload_len + self.TAG_SIZE:
+                    break
+                ret.extend(
+                    self.decrypt_func(
+                        self._buffer[: self._payload_len],
+                        self._buffer[
+                            self._payload_len : self._payload_len + self.TAG_SIZE
+                        ],
+                    )
+                )
+                del self._buffer[: self._payload_len + self.TAG_SIZE]
+                self._payload_len = None
+
+        return bytes(ret)
+
 
 class AESCipher(BaseStreamCipher):
     def new_cipher(self, key: bytes, iv: bytes):
@@ -135,13 +203,13 @@ class NONE(BaseStreamCipher):
     def new_cipher(self, key: bytes, iv: bytes):
         return
 
-    def init_encrypt_func(self):
+    def _init_encrypt_func(self):
         def encrypt(plaintext: bytes) -> bytes:
             return plaintext
 
         return encrypt
 
-    def init_decrypt_func(self, iv: bytes):
+    def _init_decrypt_func(self, iv: bytes):
         def decrypt(ciphertext: bytes) -> bytes:
             return ciphertext
 
@@ -175,63 +243,10 @@ class CipherMan:
         self.cipher_cls = self.SUPPORT_METHODS.get(method)
         self.cipher = self.cipher_cls(password)
 
-        self.encrypt_func = None
-        self.decrypt_func = None
-
-    def stream_encrypt(self, data: bytes):
-        if not self.encrypt_func:
-            self.encrypt_func = self.cipher.init_encrypt_func()
-        return self.encrypt_func(data)
-
-    def stream_decrypt(self, data: bytes):
-        if not self.decrypt_func:
-            iv, data = data[: self.cipher_cls.IV_SIZE], data[self.cipher_cls.IV_SIZE :]
-            self.decrypt_func = self.cipher.init_decrypt_func(iv)
-        return self.decrypt_func(data)
-
-    def aead_encrypt(self, data: bytes):
-        packet = b""
-        if not self.encrypt_func:
-            salt, self.encrypt_func = self.cipher.init_encrypt_func(None)
-            packet += salt
-        length = len(data)
-        packet += b"".join(self.encrypt_func(length.to_bytes(2, "big")))
-        packet += b"".join(self.encrypt_func(data))
-        return packet
-
-    def aead_decrypt(self, data: bytes):
-        if not data:
-            return b""
-
-        salt_size = self.cipher_cls.SALT_SIZE
-        tag_size = self.cipher_cls.TAG_SIZE
-
-        if not self.decrypt_func:
-            salt, data = data[:salt_size], data[salt_size:]
-            self.decrypt_func = self.cipher.init_decrypt_func(salt)
-
-        # first chunk(payload length)
-        chunk0, data = data[: 2 + tag_size], data[2 + tag_size :]
-        with memoryview(chunk0) as chunk:
-            length = self.decrypt_func(chunk[:2], chunk[2:])
-        length = int.from_bytes(length, "big")
-        if length != length & BaseAEADCipher.PACKET_LIMIT:
-            raise Exception("length too long !")
-
-        # decrypt payload
-        chunk, data = data[: length + tag_size], data[length + tag_size :]
-        with memoryview(chunk) as d:
-            payload = self.decrypt_func(d[:length], d[length:])
-        return payload + self.aead_decrypt(data)
-
     @ENCRYPT_DATA_TIME.time()
     def encrypt(self, data: bytes):
-        if self.cipher_cls.AEAD_CIPHER:
-            return self.aead_encrypt(data)
-        return self.stream_encrypt(data)
+        return self.cipher.encrypt(data)
 
     @DECRYPT_DATA_TIME.time()
     def decrypt(self, data: bytes):
-        if self.cipher_cls.AEAD_CIPHER:
-            return self.aead_decrypt(data)
-        return self.stream_decrypt(data)
+        return self.cipher.decrypt(data)

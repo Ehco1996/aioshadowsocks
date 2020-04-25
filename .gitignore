@@ -108,3 +108,4 @@ venv.bak/
 dev/
 env.sh
 dev.sh
+test_client.py
