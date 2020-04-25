@@ -16,7 +16,7 @@ services:
       driver: "json-file"
       options:
           max-size: "100k"
-    volumes:
-      - .:/src/aioshadowsocks
+    # volumes:
+      # - .:/src/aioshadowsocks
     working_dir: /src/aioshadowsocks
     command: python server.py
