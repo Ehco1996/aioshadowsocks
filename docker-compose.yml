@@ -3,7 +3,7 @@ version: '3'
 services:
   ss:
     container_name : aioshadowsocks
-    image: ehco1996/aioshadowsocks:runtime
+    image: ehco1996/aioshadowsocks:code
     network_mode: host
     restart: always
     environment:
