@@ -12,7 +12,7 @@
             "user_id": 2,
             "port": 2346,
             "method": "none",
-            "password": "hellotheworld",
+            "password": "chacha20-ietf-poly1305",
             "transfer": 104857600,
             "speed_limit": 384000
         }

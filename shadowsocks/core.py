@@ -79,7 +79,6 @@ class LocalHandler(TimeoutMixin):
         self._transport_protocol = protocol
 
     def _init_cipher(self):
-        # TODO 将加密解密的逻辑抽离出主流程
         try:
             self.cipher = CipherMan(self.user.method, self.user.password)
         except NotImplementedError:

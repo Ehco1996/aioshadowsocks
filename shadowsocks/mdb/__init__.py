@@ -21,7 +21,7 @@ class cached_property(property):
         if obj is None:
             return self
         value = obj.__dict__.get(self.__name__, "no value")
-        if value is "no value":
+        if value == "no value":
             value = self.func(obj)
             obj.__dict__[self.__name__] = value
         return value
