@@ -35,6 +35,7 @@ def logging_cahce_info():
 def get_ip_from_domain(domain):
     from shadowsocks import current_app
 
+    # TODO 修一下这里
     if current_app.stream_dns_server and is_stream_domain(domain):
         # use dnspython to query extra dns nameservers
         resolver.nameservers = [current_app.stream_dns_server]

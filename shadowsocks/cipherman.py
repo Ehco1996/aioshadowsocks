@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 from shadowsocks.ciphers import AES256CFB, NONE, ChaCha20IETFPoly1305
 from shadowsocks.mdb.models import User
+from shadowsocks.metrics import DECRYPT_DATA_TIME, ENCRYPT_DATA_TIME
 
 
 class CipherMan:
@@ -12,7 +15,10 @@ class CipherMan:
 
     @classmethod
     def get_cipher_by_port(cls, port) -> CipherMan:
-        return
+        user_list = User.list_by_port(port)
+        if len(user_list) != 1:
+            raise ValueError("单个端口找到了多个用户")
+        return cls(user_list[0])
 
     def __init__(self, user: User):
         self.cipher_cls = self.SUPPORT_METHODS.get(user.method)

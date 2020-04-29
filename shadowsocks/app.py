@@ -9,7 +9,7 @@ from aiohttp import web
 from grpclib.server import Server
 from prometheus_async import aio
 
-# TODO Don't use Model here
+from shadowsocks.proxyman import ProxyMan
 
 
 class App:
@@ -20,6 +20,7 @@ class App:
 
         self.loop = asyncio.get_event_loop()
         self.prepared = False
+        self.proxyman = ProxyMan()
 
     def _init_config(self):
         self.config = {
@@ -122,30 +123,17 @@ class App:
         await self.metrics_server.start()
         logging.info(f"Start Metrics Server At: http://0.0.0.0:9888/metrics ")
 
-    def start_json_server(self):
-        from shadowsocks.mdb import models
-
-        models.User.create_or_update_from_json("userconfigs.json")
-        models.User.init_user_servers()
-
-    def start_remote_sync_server(self):
-        from shadowsocks.mdb import models
-
-        try:
-            models.User.create_or_update_from_remote(self.api_endpoint)
-            models.UserServer.flush_metrics_to_remote(self.api_endpoint)
-            models.User.init_user_servers()
-        except Exception as e:
-            logging.warning(f"sync user error {e}")
-        self.loop.call_later(self.sync_time, self.start_remote_sync_server)
-
     def run(self):
         self._prepare()
 
         if self.use_json:
-            self.start_json_server()
+            self.loop.create_task(self.proxyman.start_ss_json_server())
         else:
-            self.start_remote_sync_server()
+            self.loop.create_task(
+                self.proxyman.start_remote_sync_server(
+                    self.api_endpoint, self.sync_time
+                )
+            )
 
         if self.use_grpc:
             self.loop.create_task(self.start_grpc_server())
@@ -160,9 +148,7 @@ class App:
             self.shutdown()
 
     def shutdown(self):
-        from shadowsocks.mdb import models
-
-        models.UserServer.shutdown()
+        self.proxyman.close_server()
         if self.use_grpc:
             self.grpc_server.close()
             logging.info(f"grpc server closed!")
