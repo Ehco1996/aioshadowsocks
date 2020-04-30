@@ -15,6 +15,7 @@ class ProxyMan:
     """
 
     HOST = "0.0.0.0"  # TODO 这里变成可以配置的
+    AEAD_METHOD_LIST = ["chacha20-ietf-poly1305"]
 
     def __init__(self):
         self.loop = asyncio.get_event_loop()
@@ -47,12 +48,15 @@ class ProxyMan:
 
         running_server = self.get_server_by_port(user.port)
         if running_server:
-            logging.info(
-                "user:{} method:{} password:{} 共享端口:{}".format(
-                    user, user.method, user.password, user.port
+            if user.method in self.AEAD_METHOD_LIST:
+                logging.info(
+                    "user:{} method:{} password:{} 共享端口:{}".format(
+                        user, user.method, user.password, user.port
+                    )
                 )
-            )
-            return
+                return
+            else:
+                raise ValueError(f"user: {user}的加密方式: {user.method}不支持单端口多用户")
 
         tcp_server = await self.loop.create_server(
             LocalTCP(user.port), self.HOST, user.port

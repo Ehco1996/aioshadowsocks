@@ -99,6 +99,7 @@ class BaseAEADCipher(BaseCipher):
     SALT_SIZE = -1
     NONCE_SIZE = -1
     TAG_SIZE = -1
+    AEAD_CIPHER = True
 
     def __init__(self, password: str):
         super().__init__(password)

@@ -99,11 +99,9 @@ class LocalHandler(TimeoutMixin):
 
     def handle_eof_received(self):
         self.close()
-        logging.debug("eof received")
 
     def handle_connection_lost(self, exc):
         self.close()
-        logging.debug(f"lost exc={exc}")
 
     def handle_data_received(self, data):
 
@@ -284,7 +282,7 @@ class RemoteTCP(asyncio.Protocol, TimeoutMixin):
 
         self.data = data
         self.local = local_handler
-        self.cipher = CipherMan.get_cipher_by_port(self.local.port)
+        self.cipher = CipherMan(access_user=local_handler.cipher.access_user)
 
         self.peername = None
         self._transport = None
@@ -324,7 +322,7 @@ class RemoteUDP(asyncio.DatagramProtocol, TimeoutMixin):
         super().__init__()
         self.data = data
         self.local = local_hander
-        self.cipher = CipherMan.get_cipher_by_port(self.local.port)
+        self.cipher = CipherMan(access_user=local_handler.cipher.access_user)
 
         self.peername = None
         self._transport = None

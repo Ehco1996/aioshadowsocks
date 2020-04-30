@@ -19,7 +19,7 @@ class User(BaseModel, HttpSessionMixin):
     user_id = pw.IntegerField(primary_key=True, unique=True)
     port = pw.IntegerField(index=True)
     method = pw.CharField()
-    password = pw.CharField()
+    password = pw.CharField(unique=True)
     enable = pw.BooleanField(default=True)
     speed_limit = pw.IntegerField(default=0)
 
