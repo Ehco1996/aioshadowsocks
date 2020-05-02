@@ -1,8 +1,8 @@
-version: '3'
+version: "3"
 
 services:
   ss:
-    container_name : aioshadowsocks
+    container_name: aioshadowsocks
     image: ehco1996/aioshadowsocks:code
     network_mode: host
     restart: always
@@ -12,11 +12,12 @@ services:
       SS_SYNC_TIME: 60
       SS_GRPC_HOST: "127.0.0.1"
       SS_GRPC_PORT: 5000
+      SS_METRICS_PORT: 9888
     logging:
       driver: "json-file"
       options:
-          max-size: "100k"
+        max-size: "100k"
     # volumes:
-      # - .:/src/aioshadowsocks
+    # - .:/src/aioshadowsocks
     working_dir: /src/aioshadowsocks
     command: python server.py

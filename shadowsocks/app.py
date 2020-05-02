@@ -31,7 +31,7 @@ class App:
             "LOG_LEVEL": os.getenv("SS_LOG_LEVEL", "info"),
             "SYNC_TIME": int(os.getenv("SS_SYNC_TIME", 60)),
             "STREAM_DNS_SERVER": os.getenv("SS_STREAM_DNS_SERVER"),
-            "ENABLE_METRICS": bool(os.getenv("SS_ENABLE_METRICS", True)),
+            "METRICS_PORT": os.getenv("SS_METRICS_PORT"),
             "TIME_OUT_LIMIT": int(os.getenv("SS_TIME_OUT_LIMIT", 60)),
             "USER_TCP_CONN_LIMIT": int(os.getenv("SS_TCP_CONN_LIMIT", 60)),
         }
@@ -46,7 +46,7 @@ class App:
         self.stream_dns_server = self.config["STREAM_DNS_SERVER"]
         self.user_tcp_conn_limit = self.config["USER_TCP_CONN_LIMIT"]
 
-        self.enable_metrics = self.config["ENABLE_METRICS"]
+        self.metrics_port = self.config["METRICS_PORT"]
         self.use_sentry = True if self.sentry_dsn else False
         self.use_json = False if self.api_endpoint else True
         self.use_grpc = True if self.grpc_host and self.grpc_port else False
@@ -119,9 +119,11 @@ class App:
         app.router.add_get("/metrics", aio.web.server_stats)
         runner = web.AppRunner(app)
         await runner.setup()
-        self.metrics_server = web.TCPSite(runner, "0.0.0.0", 9888)
+        self.metrics_server = web.TCPSite(runner, "0.0.0.0", self.metrics_port)
         await self.metrics_server.start()
-        logging.info(f"Start Metrics Server At: http://0.0.0.0:9888/metrics ")
+        logging.info(
+            f"Start Metrics Server At: http://0.0.0.0:{self.metrics_port}/metrics"
+        )
 
     def run(self):
         self._prepare()
@@ -138,7 +140,7 @@ class App:
         if self.use_grpc:
             self.loop.create_task(self.start_grpc_server())
 
-        if self.enable_metrics:
+        if self.metrics_port:
             self.loop.create_task(self.start_metrics_server())
 
         try:
@@ -152,7 +154,7 @@ class App:
         if self.use_grpc:
             self.grpc_server.close()
             logging.info(f"grpc server closed!")
-        if self.enable_metrics:
+        if self.metrics_port:
             self.loop.create_task(self.metrics_server.stop())
             logging.info(f"metrics server closed!")
         pending = asyncio.all_tasks(self.loop)
