@@ -5,7 +5,11 @@ from typing import List
 
 from shadowsocks.ciphers import AES256CFB, NONE, ChaCha20IETFPoly1305
 from shadowsocks.mdb.models import User
-from shadowsocks.metrics import DECRYPT_DATA_TIME, ENCRYPT_DATA_TIME
+from shadowsocks.metrics import (
+    DECRYPT_DATA_TIME,
+    ENCRYPT_DATA_TIME,
+    FIND_ACCESS_USER_TIME,
+)
 
 
 class CipherMan:
@@ -38,6 +42,7 @@ class CipherMan:
             self.method = user_list[0].method  # NOTE 所有的user用的加密方式必须是一种
         self.cipher_cls = self.SUPPORT_METHODS.get(self.method)
 
+    @FIND_ACCESS_USER_TIME.time()
     def find_access_user(self, first_data: bytes) -> User:
         """
         通过auth校验来找到正确的user

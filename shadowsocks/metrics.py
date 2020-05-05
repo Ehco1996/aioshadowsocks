@@ -16,3 +16,7 @@ ENCRYPT_DATA_TIME = Histogram(
 DECRYPT_DATA_TIME = Histogram(
     "decrypt_data_time_seconds", "shadowsocks decrypt data time seconds"
 )
+
+FIND_ACCESS_USER_TIME = Histogram(
+    "find_access_user_time_seconds", "time to find access user"
+)
