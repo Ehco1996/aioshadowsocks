@@ -86,16 +86,16 @@ class LocalHandler(TimeoutMixin):
         if self._transport_protocol == flag.TRANSPORT_TCP:
             self._transport and self._transport.close()
             self._remote and self._remote.close()
+            self.cipher.incr_user_tcp_num(-1)
         elif self._transport_protocol == flag.TRANSPORT_UDP:
             pass
         self._stage = self.STAGE_DESTROY
-        self.cipher.incr_user_tcp_num(-1)
 
     def write(self, data):
         if self._transport_protocol == flag.TRANSPORT_TCP:
-            self._transport.write(data)
+            self._transport  and self._transport.write(data)
         else:
-            self._transport.sendto(data, self._peername)
+            self._transport and self._transport.sendto(data, self._peername)
 
     def handle_connection_made(self, transport_type, transport, peername):
         self._init_transport(transport, peername, transport_type)
