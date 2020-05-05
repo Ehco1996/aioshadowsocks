@@ -79,18 +79,22 @@ class LocalHandler(TimeoutMixin):
         self.cipher = CipherMan.get_cipher_by_port(self.port)
 
     def close(self):
+        if self._is_closing:
+            return
+        self._is_closing = True
+
         if self._transport_protocol == flag.TRANSPORT_TCP:
             self._transport and self._transport.close()
             self._remote and self._remote.close()
         elif self._transport_protocol == flag.TRANSPORT_UDP:
             pass
         self._stage = self.STAGE_DESTROY
+        self.cipher.incr_user_tcp_num(-1)
 
     def write(self, data):
         if self._transport_protocol == flag.TRANSPORT_TCP:
             self._transport.write(data)
         else:
-            # get the remote address to which the socket is connected
             self._transport.sendto(data, self._peername)
 
     def handle_connection_made(self, transport_type, transport, peername):
@@ -159,6 +163,8 @@ class LocalHandler(TimeoutMixin):
                 self._stage = self.STAGE_STREAM
                 self._remote.write(self._connect_buffer)
                 logging.debug(f"connection ok buffer lens：{len(self._connect_buffer)}")
+                self.cipher.incr_user_tcp_num(1)
+                self.cipher.record_user_ip(self._peername)
 
         elif self._transport_protocol == flag.TRANSPORT_UDP:
             udp_coro = self.loop.create_datagram_endpoint(

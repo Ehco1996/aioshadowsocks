@@ -16,6 +16,8 @@ class CipherMan:
         "chacha20-ietf-poly1305": ChaCha20IETFPoly1305,
     }
 
+    # TODO 流量、链接数限速
+
     @classmethod
     def get_cipher_by_port(cls, port) -> CipherMan:
         user_list = User.list_by_port(port)
@@ -56,13 +58,16 @@ class CipherMan:
             except ValueError as e:
                 if e.args[0] != "MAC check failed":
                     raise e
-        logging.info(f"一共寻找了{len(self.user_list)}个user,共花费{(time.time()-t1)*1000}ms")
+        logging.info(
+            f"用户:{success_user} 一共寻找了{len(self.user_list)}个user,共花费{(time.time()-t1)*1000}ms"
+        )
         return success_user
 
     @ENCRYPT_DATA_TIME.time()
     def encrypt(self, data: bytes):
         if not self.cipher:
             self.cipher = self.cipher_cls(self.access_user.password)
+        self.access_user.record_traffic(len(data), len(data))
         return self.cipher.encrypt(data)
 
     @DECRYPT_DATA_TIME.time()
@@ -70,5 +75,14 @@ class CipherMan:
         if not self.cipher:
             if not self.access_user:
                 self.access_user = self.find_access_user(data)
+            if not self.access_user.enable:
+                raise RuntimeError(f"用户: {self.access_user} enable = False")
             self.cipher = self.cipher_cls(self.access_user.password)
+        self.access_user.record_traffic(len(data), len(data))
         return self.cipher.decrypt(data)
+
+    def incr_user_tcp_num(self, num: int):
+        self.access_user.incr_tcp_conn_num(num)
+
+    def record_user_ip(self, peername):
+        self.access_user.record_ip(peername)

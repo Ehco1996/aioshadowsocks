@@ -1,4 +1,6 @@
+import json
 import logging
+from typing import Set
 
 import peewee as pw
 import requests
@@ -37,6 +39,22 @@ class BaseModel(pw.Model):
 
     def to_dict(self, **kw):
         return shortcuts.model_to_dict(self, **kw)
+
+
+class IPSetField(pw.CharField):
+    def db_value(self, value) -> str:
+        if type(value) is not set:
+            value = []
+        data = json.dumps(list(value))
+        if len(data) > self.max_length:
+            raise ValueError("Data too long for field {}.".format(self.name))
+        return data
+
+    def python_value(self, value) -> Set[str]:
+        if value is None:
+            return value
+        l = json.loads(value)
+        return set(l)
 
 
 class HttpSession:

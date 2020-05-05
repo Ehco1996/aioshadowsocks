@@ -4,7 +4,7 @@ import logging
 from collections import defaultdict
 
 from shadowsocks.core import LocalTCP, LocalUDP
-from shadowsocks.mdb.models import User, UserServer
+from shadowsocks.mdb.models import User
 
 
 class ProxyMan:
@@ -23,26 +23,38 @@ class ProxyMan:
         # {"port":{"tcp":tcp_server,"udp":udp_server}}
         self.__running_servers__ = defaultdict(dict)
 
+        self.api_endpoint = None
+        self.sync_time = None
+
     def get_server_by_port(self, port):
         return self.__running_servers__.get(port)
 
+    async def sync_from_remote(self):
+        try:
+            User.create_or_update_from_remote(self.api_endpoint)
+            User.flush_metrics_to_remote(self.api_endpoint)
+        except Exception as e:
+            logging.warning(f"sync user error {e}")
+
+        for user in User.select().where(User.enable == True):
+            await self.loop.create_task(self.init_server(user))
+
+        for user in User.select().where(User.enable == False):
+            self.close_user_user(user)
+
+        self.loop.call_later(
+            self.sync_time, self.loop.create_task, self.sync_from_remote()
+        )
+
     async def start_ss_json_server(self):
         User.create_or_update_from_json("userconfigs.json")
-        for user in User.select():
+        for user in User.select().where(User.enable == True):
             await self.loop.create_task(self.init_server(user))
 
     async def start_remote_sync_server(self, api_endpoint, sync_time):
-        try:
-            User.create_or_update_from_remote(api_endpoint)
-            # TODO 用户流量记录
-            # UserServer.flush_metrics_to_remote(api_endpoint)
-            for user in User.select():
-                await self.loop.create_task(self.init_server(user))
-        except Exception as e:
-            logging.warning(f"sync user error {e}")
-        self.loop.call_later(
-            sync_time, self.start_remote_sync_server, api_endpoint, sync_time
-        )
+        self.api_endpoint = api_endpoint
+        self.sync_time = sync_time
+        await self.sync_from_remote()
 
     async def init_server(self, user: User):
 
@@ -54,9 +66,7 @@ class ProxyMan:
                         user, user.method, user.password, user.port
                     )
                 )
-                return
-            else:
-                raise ValueError(f"user: {user}的加密方式: {user.method}不支持单端口多用户")
+            return
 
         tcp_server = await self.loop.create_server(
             LocalTCP(user.port), self.HOST, user.port
@@ -73,6 +83,14 @@ class ProxyMan:
                 user, user.method, user.password, user.port
             )
         )
+
+    def close_user_user(self, user):
+        running_server = self.get_server_by_port(user.port)
+        if running_server and user.method not in self.AEAD_METHOD_LIST:
+            running_server["tcp"].close()
+            running_server["udp"].close()
+            self.__running_servers__.pop(user.port)
+            logging.info(f"user {user} 已关闭!")
 
     def close_server(self):
         for port, server_data in self.__running_servers__.items():
