@@ -86,13 +86,16 @@ class User(BaseModel, HttpSessionMixin):
         if not peername:
             return
         self.ip_list.add(peername[0])
-        User.update(ip_list=self.ip_list).execute()
+        User.update(ip_list=self.ip_list, user_id=self.user_id).execute()
 
     def record_traffic(self, used_u, used_d):
         User.update(
             download_traffic=User.download_traffic + used_d,
             upload_traffic=User.upload_traffic + used_u,
+            user_id=self.user_id,
         ).execute()
 
     def incr_tcp_conn_num(self, num):
-        User.update(tcp_conn_num=User.tcp_conn_num + num,).execute()
+        User.update(
+            tcp_conn_num=User.tcp_conn_num + num, user_id=self.user_id
+        ).execute()

@@ -40,7 +40,7 @@ class ProxyMan:
             await self.loop.create_task(self.init_server(user))
 
         for user in User.select().where(User.enable == False):
-            self.close_user_user(user)
+            self.close_user_server(user)
 
         self.loop.call_later(
             self.sync_time, self.loop.create_task, self.sync_from_remote()
@@ -84,7 +84,7 @@ class ProxyMan:
             )
         )
 
-    def close_user_user(self, user):
+    def close_user_server(self, user):
         running_server = self.get_server_by_port(user.port)
         if running_server and user.method not in self.AEAD_METHOD_LIST:
             running_server["tcp"].close()

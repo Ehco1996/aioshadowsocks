@@ -108,12 +108,16 @@ class LocalHandler(TimeoutMixin):
         self.close()
 
     def handle_data_received(self, data):
+        # TODO data iv / salt long
 
         try:
             data = self.cipher.decrypt(data)
         except Exception as e:
             self.close()
             logging.warning(f"decrypt data error {e}")
+            return
+
+        if not data:
             return
 
         if self._stage == self.STAGE_INIT:
