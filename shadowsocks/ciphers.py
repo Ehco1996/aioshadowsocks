@@ -222,7 +222,7 @@ class AES256CFB(AESCipher):
     IV_SIZE = 16
 
 
-class ChaCha20IETFPoly1305(BaseAEADCipher):
+class CHACHA20IETFPOLY1305(BaseAEADCipher):
     KEY_SIZE = 32
     SALT_SIZE = 32
     NONCE_SIZE = 12
@@ -232,22 +232,25 @@ class ChaCha20IETFPoly1305(BaseAEADCipher):
         return ChaCha20_Poly1305.new(key=subkey, nonce=nonce)
 
 
-class CipherMan:
+class AES128GCM(BaseAEADCipher):
+    KEY_SIZE = 16
+    SALT_SIZE = 16
+    NONCE_SIZE = 12
+    TAG_SIZE = 16
 
-    SUPPORT_METHODS = {
-        "aes-256-cfb": AES256CFB,
-        "none": NONE,
-        "chacha20-ietf-poly1305": ChaCha20IETFPoly1305,
-    }
+    def new_cipher(self, subkey: bytes, nonce: bytes):
+        return AES.new(subkey, AES.MODE_GCM, nonce=nonce, mac_len=self.TAG_SIZE)
 
-    def __init__(self, method, password):
-        self.cipher_cls = self.SUPPORT_METHODS.get(method)
-        self.cipher = self.cipher_cls(password)
 
-    @ENCRYPT_DATA_TIME.time()
-    def encrypt(self, data: bytes):
-        return self.cipher.encrypt(data)
+class AES192GCM(AES128GCM):
+    KEY_SIZE = 24
+    SALT_SIZE = 24
+    NONCE_SIZE = 12
+    TAG_SIZE = 16
 
-    @DECRYPT_DATA_TIME.time()
-    def decrypt(self, data: bytes):
-        return self.cipher.decrypt(data)
+
+class AES256GCM(AES128GCM):
+    KEY_SIZE = 32
+    SALT_SIZE = 32
+    NONCE_SIZE = 12
+    TAG_SIZE = 16

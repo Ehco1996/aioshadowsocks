@@ -4,7 +4,14 @@ import copy
 import logging
 from typing import List
 
-from shadowsocks.ciphers import AES256CFB, NONE, ChaCha20IETFPoly1305
+from shadowsocks.ciphers import (
+    NONE,
+    AES256CFB,
+    AES128GCM,
+    AES192GCM,
+    AES256GCM,
+    CHACHA20IETFPOLY1305,
+)
 from shadowsocks.mdb.models import User
 from shadowsocks.metrics import (
     DECRYPT_DATA_TIME,
@@ -17,9 +24,12 @@ from shadowsocks.metrics import (
 class CipherMan:
 
     SUPPORT_METHODS = {
-        "aes-256-cfb": AES256CFB,
         "none": NONE,
-        "chacha20-ietf-poly1305": ChaCha20IETFPoly1305,
+        "aes-256-cfb": AES256CFB,
+        "aes-128-gcm": AES128GCM,
+        "aes-192-gcm": AES192GCM,
+        "aes-256-gcm": AES256GCM,
+        "chacha20-ietf-poly1305": CHACHA20IETFPOLY1305,
     }
 
     # TODO 流量、链接数限速

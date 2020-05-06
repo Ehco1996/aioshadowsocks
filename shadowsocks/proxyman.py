@@ -15,7 +15,12 @@ class ProxyMan:
     """
 
     HOST = "0.0.0.0"  # TODO 这里变成可以配置的
-    AEAD_METHOD_LIST = ["chacha20-ietf-poly1305"]
+    AEAD_METHOD_LIST = [
+        "chacha20-ietf-poly1305",
+        "aes-128-gcm",
+        "aes-192-gcm",
+        "aes-256-gcm",
+    ]
 
     def __init__(self):
         self.loop = asyncio.get_event_loop()
