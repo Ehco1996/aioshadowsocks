@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 import copy
 import logging
 from typing import List
@@ -9,6 +10,7 @@ from shadowsocks.metrics import (
     DECRYPT_DATA_TIME,
     ENCRYPT_DATA_TIME,
     FIND_ACCESS_USER_TIME,
+    NETWORK_TRANSMIT_BYTES,
 )
 
 
@@ -72,7 +74,8 @@ class CipherMan:
     def encrypt(self, data: bytes):
         if not self.cipher:
             self.cipher = self.cipher_cls(self.access_user.password)
-        self.access_user.record_traffic(len(data), len(data))
+        self.access_user and self.access_user.record_traffic(len(data), len(data))
+        NETWORK_TRANSMIT_BYTES.inc(len(data))
         return self.cipher.encrypt(data)
 
     @DECRYPT_DATA_TIME.time()
@@ -80,14 +83,17 @@ class CipherMan:
         if not self.cipher:
             if not self.access_user:
                 self.access_user = self.find_access_user(data)
+            if not self.access_user:
+                raise RuntimeError("没有找到合法的用户")
             if not self.access_user.enable:
                 raise RuntimeError(f"用户: {self.access_user} enable = False")
             self.cipher = self.cipher_cls(self.access_user.password)
-        self.access_user.record_traffic(len(data), len(data))
+        self.access_user and self.access_user.record_traffic(len(data), len(data))
+        NETWORK_TRANSMIT_BYTES.inc(len(data))
         return self.cipher.decrypt(data)
 
     def incr_user_tcp_num(self, num: int):
-        self.access_user.incr_tcp_conn_num(num)
+        self.access_user and self.access_user.incr_tcp_conn_num(num)
 
     def record_user_ip(self, peername):
-        self.access_user.record_ip(peername)
+        self.access_user and self.access_user.record_ip(peername)

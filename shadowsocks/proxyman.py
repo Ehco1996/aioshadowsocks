@@ -60,12 +60,6 @@ class ProxyMan:
 
         running_server = self.get_server_by_port(user.port)
         if running_server:
-            if user.method in self.AEAD_METHOD_LIST:
-                logging.info(
-                    "user:{} method:{} password:{} 共享端口:{}".format(
-                        user, user.method, user.password, user.port
-                    )
-                )
             return
 
         tcp_server = await self.loop.create_server(

@@ -5,11 +5,7 @@ import struct
 
 from shadowsocks import protocol_flag as flag
 from shadowsocks.cipherman import CipherMan
-from shadowsocks.metrics import (
-    ACTIVE_CONNECTION_COUNT,
-    CONNECTION_MADE_COUNT,
-    NETWORK_TRANSMIT_BYTES,
-)
+from shadowsocks.metrics import ACTIVE_CONNECTION_COUNT, CONNECTION_MADE_COUNT
 from shadowsocks.utils import parse_header
 
 
@@ -86,20 +82,23 @@ class LocalHandler(TimeoutMixin):
         if self._transport_protocol == flag.TRANSPORT_TCP:
             self._transport and self._transport.close()
             self._remote and self._remote.close()
-            self.cipher.incr_user_tcp_num(-1)
+            self.cipher and self.cipher.incr_user_tcp_num(-1)
         elif self._transport_protocol == flag.TRANSPORT_UDP:
             pass
         self._stage = self.STAGE_DESTROY
+        ACTIVE_CONNECTION_COUNT.inc(-1)
 
     def write(self, data):
         if self._transport_protocol == flag.TRANSPORT_TCP:
-            self._transport  and self._transport.write(data)
+            self._transport and self._transport.write(data)
         else:
             self._transport and self._transport.sendto(data, self._peername)
 
     def handle_connection_made(self, transport_type, transport, peername):
         self._init_transport(transport, peername, transport_type)
         self._init_cipher()
+        ACTIVE_CONNECTION_COUNT.inc()
+        CONNECTION_MADE_COUNT.inc()
 
     def handle_eof_received(self):
         self.close()
@@ -167,8 +166,8 @@ class LocalHandler(TimeoutMixin):
                 self._stage = self.STAGE_STREAM
                 self._remote.write(self._connect_buffer)
                 logging.debug(f"connection ok buffer lens：{len(self._connect_buffer)}")
-                self.cipher.incr_user_tcp_num(1)
-                self.cipher.record_user_ip(self._peername)
+                self.cipher and self.cipher.incr_user_tcp_num(1)
+                self.cipher and self.cipher.record_user_ip(self._peername)
 
         elif self._transport_protocol == flag.TRANSPORT_UDP:
             udp_coro = self.loop.create_datagram_endpoint(
