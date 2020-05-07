@@ -242,13 +242,6 @@ class AES128GCM(BaseAEADCipher):
         return AES.new(subkey, AES.MODE_GCM, nonce=nonce, mac_len=self.TAG_SIZE)
 
 
-class AES192GCM(AES128GCM):
-    KEY_SIZE = 24
-    SALT_SIZE = 24
-    NONCE_SIZE = 12
-    TAG_SIZE = 16
-
-
 class AES256GCM(AES128GCM):
     KEY_SIZE = 32
     SALT_SIZE = 32

@@ -1,6 +1,6 @@
 
-FROM python:3.8-alpine as base
-# FROM ehco1996/aioshadowsocks:runtime as base
+# FROM python:3.8-alpine as base
+FROM ehco1996/aioshadowsocks:runtime as base
 
 LABEL Name="aio-shadowsocks" Maintainer="Ehco1996"
 

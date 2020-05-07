@@ -3,12 +3,12 @@ from __future__ import annotations
 import copy
 import logging
 from typing import List
+from bloom_filter import BloomFilter
 
 from shadowsocks.ciphers import (
     NONE,
     AES256CFB,
     AES128GCM,
-    AES192GCM,
     AES256GCM,
     CHACHA20IETFPOLY1305,
 )
@@ -27,10 +27,10 @@ class CipherMan:
         "none": NONE,
         "aes-256-cfb": AES256CFB,
         "aes-128-gcm": AES128GCM,
-        "aes-192-gcm": AES192GCM,
         "aes-256-gcm": AES256GCM,
         "chacha20-ietf-poly1305": CHACHA20IETFPOLY1305,
     }
+    bf = BloomFilter()
 
     # TODO 流量、链接数限速
 
@@ -61,6 +61,12 @@ class CipherMan:
         TODO 1. 复用data 2. 寻找user的算法
         """
         import time
+
+        salt = first_data[: self.cipher_cls.SALT_SIZE]
+        if salt in self.bf:
+            raise RuntimeError("repeated salt founded!")
+        else:
+            self.bf.add(salt)
 
         t1 = time.time()
         success_user = None

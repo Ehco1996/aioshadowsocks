@@ -18,7 +18,6 @@ class ProxyMan:
     AEAD_METHOD_LIST = [
         "chacha20-ietf-poly1305",
         "aes-128-gcm",
-        "aes-192-gcm",
         "aes-256-gcm",
     ]
 
