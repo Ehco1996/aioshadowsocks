@@ -90,9 +90,13 @@ class LocalHandler(TimeoutMixin):
 
     def write(self, data):
         if self._transport_protocol == flag.TRANSPORT_TCP:
-            self._transport and self._transport.write(data)
+            self._transport and not self._transport.is_closing() and self._transport.write(
+                data
+            )
         else:
-            self._transport and self._transport.sendto(data, self._peername)
+            self._transport and not self._transport.is_closing() and self._transport.sendto(
+                data, self._peername
+            )
 
     def handle_connection_made(self, transport_type, transport, peername):
         self._init_transport(transport, peername, transport_type)
@@ -295,7 +299,9 @@ class RemoteTCP(asyncio.Protocol, TimeoutMixin):
         self.cipher = CipherMan(access_user=local_handler.cipher.access_user)
 
     def write(self, data):
-        self._transport and self._transport.write(data)
+        self._transport and not self._transport.is_closing() and self._transport.write(
+            data
+        )
 
     def close(self):
         self._transport and self._transport.close()
@@ -333,7 +339,9 @@ class RemoteUDP(asyncio.DatagramProtocol, TimeoutMixin):
         self.cipher = CipherMan(access_user=self.local.cipher.access_user)
 
     def write(self, data):
-        self._transport and self._transport.sendto(data)
+        self._transport and not self._transport.is_closing() and self._transport.sendto(
+            data
+        )
 
     def close(self):
         self._transport and self._transport.close()

@@ -70,11 +70,13 @@ class CipherMan:
 
         t1 = time.time()
         success_user = None
+        cnt = 0
         for user in self.user_list:
             payload = copy.copy(first_data)
             cipher = self.cipher_cls(user.password)
             try:
                 # TODO 如果res是空说明还没收集到足够多的data
+                cnt += 1
                 res = cipher.decrypt(payload)
                 success_user = user
                 break
@@ -82,7 +84,7 @@ class CipherMan:
                 if e.args[0] != "MAC check failed":
                     raise e
         logging.info(
-            f"用户:{success_user} 一共寻找了{len(self.user_list)}个user,共花费{(time.time()-t1)*1000}ms"
+            f"用户:{success_user} 一共寻找了{ cnt }个user,共花费{(time.time()-t1)*1000}ms"
         )
         return success_user
 
