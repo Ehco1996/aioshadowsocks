@@ -115,7 +115,6 @@ class LocalHandler(TimeoutMixin):
             self.close()
             logging.warning(f"decrypt data error {e}")
             return
-
         if not data:
             return
 
@@ -291,11 +290,9 @@ class RemoteTCP(asyncio.Protocol, TimeoutMixin):
 
         self.data = data
         self.local = local_handler
-        self.cipher = CipherMan(access_user=local_handler.cipher.access_user)
-
         self.peername = None
         self._transport = None
-        self.loop = asyncio.get_running_loop()
+        self.cipher = CipherMan(access_user=local_handler.cipher.access_user)
 
     def write(self, data):
         self._transport and self._transport.write(data)
@@ -331,13 +328,12 @@ class RemoteUDP(asyncio.DatagramProtocol, TimeoutMixin):
         super().__init__()
         self.data = data
         self.local = local_hander
-        self.cipher = CipherMan(access_user=local_handler.cipher.access_user)
-
         self.peername = None
         self._transport = None
+        self.cipher = CipherMan(access_user=self.local.cipher.access_user)
 
     def write(self, data):
-        self._transport and self._transport.sendto(data, self.peername)
+        self._transport and self._transport.sendto(data)
 
     def close(self):
         self._transport and self._transport.close()
