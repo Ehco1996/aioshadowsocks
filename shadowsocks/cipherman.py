@@ -40,15 +40,14 @@ class CipherMan:
         self.user_list = user_list
         self.access_user = access_user
         self.cipher = None
+        self._buffer = bytearray()
 
         if self.access_user:
             self.method = access_user.method
         else:
             self.method = user_list[0].method  # NOTE 所有的user用的加密方式必须是一种
         self.cipher_cls = self.SUPPORT_METHODS.get(self.method)
-
         # NOTE 解第一个包的时候必须收集到足够多的数据:salt + payload_len(2) + tag
-        self._buffer = bytearray()
         self._first_data_len = self.cipher_cls.SALT_SIZE + 2 + self.cipher_cls.TAG_SIZE
 
     @classmethod

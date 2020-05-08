@@ -117,7 +117,9 @@ class LocalHandler(TimeoutMixin):
             data = self.cipher.decrypt(data)
         except Exception as e:
             self.close()
-            logging.warning(f"decrypt data error: {e} closing ...")
+            logging.warning(
+                f"decrypt data error: {e} remote: {self._peername} closing ..."
+            )
             return
         if not data:
             return
