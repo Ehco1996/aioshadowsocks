@@ -176,7 +176,9 @@ class BaseAEADCipher(BaseCipher):
                         ),
                         "big",
                     )
-                    assert self._payload_len < self.PACKET_LIMIT
+                    if self._payload_len > self.PACKET_LIMIT:
+                        raise RuntimeError(f"payload_len too long {self.payload_len}")
+
                     del self._buffer[: 2 + self.TAG_SIZE]
             else:
                 if len(self._buffer) < self._payload_len + self.TAG_SIZE:
