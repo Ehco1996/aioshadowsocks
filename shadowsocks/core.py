@@ -125,6 +125,7 @@ class LocalHandler(TimeoutMixin):
                 f"decrypt data error:{e} remote:{self._peername},type:{self._transport_protocol_human} closing..."
             )
             return
+
         if not data:
             return
 

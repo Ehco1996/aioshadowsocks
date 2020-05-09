@@ -47,7 +47,6 @@ class CipherMan:
         self.ts_protocol = ts_protocol
 
         self.cipher = None
-        self._first_data = None
         self._buffer = bytearray()
         self.last_access_user = None
 
@@ -57,13 +56,13 @@ class CipherMan:
             self.method = user_list[0].method  # NOTE 所有的user用的加密方式必须是一种
 
         self.cipher_cls = self.SUPPORT_METHODS.get(self.method)
-        # NOTE 解第一个包的时候必须收集到足够多的数据:salt + payload_len(2) + tag
-        if self.ts_protocol == flag.TRANSPORT_TCP:
-            self._first_data_len = (
-                self.cipher_cls.SALT_SIZE + 2 + self.cipher_cls.TAG_SIZE
-            )
+        if self.cipher_cls.AEAD_CIPHER:
+            if self.ts_protocol == flag.TRANSPORT_TCP:
+                self._first_data_len = self.cipher_cls.tcp_first_data_len()
+            else:
+                self._first_data_len = self.cipher_cls.udp_first_data_len()
         else:
-            self._first_data_len = self.cipher_cls.SALT_SIZE + self.cipher_cls.TAG_SIZE
+            self._first_data_len = 0
 
     @classmethod
     def get_cipher_by_port(cls, port, ts_protocol) -> CipherMan:
@@ -75,7 +74,7 @@ class CipherMan:
         return cls(user_list, access_user=access_user, ts_protocol=ts_protocol)
 
     @FIND_ACCESS_USER_TIME.time()
-    def _find_access_user(self, first_data: bytes) -> bytes:
+    def _find_access_user(self, first_data: bytes):
         """通过auth校验来找到正确的user"""
 
         with memoryview(first_data) as d:
@@ -87,19 +86,18 @@ class CipherMan:
 
         t1 = time.time()
         cnt = 0
+
         for user in self.user_list:
             if not self.last_access_user:
                 self.last_access_user = user
-            cipher = self.cipher_cls(user.password)
             try:
                 cnt += 1
+                cipher = self.cipher_cls(user.password)
                 with memoryview(first_data) as d:
                     if self.ts_protocol == flag.TRANSPORT_TCP:
-                        self._first_data = cipher.decrypt(d)
-                        self.cipher = cipher
+                        cipher.decrypt(d)
                     else:
-                        # NOTE udp 需要 每个包都生成一个新的cipher
-                        self._first_data = cipher.unpack(d)
+                        cipher.unpack(d)
                     self.access_user = user
                     break
             except ValueError as e:
@@ -111,16 +109,9 @@ class CipherMan:
             f"用户:{self.access_user} 一共寻找了{ cnt }个user,共花费{(time.time()-t1)*1000}ms"
         )
 
-    def _init_cipher_and_decrypt_first_data(self, data) -> bytes:
-        if len(data) + len(self._buffer) < self._first_data_len:
-            self._buffer.extend(data)
-            return
-        else:
-            data = bytes(self._buffer) + data
-            del self._buffer[:]
+    def find_access_user_by_data(self, data):
 
-        if not self.access_user:
-            self._find_access_user(data)
+        self._find_access_user(data)
 
         if not self.access_user:
             raise RuntimeError("没有找到合法的用户")
@@ -135,8 +126,6 @@ class CipherMan:
         ):
             self.access_user.access_order = self.user_list.first().access_order + 1
             self.access_user.save()
-
-        return self._first_data
 
     def _record_user_traffic(self, data_len: int):
         self.access_user and self.access_user.record_traffic(data_len, data_len)
@@ -156,14 +145,24 @@ class CipherMan:
 
     @DECRYPT_DATA_TIME.time()
     def decrypt(self, data: bytes):
-        if not self.cipher:
-            # NOTE udp 永远不会有cipher
-            data = self._init_cipher_and_decrypt_first_data(data)
-            self._record_user_traffic(len(data))
-            return data
+        if len(data) + len(self._buffer) < self._first_data_len:
+            self._buffer.extend(data)
+            return
+        else:
+            data = bytes(self._buffer) + data
+            del self._buffer[:]
+
+        if not self.access_user:
+            self.find_access_user_by_data(data)
 
         self._record_user_traffic(len(data))
-        return self.cipher.decrypt(data)
+
+        if self.ts_protocol == flag.TRANSPORT_TCP:
+            if not self.cipher:
+                self.cipher = self.cipher_cls(self.access_user.password)
+            return self.cipher.decrypt(data)
+        else:
+            return self.cipher_cls(self.access_user.password).unpack(data)
 
     def incr_user_tcp_num(self, num: int):
         self.access_user and self.access_user.incr_tcp_conn_num(num)

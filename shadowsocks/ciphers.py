@@ -222,10 +222,18 @@ class BaseAEADCipher(BaseCipher):
         ret = bytearray()
         salt, encrypt_func = self._init_encrypt_func(None)
         ret.extend(salt)
-        chunk, tag = encrypt_func(buf)
+        chunk, tag = encrypt_func(data)
         ret.extend(chunk)
         ret.extend(tag)
         return bytes(ret)
+
+    @classmethod
+    def tcp_first_data_len(cls):
+        return cls.SALT_SIZE + 2 + cls.TAG_SIZE
+
+    @classmethod
+    def udp_first_data_len(cls):
+        return cls.tcp_first_data_len() - 2
 
 
 class AESCipher(BaseStreamCipher):
