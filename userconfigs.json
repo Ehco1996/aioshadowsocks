@@ -31,6 +31,14 @@
             "password": "9vckC1IkKpIp",
             "transfer": 104857600,
             "speed_limit": 384000
+        },
+        {
+            "user_id": 5,
+            "port": 1025,
+            "method": "chacha20-ietf-poly1305",
+            "password": "hellotheworld4",
+            "transfer": 104857600,
+            "speed_limit": 384000
         }
     ]
 }

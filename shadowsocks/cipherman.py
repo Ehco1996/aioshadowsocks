@@ -38,6 +38,7 @@ class CipherMan:
     def __init__(self, user_list: List[User] = None, access_user: User = None):
         self.user_list = user_list
         self.access_user = access_user
+        self.last_access_user = None
         self.cipher = None
         self._buffer = bytearray()
 
@@ -45,6 +46,7 @@ class CipherMan:
             self.method = access_user.method
         else:
             self.method = user_list[0].method  # NOTE 所有的user用的加密方式必须是一种
+
         self.cipher_cls = self.SUPPORT_METHODS.get(self.method)
         # NOTE 解第一个包的时候必须收集到足够多的数据:salt + payload_len(2) + tag
         self._first_data_len = self.cipher_cls.SALT_SIZE + 2 + self.cipher_cls.TAG_SIZE
@@ -59,7 +61,7 @@ class CipherMan:
         return cls(user_list, access_user=access_user)
 
     @FIND_ACCESS_USER_TIME.time()
-    def __find_access_user(self, first_data: bytes) -> User:
+    def _find_access_user(self, first_data: bytes) -> User:
         """通过auth校验来找到正确的user"""
 
         with memoryview(first_data) as d:
@@ -73,6 +75,8 @@ class CipherMan:
         success_user = None
         cnt = 0
         for user in self.user_list:
+            if not self.last_access_user:
+                self.last_access_user = user
             cipher = self.cipher_cls(user.password)
             try:
                 cnt += 1
@@ -97,15 +101,20 @@ class CipherMan:
             data = bytes(self._buffer) + data
             del self._buffer[:]
         if not self.access_user:
-            self.access_user = self.__find_access_user(data)
+            self.access_user = self._find_access_user(data)
 
         if not self.access_user:
             raise RuntimeError("没有找到合法的用户")
         if not self.access_user.enable:
             raise RuntimeError(f"用户: {self.access_user} enable = False")
 
-        if self.access_user:
-            del self.user_list[:]
+        if (
+            self.access_user
+            and self.last_access_user
+            and self.access_user != self.last_access_user
+        ):
+            self.access_user.access_order = self.user_list.first().access_order + 1
+            self.access_user.save()
 
         self.cipher = self.cipher_cls(self.access_user.password)
 

@@ -23,6 +23,7 @@ class User(BaseModel, HttpSessionMixin):
     password = pw.CharField(unique=True)
     enable = pw.BooleanField(default=True)
     speed_limit = pw.IntegerField(default=0)
+    access_order = pw.IntegerField(index=True, default=0)  # NOTE find_access_user order
     # metrics field
     ip_list = IPSetField(default=set())
     tcp_conn_num = pw.IntegerField(default=0, index=True)
@@ -41,9 +42,19 @@ class User(BaseModel, HttpSessionMixin):
 
     @classmethod
     def list_by_port(cls, port) -> List[User]:
-        # TODO 优化算法
-        fields = [cls.user_id, cls.method, cls.password, cls.enable, cls.ip_list]
-        return list(cls.select(*fields).where(cls.port == port))[::-1]
+        fields = [
+            cls.user_id,
+            cls.method,
+            cls.password,
+            cls.enable,
+            cls.ip_list,
+            cls.access_order,
+        ]
+        return (
+            cls.select(*fields)
+            .where(cls.port == port)
+            .order_by(cls.access_order.desc())
+        )
 
     @classmethod
     def create_or_update_from_json(cls, path):
