@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import copy
 import logging
 import time
 from typing import List
@@ -60,11 +59,8 @@ class CipherMan:
         return cls(user_list, access_user=access_user)
 
     @FIND_ACCESS_USER_TIME.time()
-    def find_access_user(self, first_data: bytes) -> User:
-        """
-        通过auth校验来找到正确的user
-        TODO 寻找user的算法
-        """
+    def __find_access_user(self, first_data: bytes) -> User:
+        """通过auth校验来找到正确的user"""
 
         with memoryview(first_data) as d:
             salt = first_data[: self.cipher_cls.SALT_SIZE]
@@ -77,12 +73,11 @@ class CipherMan:
         success_user = None
         cnt = 0
         for user in self.user_list:
-            payload = copy.copy(first_data)
             cipher = self.cipher_cls(user.password)
             try:
                 cnt += 1
-                with memoryview(payload) as d:
-                    cipher.decrypt(payload)
+                with memoryview(first_data) as d:
+                    cipher.decrypt(d)
                 success_user = user
                 break
             except ValueError as e:
@@ -93,6 +88,28 @@ class CipherMan:
             f"用户:{success_user} 一共寻找了{ cnt }个user,共花费{(time.time()-t1)*1000}ms"
         )
         return success_user
+
+    def _init_cipher(self, data):
+        if len(data) + len(self._buffer) < self._first_data_len:
+            self._buffer.extend(data)
+            return
+        else:
+            data = bytes(self._buffer) + data
+            del self._buffer
+        if not self.access_user:
+            self.access_user = self.__find_access_user(data)
+
+        if not self.access_user:
+            raise RuntimeError("没有找到合法的用户")
+        if not self.access_user.enable:
+            raise RuntimeError(f"用户: {self.access_user} enable = False")
+
+        if self.access_user:
+            del self.user_list
+
+        self.cipher = self.cipher_cls(self.access_user.password)
+
+        return data
 
     @ENCRYPT_DATA_TIME.time()
     def encrypt(self, data: bytes):
@@ -105,19 +122,9 @@ class CipherMan:
     @DECRYPT_DATA_TIME.time()
     def decrypt(self, data: bytes):
         if not self.cipher:
-            if len(data) + len(self._buffer) < self._first_data_len:
-                self._buffer.extend(data)
-                return
-            else:
-                data = bytes(self._buffer) + data
-                del self._buffer
-            if not self.access_user:
-                self.access_user = self.find_access_user(data)
-            if not self.access_user:
-                raise RuntimeError("没有找到合法的用户")
-            if not self.access_user.enable:
-                raise RuntimeError(f"用户: {self.access_user} enable = False")
-            self.cipher = self.cipher_cls(self.access_user.password)
+            data = self._init_cipher(data)
+        if not data:
+            return
         self.access_user and self.access_user.record_traffic(len(data), len(data))
         NETWORK_TRANSMIT_BYTES.inc(len(data))
         return self.cipher.decrypt(data)

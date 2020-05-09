@@ -41,7 +41,9 @@ class User(BaseModel, HttpSessionMixin):
 
     @classmethod
     def list_by_port(cls, port) -> List[User]:
-        return cls.select().where(cls.port == port)
+        # TODO 优化算法
+        fields = [cls.user_id, cls.method, cls.password, cls.enable, cls.ip_list]
+        return list(cls.select(*fields).where(cls.port == port))[::-1]
 
     @classmethod
     def create_or_update_from_json(cls, path):
