@@ -62,6 +62,7 @@ class LocalHandler(TimeoutMixin):
         self._remote = None
         self._transport = None
         self._transport_protocol = None
+        self._transport_protocol_human = None
         self._is_closing = False
         self._connect_buffer = bytearray()
 
@@ -70,9 +71,13 @@ class LocalHandler(TimeoutMixin):
         self._transport = transport
         self._peername = peername
         self._transport_protocol = protocol
+        if protocol == flag.TRANSPORT_TCP:
+            self._transport_protocol_human = "tcp"
+        else:
+            self._transport_protocol_human = "udp"
 
     def _init_cipher(self):
-        self.cipher = CipherMan.get_cipher_by_port(self.port)
+        self.cipher = CipherMan.get_cipher_by_port(self.port, self._transport_protocol)
 
     def close(self):
         if self._is_closing:
@@ -98,8 +103,8 @@ class LocalHandler(TimeoutMixin):
                 data, self._peername
             )
 
-    def handle_connection_made(self, transport_type, transport, peername):
-        self._init_transport(transport, peername, transport_type)
+    def handle_connection_made(self, transport_protocol, transport, peername):
+        self._init_transport(transport, peername, transport_protocol)
         self._init_cipher()
         ACTIVE_CONNECTION_COUNT.inc()
         CONNECTION_MADE_COUNT.inc()
@@ -117,7 +122,7 @@ class LocalHandler(TimeoutMixin):
         except Exception as e:
             self.close()
             logging.warning(
-                f"decrypt data error:{e} remote:{self._peername} closing..."
+                f"decrypt data error:{e} remote:{self._peername},type:{self._transport_protocol_human} closing..."
             )
             return
         if not data:
@@ -337,7 +342,9 @@ class RemoteUDP(asyncio.DatagramProtocol, TimeoutMixin):
         self.local = local_hander
         self.peername = None
         self._transport = None
-        self.cipher = CipherMan(access_user=self.local.cipher.access_user)
+        self.cipher = CipherMan(
+            access_user=self.local.cipher.access_user, ts_protocol=flag.TRANSPORT_UDP
+        )
 
     def write(self, data):
         self._transport and not self._transport.is_closing() and self._transport.sendto(

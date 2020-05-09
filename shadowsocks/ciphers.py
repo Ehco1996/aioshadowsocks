@@ -92,6 +92,14 @@ class BaseStreamCipher(BaseCipher, metaclass=abc.ABCMeta):
             self.decrypt_func = self._init_decrypt_func(iv)
         return self.decrypt_func(data)
 
+    def unpack(self, data: bytes) -> bytes:
+        """解包udp"""
+        return self.decrypt(data)
+
+    def pack(self, data: bytes) -> bytes:
+        """压udp包"""
+        return self.encrypt(data)
+
 
 class BaseAEADCipher(BaseCipher):
     INFO = b"ss-subkey"
@@ -194,6 +202,29 @@ class BaseAEADCipher(BaseCipher):
                 del self._buffer[: self._payload_len + self.TAG_SIZE]
                 self._payload_len = None
 
+        return bytes(ret)
+
+    def unpack(self, data: bytes) -> bytes:
+        """解包udp"""
+
+        data_len = len(data)
+        tag_idx = data_len - self.TAG_SIZE
+        salt, payload, tag = (
+            data[: self.SALT_SIZE],
+            data[self.SALT_SIZE : tag_idx],
+            data[tag_idx:],
+        )
+        decrypt_func = self._init_decrypt_func(salt)
+        return decrypt_func(payload, tag)
+
+    def pack(self, data: bytes) -> bytes:
+        """压udp包"""
+        ret = bytearray()
+        salt, encrypt_func = self._init_encrypt_func(None)
+        ret.extend(salt)
+        chunk, tag = encrypt_func(buf)
+        ret.extend(chunk)
+        ret.extend(tag)
         return bytes(ret)
 
 
