@@ -24,9 +24,10 @@ class User(BaseModel, HttpSessionMixin):
     enable = pw.BooleanField(default=True)
     speed_limit = pw.IntegerField(default=0)
     access_order = pw.IntegerField(index=True, default=0)  # NOTE find_access_user order
+    need_sync = pw.BooleanField(default=False, index=True)
     # metrics field
     ip_list = IPSetField(default=set())
-    tcp_conn_num = pw.IntegerField(default=0, index=True)
+    tcp_conn_num = pw.IntegerField(default=0)
     upload_traffic = pw.BigIntegerField(default=0)
     download_traffic = pw.BigIntegerField(default=0)
 
@@ -73,13 +74,14 @@ class User(BaseModel, HttpSessionMixin):
     def flush_metrics_to_remote(cls, url):
         data = []
         need_reset_user_ids = []
-        for user in cls.select(
+        fields = [
             cls.user_id,
             cls.ip_list,
             cls.tcp_conn_num,
             cls.upload_traffic,
             cls.download_traffic,
-        ).where(cls.tcp_conn_num > 0):
+        ]
+        for user in cls.select(*fields).where(cls.need_sync == True):
             data.append(
                 {
                     "user_id": user.user_id,
@@ -91,23 +93,26 @@ class User(BaseModel, HttpSessionMixin):
             )
             need_reset_user_ids.append(user.user_id)
         cls.http_session.request("post", url, json={"data": data})
-        cls.update(ip_list=set(), upload_traffic=0, download_traffic=0).where(
-            cls.user_id << need_reset_user_ids
-        ).execute()
+        cls.update(
+            ip_list=set(), upload_traffic=0, download_traffic=0, need_sync=False
+        ).where(cls.user_id << need_reset_user_ids).execute()
 
     def record_ip(self, peername):
         if not peername:
             return
         self.ip_list.add(peername[0])
-        User.update(ip_list=self.ip_list).where(User.user_id == self.user_id).execute()
+        User.update(ip_list=self.ip_list, need_sync=True).where(
+            User.user_id == self.user_id
+        ).execute()
 
     def record_traffic(self, used_u, used_d):
         User.update(
             download_traffic=User.download_traffic + used_d,
             upload_traffic=User.upload_traffic + used_u,
+            need_sync=True,
         ).where(User.user_id == self.user_id).execute()
 
     def incr_tcp_conn_num(self, num):
-        User.update(tcp_conn_num=User.tcp_conn_num + num).where(
+        User.update(tcp_conn_num=User.tcp_conn_num + num, need_sync=True,).where(
             User.user_id == self.user_id
         ).execute()
