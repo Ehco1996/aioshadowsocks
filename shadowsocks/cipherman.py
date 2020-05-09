@@ -95,7 +95,7 @@ class CipherMan:
             return
         else:
             data = bytes(self._buffer) + data
-            del self._buffer
+            del self._buffer[:]
         if not self.access_user:
             self.access_user = self.__find_access_user(data)
 
@@ -105,7 +105,7 @@ class CipherMan:
             raise RuntimeError(f"用户: {self.access_user} enable = False")
 
         if self.access_user:
-            del self.user_list
+            del self.user_list[:]
 
         self.cipher = self.cipher_cls(self.access_user.password)
 
