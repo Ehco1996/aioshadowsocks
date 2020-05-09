@@ -111,14 +111,13 @@ class LocalHandler(TimeoutMixin):
         self.close()
 
     def handle_data_received(self, data):
-        # TODO data iv / salt long
 
         try:
             data = self.cipher.decrypt(data)
         except Exception as e:
             self.close()
             logging.warning(
-                f"decrypt data error: {e} remote: {self._peername} closing ..."
+                f"decrypt data error:{e} remote:{self._peername} closing..."
             )
             return
         if not data:

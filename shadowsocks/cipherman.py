@@ -40,7 +40,9 @@ class CipherMan:
         self.access_user = access_user
         self.last_access_user = None
         self.cipher = None
+
         self._buffer = bytearray()
+        self._first_data = None
 
         if self.access_user:
             self.method = access_user.method
@@ -61,7 +63,7 @@ class CipherMan:
         return cls(user_list, access_user=access_user)
 
     @FIND_ACCESS_USER_TIME.time()
-    def _find_access_user(self, first_data: bytes) -> User:
+    def _find_access_user(self, first_data: bytes) -> bytes:
         """通过auth校验来找到正确的user"""
 
         with memoryview(first_data) as d:
@@ -72,8 +74,8 @@ class CipherMan:
                 self.bf.add(salt)
 
         t1 = time.time()
-        success_user = None
         cnt = 0
+
         for user in self.user_list:
             if not self.last_access_user:
                 self.last_access_user = user
@@ -81,30 +83,33 @@ class CipherMan:
             try:
                 cnt += 1
                 with memoryview(first_data) as d:
-                    cipher.decrypt(d)
-                success_user = user
+                    self._first_data = cipher.decrypt(d)
+                self.access_user = user
+                self.cipher = cipher
                 break
             except ValueError as e:
                 if e.args[0] != "MAC check failed":
                     raise e
                 del cipher
-        logging.info(
-            f"用户:{success_user} 一共寻找了{ cnt }个user,共花费{(time.time()-t1)*1000}ms"
-        )
-        return success_user
 
-    def _init_cipher(self, data):
+        logging.info(
+            f"用户:{self.access_user} 一共寻找了{ cnt }个user,共花费{(time.time()-t1)*1000}ms"
+        )
+
+    def _init_cipher_and_decrypt_first_data(self, data) -> bytes:
         if len(data) + len(self._buffer) < self._first_data_len:
             self._buffer.extend(data)
             return
         else:
             data = bytes(self._buffer) + data
             del self._buffer[:]
+
         if not self.access_user:
-            self.access_user = self._find_access_user(data)
+            self._find_access_user(data)
 
         if not self.access_user:
             raise RuntimeError("没有找到合法的用户")
+
         if not self.access_user.enable:
             raise RuntimeError(f"用户: {self.access_user} enable = False")
 
@@ -116,27 +121,28 @@ class CipherMan:
             self.access_user.access_order = self.user_list.first().access_order + 1
             self.access_user.save()
 
-        self.cipher = self.cipher_cls(self.access_user.password)
+        return self._first_data
 
-        return data
+    def _record_user_traffic(self, data_len: int):
+        self.access_user and self.access_user.record_traffic(data_len, data_len)
+        NETWORK_TRANSMIT_BYTES.inc(data_len)
 
     @ENCRYPT_DATA_TIME.time()
     def encrypt(self, data: bytes):
         if not self.cipher:
             self.cipher = self.cipher_cls(self.access_user.password)
-        self.access_user and self.access_user.record_traffic(len(data), len(data))
-        NETWORK_TRANSMIT_BYTES.inc(len(data))
+        self._record_user_traffic(len(data))
         return self.cipher.encrypt(data)
 
     @DECRYPT_DATA_TIME.time()
     def decrypt(self, data: bytes):
         if not self.cipher:
-            data = self._init_cipher(data)
-        if not data:
-            return
-        self.access_user and self.access_user.record_traffic(len(data), len(data))
-        NETWORK_TRANSMIT_BYTES.inc(len(data))
-        return self.cipher.decrypt(data)
+            data = self._init_cipher_and_decrypt_first_data(data)
+            self._record_user_traffic(len(data))
+            return data
+        else:
+            self._record_user_traffic(len(data))
+            return self.cipher.decrypt(data)
 
     def incr_user_tcp_num(self, num: int):
         self.access_user and self.access_user.incr_tcp_conn_num(num)
