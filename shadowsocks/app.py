@@ -7,9 +7,15 @@ import signal
 import uvloop
 from aiohttp import web
 from grpclib.server import Server
+from grpclib.events import listen, RecvRequest
 from prometheus_async import aio
 
 from shadowsocks.proxyman import ProxyMan
+from shadowsocks.services import AioShadowsocksServicer
+
+
+async def logging_grpc_request(event: RecvRequest) -> None:
+    logging.info(f"{event.method_name} called!")
 
 
 class App:
@@ -108,11 +114,11 @@ class App:
         self.prepared = True
 
     async def start_grpc_server(self):
-        from shadowsocks.services import AioShadowsocksServicer
 
         self.grpc_server = Server([AioShadowsocksServicer()], loop=self.loop)
+        listen(self.grpc_server, RecvRequest, logging_grpc_request)
         await self.grpc_server.start(self.grpc_host, self.grpc_port)
-        logging.info(f"Start Grpc Server on {self.grpc_host}:{self.grpc_port}")
+        logging.info(f"Start grpc Server on {self.grpc_host}:{self.grpc_port}")
 
     async def start_metrics_server(self):
         app = web.Application()

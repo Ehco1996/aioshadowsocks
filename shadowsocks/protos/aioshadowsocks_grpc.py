@@ -2,43 +2,54 @@
 # source: shadowsocks/protos/aioshadowsocks.proto
 # plugin: grpclib.plugin.main
 import abc
+import typing
 
 import grpclib.const
 import grpclib.client
+
+if typing.TYPE_CHECKING:
+    import grpclib.server
 
 import shadowsocks.protos.aioshadowsocks_pb2
 
 
 class ssBase(abc.ABC):
     @abc.abstractmethod
-    async def CreateUser(self, stream):
+    async def CreateUser(
+        self,
+        stream: "grpclib.server.Stream[shadowsocks.protos.aioshadowsocks_pb2.UserReq, shadowsocks.protos.aioshadowsocks_pb2.User]",
+    ) -> None:
         pass
 
     @abc.abstractmethod
-    async def UpdateUser(self, stream):
+    async def UpdateUser(
+        self,
+        stream: "grpclib.server.Stream[shadowsocks.protos.aioshadowsocks_pb2.UserReq, shadowsocks.protos.aioshadowsocks_pb2.User]",
+    ) -> None:
         pass
 
     @abc.abstractmethod
-    async def GetUser(self, stream):
+    async def GetUser(
+        self,
+        stream: "grpclib.server.Stream[shadowsocks.protos.aioshadowsocks_pb2.UserIdReq, shadowsocks.protos.aioshadowsocks_pb2.User]",
+    ) -> None:
         pass
 
     @abc.abstractmethod
-    async def DeleteUser(self, stream):
+    async def DeleteUser(
+        self,
+        stream: "grpclib.server.Stream[shadowsocks.protos.aioshadowsocks_pb2.UserIdReq, shadowsocks.protos.aioshadowsocks_pb2.Empty]",
+    ) -> None:
         pass
 
     @abc.abstractmethod
-    async def InitUserServer(self, stream):
+    async def HealthCheck(
+        self,
+        stream: "grpclib.server.Stream[shadowsocks.protos.aioshadowsocks_pb2.HealthCheckReq, shadowsocks.protos.aioshadowsocks_pb2.HealthCheckRes]",
+    ) -> None:
         pass
 
-    @abc.abstractmethod
-    async def GetUserServer(self, stream):
-        pass
-
-    @abc.abstractmethod
-    async def StopUserServer(self, stream):
-        pass
-
-    def __mapping__(self):
+    def __mapping__(self) -> typing.Dict[str, grpclib.const.Handler]:
         return {
             "/aioshadowsocks.ss/CreateUser": grpclib.const.Handler(
                 self.CreateUser,
@@ -64,23 +75,11 @@ class ssBase(abc.ABC):
                 shadowsocks.protos.aioshadowsocks_pb2.UserIdReq,
                 shadowsocks.protos.aioshadowsocks_pb2.Empty,
             ),
-            "/aioshadowsocks.ss/InitUserServer": grpclib.const.Handler(
-                self.InitUserServer,
+            "/aioshadowsocks.ss/HealthCheck": grpclib.const.Handler(
+                self.HealthCheck,
                 grpclib.const.Cardinality.UNARY_UNARY,
-                shadowsocks.protos.aioshadowsocks_pb2.UserIdReq,
-                shadowsocks.protos.aioshadowsocks_pb2.UserServer,
-            ),
-            "/aioshadowsocks.ss/GetUserServer": grpclib.const.Handler(
-                self.GetUserServer,
-                grpclib.const.Cardinality.UNARY_UNARY,
-                shadowsocks.protos.aioshadowsocks_pb2.UserIdReq,
-                shadowsocks.protos.aioshadowsocks_pb2.UserServer,
-            ),
-            "/aioshadowsocks.ss/StopUserServer": grpclib.const.Handler(
-                self.StopUserServer,
-                grpclib.const.Cardinality.UNARY_UNARY,
-                shadowsocks.protos.aioshadowsocks_pb2.UserIdReq,
-                shadowsocks.protos.aioshadowsocks_pb2.Empty,
+                shadowsocks.protos.aioshadowsocks_pb2.HealthCheckReq,
+                shadowsocks.protos.aioshadowsocks_pb2.HealthCheckRes,
             ),
         }
 
@@ -111,21 +110,9 @@ class ssStub:
             shadowsocks.protos.aioshadowsocks_pb2.UserIdReq,
             shadowsocks.protos.aioshadowsocks_pb2.Empty,
         )
-        self.InitUserServer = grpclib.client.UnaryUnaryMethod(
+        self.HealthCheck = grpclib.client.UnaryUnaryMethod(
             channel,
-            "/aioshadowsocks.ss/InitUserServer",
-            shadowsocks.protos.aioshadowsocks_pb2.UserIdReq,
-            shadowsocks.protos.aioshadowsocks_pb2.UserServer,
-        )
-        self.GetUserServer = grpclib.client.UnaryUnaryMethod(
-            channel,
-            "/aioshadowsocks.ss/GetUserServer",
-            shadowsocks.protos.aioshadowsocks_pb2.UserIdReq,
-            shadowsocks.protos.aioshadowsocks_pb2.UserServer,
-        )
-        self.StopUserServer = grpclib.client.UnaryUnaryMethod(
-            channel,
-            "/aioshadowsocks.ss/StopUserServer",
-            shadowsocks.protos.aioshadowsocks_pb2.UserIdReq,
-            shadowsocks.protos.aioshadowsocks_pb2.Empty,
+            "/aioshadowsocks.ss/HealthCheck",
+            shadowsocks.protos.aioshadowsocks_pb2.HealthCheckReq,
+            shadowsocks.protos.aioshadowsocks_pb2.HealthCheckRes,
         )
