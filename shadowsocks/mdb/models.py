@@ -42,7 +42,7 @@ class User(BaseModel, HttpSessionMixin):
         return user
 
     @classmethod
-    def list_by_port(cls, port) -> List[User]:
+    def list_by_port(cls, port):
         fields = [
             cls.user_id,
             cls.method,

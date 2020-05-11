@@ -37,12 +37,9 @@ class CipherMan:
     # TODO 流量、链接数限速
 
     def __init__(
-        self,
-        user_list: List[User] = None,
-        access_user: User = None,
-        ts_protocol=flag.TRANSPORT_TCP,
+        self, user_port=None, access_user: User = None, ts_protocol=flag.TRANSPORT_TCP,
     ):
-        self.user_list = user_list
+        self.user_port = user_port
         self.access_user = access_user
         self.ts_protocol = ts_protocol
 
@@ -53,7 +50,9 @@ class CipherMan:
         if self.access_user:
             self.method = access_user.method
         else:
-            self.method = user_list[0].method  # NOTE 所有的user用的加密方式必须是一种
+            self.method = (
+                User.list_by_port(self.user_port).first().method
+            )  # NOTE 所有的user用的加密方式必须是一种
 
         self.cipher_cls = self.SUPPORT_METHODS.get(self.method)
         if self.cipher_cls.AEAD_CIPHER:
@@ -66,12 +65,12 @@ class CipherMan:
 
     @classmethod
     def get_cipher_by_port(cls, port, ts_protocol) -> CipherMan:
-        user_list = User.list_by_port(port)
-        if len(user_list) == 1:
-            access_user = user_list[0]
+        user_query = User.list_by_port(port)
+        if user_query.count() == 1:
+            access_user = user_query.first()
         else:
             access_user = None
-        return cls(user_list, access_user=access_user, ts_protocol=ts_protocol)
+        return cls(port, access_user=access_user, ts_protocol=ts_protocol)
 
     @FIND_ACCESS_USER_TIME.time()
     def _find_access_user(self, first_data: bytes):
@@ -86,8 +85,7 @@ class CipherMan:
 
         t1 = time.time()
         cnt = 0
-
-        for user in self.user_list:
+        for user in User.list_by_port(self.user_port).iterator():
             if not self.last_access_user:
                 self.last_access_user = user
             try:
@@ -124,7 +122,7 @@ class CipherMan:
             and self.last_access_user
             and self.access_user != self.last_access_user
         ):
-            self.access_user.access_order = self.user_list.first().access_order + 1
+            self.access_user.access_order = self.last_access_user.access_order + 1
             self.access_user.save()
 
     def _record_user_traffic(self, data_len: int):
