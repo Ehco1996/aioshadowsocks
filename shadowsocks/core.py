@@ -305,13 +305,20 @@ class RemoteTCP(asyncio.Protocol, TimeoutMixin):
         self._transport = None
         self.cipher = CipherMan(access_user=local_handler.cipher.access_user)
 
+        self._is_closing = True
+
     def write(self, data):
         self._transport and not self._transport.is_closing() and self._transport.write(
             data
         )
 
     def close(self):
+        if self._is_closing:
+            return
+        self._is_closing = True
+
         self._transport and self._transport.close()
+        del self.local
 
     def connection_made(self, transport):
         self._transport = transport
@@ -346,6 +353,7 @@ class RemoteUDP(asyncio.DatagramProtocol, TimeoutMixin):
         self.cipher = CipherMan(
             access_user=self.local.cipher.access_user, ts_protocol=flag.TRANSPORT_UDP
         )
+        self._is_closing = False
 
     def write(self, data):
         self._transport and not self._transport.is_closing() and self._transport.sendto(
@@ -353,7 +361,12 @@ class RemoteUDP(asyncio.DatagramProtocol, TimeoutMixin):
         )
 
     def close(self):
+        if self._is_closing:
+            return
+        self._is_closing = True
+
         self._transport and self._transport.close()
+        del self.local
 
     def connection_made(self, transport):
         self._transport = transport

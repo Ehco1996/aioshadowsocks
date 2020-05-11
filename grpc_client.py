@@ -18,7 +18,7 @@ class Client:
         self.stub = ssStub(self.channel)
 
     async def get_user(self, user_id: int):
-        user = await stub.GetUser(UserIdReq(user_id=1))
+        user = await self.stub.GetUser(UserIdReq(user_id=1))
         print(f"user: {user}")
 
     async def healcheck(self, url: str):
@@ -33,5 +33,9 @@ if __name__ == "__main__":
     loop = asyncio.get_event_loop()
     client = Client(loop)
     url = "https://www.zhihu.com/"
-    loop.run_until_complete(loop.create_task(client.healcheck(url)))
+
+    # health_job  = loop.create_task(client.healcheck(url))
+    get_user_job = loop.create_task(client.get_user(1))
+
+    loop.run_until_complete(get_user_job)
     client.close()
