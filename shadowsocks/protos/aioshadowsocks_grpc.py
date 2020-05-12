@@ -43,6 +43,13 @@ class ssBase(abc.ABC):
         pass
 
     @abc.abstractmethod
+    async def ListUser(
+        self,
+        stream: "grpclib.server.Stream[shadowsocks.protos.aioshadowsocks_pb2.UserReq, shadowsocks.protos.aioshadowsocks_pb2.UserList]",
+    ) -> None:
+        pass
+
+    @abc.abstractmethod
     async def HealthCheck(
         self,
         stream: "grpclib.server.Stream[shadowsocks.protos.aioshadowsocks_pb2.HealthCheckReq, shadowsocks.protos.aioshadowsocks_pb2.HealthCheckRes]",
@@ -74,6 +81,12 @@ class ssBase(abc.ABC):
                 grpclib.const.Cardinality.UNARY_UNARY,
                 shadowsocks.protos.aioshadowsocks_pb2.UserIdReq,
                 shadowsocks.protos.aioshadowsocks_pb2.Empty,
+            ),
+            "/aioshadowsocks.ss/ListUser": grpclib.const.Handler(
+                self.ListUser,
+                grpclib.const.Cardinality.UNARY_UNARY,
+                shadowsocks.protos.aioshadowsocks_pb2.UserReq,
+                shadowsocks.protos.aioshadowsocks_pb2.UserList,
             ),
             "/aioshadowsocks.ss/HealthCheck": grpclib.const.Handler(
                 self.HealthCheck,
@@ -109,6 +122,12 @@ class ssStub:
             "/aioshadowsocks.ss/DeleteUser",
             shadowsocks.protos.aioshadowsocks_pb2.UserIdReq,
             shadowsocks.protos.aioshadowsocks_pb2.Empty,
+        )
+        self.ListUser = grpclib.client.UnaryUnaryMethod(
+            channel,
+            "/aioshadowsocks.ss/ListUser",
+            shadowsocks.protos.aioshadowsocks_pb2.UserReq,
+            shadowsocks.protos.aioshadowsocks_pb2.UserList,
         )
         self.HealthCheck = grpclib.client.UnaryUnaryMethod(
             channel,

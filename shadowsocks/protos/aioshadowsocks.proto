@@ -12,6 +12,7 @@ message UserReq {
   string method = 3;
   string password = 4;
   bool enable = 5;
+  int32 tcp_conn_num = 6;
 }
 
 message HealthCheckReq { string url = 1; }
@@ -38,11 +39,14 @@ message User {
   int64 download_traffic = 12;
 }
 
+message UserList { repeated User data = 1; }
+
 // service
 service ss {
   rpc CreateUser(UserReq) returns (User) {}
   rpc UpdateUser(UserReq) returns (User) {}
   rpc GetUser(UserIdReq) returns (User) {}
   rpc DeleteUser(UserIdReq) returns (Empty) {}
+  rpc ListUser(UserReq) returns (UserList) {}
   rpc HealthCheck(HealthCheckReq) returns (HealthCheckRes) {}
 }

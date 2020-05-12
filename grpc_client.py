@@ -5,6 +5,7 @@ from grpclib.client import Channel
 
 from shadowsocks.protos.aioshadowsocks_pb2 import (
     UserIdReq,
+    UserReq,
     User,
     HealthCheckReq,
     HealthCheckRes,
@@ -21,6 +22,10 @@ class Client:
         user = await self.stub.GetUser(UserIdReq(user_id=1))
         print(f"user: {user}")
 
+    async def list_user(self, tcp_conn_num):
+        res = await self.stub.ListUser(UserReq(tcp_conn_num=tcp_conn_num))
+        print(f"list_user: {res}")
+
     async def healcheck(self, url: str):
         res = await self.stub.HealthCheck(HealthCheckReq(url=url))
         print(f"health: {res}")
@@ -35,7 +40,7 @@ if __name__ == "__main__":
     url = "https://www.zhihu.com/"
 
     # health_job  = loop.create_task(client.healcheck(url))
-    get_user_job = loop.create_task(client.get_user(1))
-
-    loop.run_until_complete(get_user_job)
+    # get_user_job = loop.create_task(client.get_user(1))
+    list_user_job = loop.create_task(client.list_user(0))
+    loop.run_until_complete(list_user_job)
     client.close()

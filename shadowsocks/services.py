@@ -8,6 +8,7 @@ from shadowsocks.protos.aioshadowsocks_pb2 import (
     User,
     UserIdReq,
     UserReq,
+    UserList,
 )
 
 
@@ -47,6 +48,12 @@ class AioShadowsocksServicer(aioshadowsocks_grpc.ssBase):
         user.server.close_server()
         user.delete_instance()
         await stream.send_message(aioshadowsocks_pb2.Empty())
+
+    async def ListUser(self, stream):
+        request = await stream.recv_message()
+        users = m.User.select().where(m.User.tcp_conn_num < request.tcp_conn_num)
+        res = UserList(data=[user.to_dict() for user in users])
+        await stream.send_message(res)
 
     async def HealthCheck(self, stream):
         request = await stream.recv_message()
