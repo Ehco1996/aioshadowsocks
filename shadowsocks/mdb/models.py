@@ -23,7 +23,7 @@ class User(BaseModel, HttpSessionMixin):
     password = pw.CharField(unique=True)
     enable = pw.BooleanField(default=True)
     speed_limit = pw.IntegerField(default=0)
-    access_order = pw.IntegerField(index=True, default=0)  # NOTE find_access_user order
+    access_order = pw.BigIntegerField(index=True, default=0)  # NOTE find_access_user order
     need_sync = pw.BooleanField(default=False, index=True)
     # metrics field
     ip_list = IPSetField(default=set())
@@ -113,6 +113,9 @@ class User(BaseModel, HttpSessionMixin):
         ).where(User.user_id == self.user_id).execute()
 
     def incr_tcp_conn_num(self, num):
+        filters = [User.user_id == self.user_id]
+        if num < 0:
+            filters.append(User.tcp_conn_num > 0)
         User.update(tcp_conn_num=User.tcp_conn_num + num, need_sync=True,).where(
-            User.user_id == self.user_id
+            *filters
         ).execute()

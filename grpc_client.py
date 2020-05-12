@@ -41,6 +41,6 @@ if __name__ == "__main__":
 
     # health_job  = loop.create_task(client.healcheck(url))
     # get_user_job = loop.create_task(client.get_user(1))
-    list_user_job = loop.create_task(client.list_user(0))
+    list_user_job = loop.create_task(client.list_user(1))
     loop.run_until_complete(list_user_job)
     client.close()

@@ -51,7 +51,7 @@ class AioShadowsocksServicer(aioshadowsocks_grpc.ssBase):
 
     async def ListUser(self, stream):
         request = await stream.recv_message()
-        users = m.User.select().where(m.User.tcp_conn_num < request.tcp_conn_num)
+        users = m.User.select().where(m.User.tcp_conn_num >= request.tcp_conn_num)
         res = UserList(data=[user.to_dict() for user in users])
         await stream.send_message(res)
 
