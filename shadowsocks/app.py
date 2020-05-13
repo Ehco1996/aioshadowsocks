@@ -4,12 +4,15 @@ import logging
 import os
 import signal
 
+import sentry_sdk
 import uvloop
 from aiohttp import web
+from grpclib.events import RecvRequest, listen
 from grpclib.server import Server
-from grpclib.events import listen, RecvRequest
 from prometheus_async import aio
+from sentry_sdk.integrations.aiohttp import AioHttpIntegration
 
+from shadowsocks.mdb import BaseModel, models
 from shadowsocks.proxyman import ProxyMan
 from shadowsocks.services import AioShadowsocksServicer
 
@@ -79,29 +82,17 @@ class App:
         )
 
     def _init_memory_db(self):
-        from shadowsocks.mdb import BaseModel, models
 
         for _, model in inspect.getmembers(models, inspect.isclass):
             if issubclass(model, BaseModel) and model != BaseModel:
                 model.create_table()
                 logging.info(f"正在创建{model}内存数据库")
 
-    # def _init_sentry(self):
-    # TODO 升级到最新的sentry-sdk
-    # def sentry_exception_handler(loop, context):
-    #     try:
-    #         raise context["exception"]
-    #     except TimeoutError:
-    #         logging.error(f"socket timeout msg: {context['message']}")
-    #     except Exception:
-    #         logging.error(f"unhandled error msg: {context['message']}")
-    #         self.sentry_client.captureException(**context)
-
-    # if not self.use_sentry:
-    #     return
-    # self.sentry_client = raven.Client(self.sentry_dsn, transport=AioHttpTransport)
-    # self.loop.set_exception_handler(sentry_exception_handler)
-    # logging.info("Init Sentry Client...")
+    def _init_sentry(self):
+        if not self.use_sentry:
+            return
+        sentry_sdk.init(dsn=self.sentry_dsn, integrations=[AioHttpIntegration()])
+        logging.info("Init Sentry Client...")
 
     def _prepare(self):
         if self.prepared:
@@ -109,7 +100,7 @@ class App:
         self._init_config()
         self._init_logger()
         self._init_memory_db()
-        # self._init_sentry()
+        self._init_sentry()
         self.loop.add_signal_handler(signal.SIGTERM, self.shutdown)
         self.prepared = True
 

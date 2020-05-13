@@ -23,7 +23,9 @@ class User(BaseModel, HttpSessionMixin):
     password = pw.CharField(unique=True)
     enable = pw.BooleanField(default=True)
     speed_limit = pw.IntegerField(default=0)
-    access_order = pw.BigIntegerField(index=True, default=0)  # NOTE find_access_user order
+    access_order = pw.BigIntegerField(
+        index=True, default=0
+    )  # NOTE find_access_user order
     need_sync = pw.BooleanField(default=False, index=True)
     # metrics field
     ip_list = IPSetField(default=set())
