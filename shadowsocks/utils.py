@@ -1,10 +1,12 @@
-import re
 import logging
+import re
 import socket
 import struct
+import time
 from functools import lru_cache
 
 import dns.resolver
+from bloom_filter import BloomFilter
 
 from shadowsocks import protocol_flag as flag
 
@@ -88,3 +90,22 @@ def parse_header(data):
         logging.warning(f"unknown atype: {atype}")
 
     return atype, dst_addr, dst_port, header_length
+
+
+class AutoResetBloomFilter:
+    RESET_TIME = 60 * 60  # NOTE 每小时重置一次
+
+    def __init__(self):
+        self.bf = BloomFilter()
+        self.last_reset_time = int(time.time())
+
+    def add(self, v):
+        now = int(time.time())
+        if now - self.last_reset_time > self.RESET_TIME:
+            logging.info("bloom filter reset")
+            self.bf = BloomFilter()
+            self.last_reset_time = now
+        self.bf.add(v)
+
+    def __contains__(self, key):
+        return key in self.bf

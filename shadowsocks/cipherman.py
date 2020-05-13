@@ -3,9 +3,7 @@ from __future__ import annotations
 import logging
 import time
 from typing import List
-
-from bloom_filter import BloomFilter
-
+from shadowsocks import protocol_flag as flag
 from shadowsocks.ciphers import (
     AES128GCM,
     AES256CFB,
@@ -13,7 +11,6 @@ from shadowsocks.ciphers import (
     CHACHA20IETFPOLY1305,
     NONE,
 )
-from shadowsocks import protocol_flag as flag
 from shadowsocks.mdb.models import User
 from shadowsocks.metrics import (
     DECRYPT_DATA_TIME,
@@ -21,6 +18,7 @@ from shadowsocks.metrics import (
     FIND_ACCESS_USER_TIME,
     NETWORK_TRANSMIT_BYTES,
 )
+from shadowsocks.utils import AutoResetBloomFilter
 
 
 class CipherMan:
@@ -32,7 +30,7 @@ class CipherMan:
         "aes-256-gcm": AES256GCM,
         "chacha20-ietf-poly1305": CHACHA20IETFPOLY1305,
     }
-    bf = BloomFilter()
+    bf = AutoResetBloomFilter()
 
     # TODO 流量、链接数限速
 
