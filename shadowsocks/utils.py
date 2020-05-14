@@ -93,7 +93,7 @@ def parse_header(data):
 
 
 class AutoResetBloomFilter:
-    RESET_TIME = 60 * 60 * 5  # NOTE 每5小时重置一次
+    RESET_TIME = 60 * 60 * 10  # NOTE 每10小时重置一次
 
     def __init__(self):
         self.bf = BloomFilter()
