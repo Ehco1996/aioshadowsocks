@@ -143,10 +143,10 @@ class App:
         try:
             self.loop.run_forever()
         except KeyboardInterrupt:
-            logging.info("正在关闭所有ss server")
             self.shutdown()
 
     def shutdown(self):
+        logging.info("正在关闭所有ss server")
         self.proxyman.close_server()
         if self.use_grpc:
             self.grpc_server.close()
@@ -154,6 +154,4 @@ class App:
         if self.metrics_port:
             self.loop.create_task(self.metrics_server.stop())
             logging.info(f"metrics server closed!")
-        pending = asyncio.all_tasks(self.loop)
-        self.loop.run_until_complete(asyncio.gather(*pending))
         self.loop.stop()
