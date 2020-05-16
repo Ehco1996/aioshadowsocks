@@ -14,7 +14,7 @@ hyperframe==5.2.0
 idna==2.9
 multidict==4.7.5
 pathspec==0.8.0
-peewee==3.13.2
+peewee==3.13.3
 prometheus-async==19.2.0
 prometheus-client==0.7.1
 pycryptodome==3.9.7
