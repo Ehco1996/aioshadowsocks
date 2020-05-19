@@ -28,11 +28,12 @@ class App:
             uvloop.install()
 
         self.loop = asyncio.get_event_loop()
-        self.prepared = False
-        self.proxyman = ProxyMan()
+        self._prepare()
+        self.proxyman = ProxyMan(self.listen_host)
 
     def _init_config(self):
         self.config = {
+            "LISTEN_HOST": os.getenv("SS_LISTEN_HOST", "0.0.0.0"),
             "GRPC_HOST": os.getenv("SS_GRPC_HOST", "127.0.0.1"),
             "GRPC_PORT": os.getenv("SS_GRPC_PORT", "5000"),
             "SENTRY_DSN": os.getenv("SS_SENTRY_DSN"),
@@ -50,6 +51,7 @@ class App:
         self.log_level = self.config["LOG_LEVEL"]
         self.sync_time = self.config["SYNC_TIME"]
         self.sentry_dsn = self.config["SENTRY_DSN"]
+        self.listen_host = self.config["LISTEN_HOST"]
         self.api_endpoint = self.config["API_ENDPOINT"]
         self.timeout_limit = self.config["TIME_OUT_LIMIT"]
         self.stream_dns_server = self.config["STREAM_DNS_SERVER"]
@@ -95,14 +97,11 @@ class App:
         logging.info("Init Sentry Client...")
 
     def _prepare(self):
-        if self.prepared:
-            return
         self._init_config()
         self._init_logger()
         self._init_memory_db()
         self._init_sentry()
         self.loop.add_signal_handler(signal.SIGTERM, self.shutdown)
-        self.prepared = True
 
     async def start_grpc_server(self):
 
@@ -123,7 +122,6 @@ class App:
         )
 
     def run(self):
-        self._prepare()
 
         if self.use_json:
             self.loop.create_task(self.proxyman.start_ss_json_server())

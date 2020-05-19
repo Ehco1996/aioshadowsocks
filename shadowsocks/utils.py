@@ -5,13 +5,9 @@ import struct
 import time
 from functools import lru_cache
 
-import dns.resolver
 from bloom_filter import BloomFilter
 
 from shadowsocks import protocol_flag as flag
-
-STREAM_HOST_PATTERN = re.compile(".*(netflix|nflx|hulu|hbo).*")
-resolver = dns.resolver.Resolver()
 
 
 def is_stream_domain(domain):
@@ -35,21 +31,6 @@ def logging_cahce_info():
 @logging_cahce_info()
 @lru_cache(2 ** 8)
 def get_ip_from_domain(domain):
-    from shadowsocks import current_app
-
-    # TODO 修一下这里
-    if current_app.stream_dns_server and is_stream_domain(domain):
-        # use dnspython to query extra dns nameservers
-        resolver.nameservers = [current_app.stream_dns_server]
-        try:
-            res = resolver.query(domain, "A")
-            logging.info(f"hit stream DNS: {domain} res: {res[0].to_text()}")
-            return res[0].to_text()
-        except Exception:
-            logging.warning(
-                f"Failed to query DNS: {domain} now dns server:{resolver.nameservers}"
-            )
-            return domain
     try:
         return socket.gethostbyname(domain.encode())
     except Exception:

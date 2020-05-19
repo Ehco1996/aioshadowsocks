@@ -14,14 +14,13 @@ class ProxyMan:
     app -> proxyman -> core ->cipherman/model
     """
 
-    HOST = "0.0.0.0"  # TODO 这里变成可以配置的
     AEAD_METHOD_LIST = [
         "chacha20-ietf-poly1305",
         "aes-128-gcm",
         "aes-256-gcm",
     ]
 
-    def __init__(self):
+    def __init__(self, listen_host):
         self.loop = asyncio.get_event_loop()
 
         # {"port":{"tcp":tcp_server,"udp":udp_server}}
@@ -29,6 +28,7 @@ class ProxyMan:
 
         self.api_endpoint = None
         self.sync_time = None
+        self.listen_host = listen_host
 
     def get_server_by_port(self, port):
         return self.__running_servers__.get(port)
@@ -67,18 +67,18 @@ class ProxyMan:
             return
 
         tcp_server = await self.loop.create_server(
-            LocalTCP(user.port), self.HOST, user.port
+            LocalTCP(user.port), self.listen_host, user.port
         )
         udp_server, _ = await self.loop.create_datagram_endpoint(
-            LocalUDP(user.port), (self.HOST, user.port)
+            LocalUDP(user.port), (self.listen_host, user.port)
         )
         self.__running_servers__[user.port] = {
             "tcp": tcp_server,
             "udp": udp_server,
         }
         logging.info(
-            "user:{} method:{} password:{} port:{} 已启动".format(
-                user, user.method, user.password, user.port
+            "user:{} method:{} password:{} {}:{} 已启动".format(
+                user, user.method, user.password, self.listen_host, user.port
             )
         )
 
