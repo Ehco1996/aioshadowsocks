@@ -74,19 +74,23 @@ def parse_header(data):
 
 
 class AutoResetBloomFilter:
-    RESET_TIME = 60 * 60 * 10  # NOTE 每10小时重置一次
+
+    MAX_ELEMENTS = 10 ** 6
+    ERROR_RATE = 10 ** -6
+
+    def new_bf(self):
+        self.size = self.MAX_ELEMENTS
+        return BloomFilter(max_elements=self.MAX_ELEMENTS, error_rate=self.ERROR_RATE)
 
     def __init__(self):
-        self.bf = BloomFilter()
-        self.last_reset_time = int(time.time())
+        self.bf = self.new_bf()
 
     def add(self, v):
-        now = int(time.time())
-        if now - self.last_reset_time > self.RESET_TIME:
-            logging.info("bloom filter reset")
-            self.bf = BloomFilter()
-            self.last_reset_time = now
+        if self.size <= 0:
+            logging.warning("bloom filter reset")
+            self.bf = self.new_bf()
         self.bf.add(v)
+        self.size -= 1
 
     def __contains__(self, key):
         return key in self.bf
