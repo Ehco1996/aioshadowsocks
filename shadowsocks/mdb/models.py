@@ -8,7 +8,7 @@ from typing import List
 
 import peewee as pw
 
-from shadowsocks.mdb import BaseModel, HttpSessionMixin, IPSetField
+from shadowsocks.mdb import BaseModel, HttpSessionMixin, IPSetField, db
 from shadowsocks.ratelimit import TcpConnRateLimit, TrafficRateLimit
 
 
@@ -95,10 +95,12 @@ class User(BaseModel, HttpSessionMixin):
             )
             need_reset_user_ids.append(user.user_id)
         cls.http_session.request("post", url, json={"data": data})
-        cls.update(
-            ip_list=set(), upload_traffic=0, download_traffic=0, need_sync=False
-        ).where(cls.user_id << need_reset_user_ids).execute()
+        with db.atomic():
+            cls.update(
+                ip_list=set(), upload_traffic=0, download_traffic=0, need_sync=False
+            ).where(cls.user_id << need_reset_user_ids).execute()
 
+    @db.atomic()
     def record_ip(self, peername):
         if not peername:
             return
@@ -107,6 +109,7 @@ class User(BaseModel, HttpSessionMixin):
             User.user_id == self.user_id
         ).execute()
 
+    @db.atomic()
     def record_traffic(self, used_u, used_d):
         User.update(
             download_traffic=User.download_traffic + used_d,
@@ -114,6 +117,7 @@ class User(BaseModel, HttpSessionMixin):
             need_sync=True,
         ).where(User.user_id == self.user_id).execute()
 
+    @db.atomic()
     def incr_tcp_conn_num(self, num):
         filters = [User.user_id == self.user_id]
         if num < 0:
