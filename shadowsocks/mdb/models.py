@@ -83,7 +83,7 @@ class User(BaseModel, HttpSessionMixin):
             cls.upload_traffic,
             cls.download_traffic,
         ]
-        with db.atomic():
+        with db.atomic("IMMEDIATE"):
             for user in cls.select(*fields).where(cls.need_sync == True):
                 data.append(
                     {
@@ -109,7 +109,7 @@ class User(BaseModel, HttpSessionMixin):
             User.user_id == self.user_id
         ).execute()
 
-    @db.atomic()
+    @db.atomic("IMMEDIATE")
     def record_traffic(self, used_u, used_d):
         User.update(
             download_traffic=User.download_traffic + used_d,
