@@ -100,7 +100,7 @@ class User(BaseModel, HttpSessionMixin):
             ).where(cls.user_id << need_reset_user_ids).execute()
         cls.http_session.request("post", url, json={"data": data})
 
-    @db.atomic()
+    @db.atomic("IMMEDIATE")
     def record_ip(self, peername):
         if not peername:
             return
@@ -117,11 +117,8 @@ class User(BaseModel, HttpSessionMixin):
             need_sync=True,
         ).where(User.user_id == self.user_id).execute()
 
-    @db.atomic()
+    @db.atomic("IMMEDIATE")
     def incr_tcp_conn_num(self, num):
-        filters = [User.user_id == self.user_id]
-        if num < 0:
-            filters.append(User.tcp_conn_num > 0)
         User.update(tcp_conn_num=User.tcp_conn_num + num, need_sync=True,).where(
-            *filters
+            User.user_id == self.user_id
         ).execute()
