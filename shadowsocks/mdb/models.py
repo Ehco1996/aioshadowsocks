@@ -83,7 +83,7 @@ class User(BaseModel, HttpSessionMixin):
             cls.upload_traffic,
             cls.download_traffic,
         ]
-        with db.atomic("IMMEDIATE"):
+        with db.atomic("EXCLUSIVE"):
             for user in cls.select(*fields).where(cls.need_sync == True):
                 data.append(
                     {
@@ -100,7 +100,7 @@ class User(BaseModel, HttpSessionMixin):
             ).where(cls.user_id << need_reset_user_ids).execute()
         cls.http_session.request("post", url, json={"data": data})
 
-    @db.atomic("IMMEDIATE")
+    @db.atomic("EXCLUSIVE")
     def record_ip(self, peername):
         if not peername:
             return
@@ -109,7 +109,7 @@ class User(BaseModel, HttpSessionMixin):
             User.user_id == self.user_id
         ).execute()
 
-    @db.atomic("IMMEDIATE")
+    @db.atomic("EXCLUSIVE")
     def record_traffic(self, used_u, used_d):
         User.update(
             download_traffic=User.download_traffic + used_d,
@@ -117,7 +117,7 @@ class User(BaseModel, HttpSessionMixin):
             need_sync=True,
         ).where(User.user_id == self.user_id).execute()
 
-    @db.atomic("IMMEDIATE")
+    @db.atomic("EXCLUSIVE")
     def incr_tcp_conn_num(self, num):
         User.update(tcp_conn_num=User.tcp_conn_num + num, need_sync=True,).where(
             User.user_id == self.user_id
