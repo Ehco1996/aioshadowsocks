@@ -34,6 +34,7 @@ class User(BaseModel, HttpSessionMixin):
     download_traffic = pw.BigIntegerField(default=0)
 
     @classmethod
+    @db.atomic("EXCLUSIVE")
     def _create_or_update_user_from_data(cls, data):
         user_id = data.pop("user_id")
         user, created = cls.get_or_create(user_id=user_id, defaults=data)
