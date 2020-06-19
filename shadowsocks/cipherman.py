@@ -111,6 +111,8 @@ class CipherMan:
 
         if not self.access_user:
             raise RuntimeError("没有找到合法的用户")
+        else:
+            self.incr_user_tcp_num(1)
 
         if not self.access_user.enable:
             raise RuntimeError(f"用户: {self.access_user} enable = False")
@@ -161,6 +163,10 @@ class CipherMan:
             return self.cipher_cls(self.access_user.password).unpack(data)
 
     def incr_user_tcp_num(self, num: int):
+        if self.access_user:
+            logging.info(
+                f"{id(self)},user_id:{self.access_user.user_id},num:{num},ts:{self.ts_protocol}"
+            )
         self.access_user and self.access_user.incr_tcp_conn_num(num)
 
     def record_user_ip(self, peername):

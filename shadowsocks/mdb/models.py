@@ -120,6 +120,6 @@ class User(BaseModel, HttpSessionMixin):
 
     @db.atomic("EXCLUSIVE")
     def incr_tcp_conn_num(self, num):
-        User.update(tcp_conn_num=User.tcp_conn_num + num, need_sync=True,).where(
+        User.update(tcp_conn_num=User.tcp_conn_num + num, need_sync=True).where(
             User.user_id == self.user_id
         ).execute()

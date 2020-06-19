@@ -162,7 +162,6 @@ class LocalHandler(TimeoutMixin):
             tcp_coro = self.loop.create_connection(
                 lambda: RemoteTCP(dst_addr, dst_port, payload, self), dst_addr, dst_port
             )
-
             try:
                 _, remote_tcp = await tcp_coro
             except (IOError, OSError) as e:
@@ -178,7 +177,6 @@ class LocalHandler(TimeoutMixin):
                 self._stage = self.STAGE_STREAM
                 self._remote.write(self._connect_buffer)
                 logging.debug(f"connection ok buffer lens：{len(self._connect_buffer)}")
-                self.cipher.incr_user_tcp_num(1)
                 self.cipher.record_user_ip(self._peername)
 
         elif self._transport_protocol == flag.TRANSPORT_UDP:
