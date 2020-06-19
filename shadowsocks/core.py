@@ -82,6 +82,7 @@ class LocalHandler(TimeoutMixin):
     def close(self):
         if self._is_closing:
             return
+        self._stage = self.STAGE_DESTROY
         self._is_closing = True
 
         if self._transport_protocol == flag.TRANSPORT_TCP:
@@ -90,7 +91,6 @@ class LocalHandler(TimeoutMixin):
             self.cipher and self.cipher.incr_user_tcp_num(-1)
         elif self._transport_protocol == flag.TRANSPORT_UDP:
             pass
-        self._stage = self.STAGE_DESTROY
         ACTIVE_CONNECTION_COUNT.inc(-1)
 
     def write(self, data):
@@ -143,6 +143,8 @@ class LocalHandler(TimeoutMixin):
             logging.warning(f"unknown stage:{self._stage}")
 
     async def _handle_stage_init(self, data):
+        if self._transport_protocol == flag.TRANSPORT_TCP:
+            self._stage = self.STAGE_CONNECT
         addr_type, dst_addr, dst_port, header_length = parse_header(data)
         if not all([addr_type, dst_addr, dst_port, header_length]):
             logging.warning(f"parse error addr_type: {addr_type} port: {self.port}")
