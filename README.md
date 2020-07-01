@@ -4,6 +4,15 @@
 
 ![Publish Docker](https://github.com/Ehco1996/aioshadowsocks/workflows/Publish%20Docker/badge.svg?branch=master)
 
+## 视频安装教程
+
+* 面板视频安装教程: [地址](https://youtu.be/BRHcdGeufvY)
+
+* 后端对接视频教程: [地址](https://youtu.be/QNbnya1HHU0)
+
+* 隧道对接视频教程: [地址](https://youtu.be/R4U0NZaMUeY)
+
+
 ## 为什么要重写shadowsocks
 
 主要想通过这个项目的推进来深入了解 `asyncio` 
