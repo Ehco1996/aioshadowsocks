@@ -35,8 +35,8 @@ class ProxyMan:
 
     async def sync_from_remote(self):
         try:
-            User.create_or_update_from_remote(self.api_endpoint)
             User.flush_metrics_to_remote(self.api_endpoint)
+            User.create_or_update_from_remote(self.api_endpoint)
         except Exception as e:
             logging.warning(f"sync user error {e}")
 

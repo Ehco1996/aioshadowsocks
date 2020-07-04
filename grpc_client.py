@@ -20,7 +20,7 @@ class Client:
 
     async def get_user(self, user_id: int):
         user = await self.stub.GetUser(UserIdReq(user_id=1))
-        print(f"user: {user} {user.tcp_conn_num}")
+        print(f"user: {user}")
 
     async def list_user(self, tcp_conn_num):
         res = await self.stub.ListUser(UserReq(tcp_conn_num=tcp_conn_num))
@@ -39,8 +39,8 @@ if __name__ == "__main__":
     client = Client(loop)
     url = "https://www.zhihu.com/"
 
-    # health_job  = loop.create_task(client.healcheck(url))
-    # get_user_job = loop.create_task(client.get_user(1))
-    list_user_job = loop.create_task(client.list_user(-1))
-    loop.run_until_complete(list_user_job)
+    # job  = loop.create_task(client.healcheck(url))
+    job = loop.create_task(client.get_user(1))
+    # job = loop.create_task(client.list_user(0))
+    loop.run_until_complete(job)
     client.close()

@@ -1,15 +1,11 @@
 from __future__ import annotations
 
-import asyncio
 import json
 import logging
-from collections import defaultdict
-from typing import List
 
 import peewee as pw
 
 from shadowsocks.mdb import BaseModel, HttpSessionMixin, IPSetField, db
-from shadowsocks.ratelimit import TcpConnRateLimit, TrafficRateLimit
 
 
 class User(BaseModel, HttpSessionMixin):
