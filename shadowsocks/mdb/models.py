@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
+import asyncio
 
 import peewee as pw
 
@@ -70,9 +71,9 @@ class User(BaseModel, HttpSessionMixin):
             cls._create_or_update_user_from_data(user_data)
 
     @classmethod
+    @db.atomic("EXCLUSIVE")
     def flush_metrics_to_remote(cls, url):
         data = []
-        need_reset_user_ids = []
         fields = [
             cls.user_id,
             cls.ip_list,
@@ -80,22 +81,21 @@ class User(BaseModel, HttpSessionMixin):
             cls.upload_traffic,
             cls.download_traffic,
         ]
-        with db.atomic("EXCLUSIVE"):
-            for user in cls.select(*fields).where(cls.need_sync == True):
-                data.append(
-                    {
-                        "user_id": user.user_id,
-                        "ip_list": list(user.ip_list),
-                        "tcp_conn_num": user.tcp_conn_num,
-                        "upload_traffic": user.upload_traffic,
-                        "download_traffic": user.download_traffic,
-                    }
-                )
-                need_reset_user_ids.append(user.user_id)
-            cls.update(
-                ip_list=set(), upload_traffic=0, download_traffic=0, need_sync=False
-            ).where(cls.user_id << need_reset_user_ids).execute()
-        cls.http_session.request("post", url, json={"data": data})
+        users = cls.select(*fields).where(cls.need_sync == True)
+        cls.update(
+            ip_list=set(), upload_traffic=0, download_traffic=0, need_sync=False
+        ).where(cls.need_sync == True).execute()
+        for user in users:
+            data.append(
+                {
+                    "user_id": user.user_id,
+                    "ip_list": list(user.ip_list),
+                    "tcp_conn_num": user.tcp_conn_num,
+                    "upload_traffic": user.upload_traffic,
+                    "download_traffic": user.download_traffic,
+                }
+            )
+        asyncio.create_task(cls.http_session.request("post", url, json={"data": data}))
 
     @db.atomic("EXCLUSIVE")
     def record_ip(self, peername):

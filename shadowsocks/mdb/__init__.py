@@ -1,3 +1,4 @@
+import asyncio
 import json
 import logging
 from typing import Set
@@ -63,11 +64,15 @@ class HttpSession:
 
     def request(self, method, url, **kw):
         req_method = getattr(self.session, method)
+        return req_method(url, **kw)
         try:
             logging.debug(f"url: {url},method: {method},kw: {kw}")
             return req_method(url, **kw)
         except (requests.exceptions.HTTPError, requests.exceptions.MissingSchema) as e:
             logging.warning(f"请求错误 url:{url} error: {e}")
+
+    async def async_request(self, method, url, **kw):
+        self.request(method, url, **kw)
 
 
 class HttpSessionMixin:
