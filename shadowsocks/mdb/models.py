@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import json
 import logging
-import asyncio
 
 import peewee as pw
 
@@ -71,9 +70,7 @@ class User(BaseModel, HttpSessionMixin):
             cls._create_or_update_user_from_data(user_data)
 
     @classmethod
-    @db.atomic("EXCLUSIVE")
     def flush_metrics_to_remote(cls, url):
-        data = []
         fields = [
             cls.user_id,
             cls.ip_list,
@@ -81,10 +78,13 @@ class User(BaseModel, HttpSessionMixin):
             cls.upload_traffic,
             cls.download_traffic,
         ]
-        users = cls.select(*fields).where(cls.need_sync == True)
-        cls.update(
-            ip_list=set(), upload_traffic=0, download_traffic=0, need_sync=False
-        ).where(cls.need_sync == True).execute()
+        with db.atomic("EXCLUSIVE"):
+            users = list(cls.select(*fields).where(cls.need_sync == True))
+            cls.update(
+                ip_list=set(), upload_traffic=0, download_traffic=0, need_sync=False
+            ).where(cls.need_sync == True).execute()
+
+        data = []
         for user in users:
             data.append(
                 {
