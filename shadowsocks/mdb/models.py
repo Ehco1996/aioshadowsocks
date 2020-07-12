@@ -95,7 +95,7 @@ class User(BaseModel, HttpSessionMixin):
                     "download_traffic": user.download_traffic,
                 }
             )
-        asyncio.create_task(cls.http_session.request("post", url, json={"data": data}))
+        cls.http_session.request("post", url, json={"data": data})
 
     @db.atomic("EXCLUSIVE")
     def record_ip(self, peername):
