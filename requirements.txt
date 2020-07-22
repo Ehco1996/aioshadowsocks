@@ -12,7 +12,7 @@ h2==3.2.0
 hpack==3.0.0
 hyperframe==5.2.0
 idna==2.10
-multidict==4.7.5
+multidict==4.7.6
 pathspec==0.8.0
 peewee==3.13.3
 prometheus-async==19.2.0
