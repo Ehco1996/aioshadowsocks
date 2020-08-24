@@ -22,8 +22,8 @@ class TimeoutMixin:
         raise NotImplementedError
 
     def _timeout(self):
-        self.close()
         self._need_clean = True
+        self.close()
 
     def keep_alive(self):
         self.timeout_handle.cancel()
