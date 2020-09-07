@@ -129,6 +129,8 @@ class LocalHandler(TimeoutMixin):
         if not data:
             return
 
+        self.keep_alive()
+
         if self._stage == self.STAGE_INIT:
             asyncio.create_task(self._handle_stage_init(data))
         elif self._stage == self.STAGE_CONNECT:
@@ -202,7 +204,6 @@ class LocalHandler(TimeoutMixin):
         self._connect_buffer.extend(data)
 
     def _handle_stage_stream(self, data):
-        self.keep_alive()
         self._remote.write(data)
         logging.debug(f"relay data length {len(data)}")
 
@@ -305,7 +306,7 @@ class RemoteTCP(asyncio.Protocol, TimeoutMixin):
         self._transport = None
         self.cipher = CipherMan(access_user=local_handler.cipher.access_user)
 
-        self._is_closing = True
+        self._is_closing = False
 
     def write(self, data):
         self._transport and not self._transport.is_closing() and self._transport.write(
