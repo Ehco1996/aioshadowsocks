@@ -10,7 +10,7 @@ from shadowsocks.utils import parse_header
 
 
 class TimeoutMixin:
-    TIMEOUT = 60
+    TIMEOUT = 10
 
     def __init__(self):
         self.loop = asyncio.get_running_loop()
