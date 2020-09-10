@@ -126,6 +126,7 @@ class CipherMan:
             self.access_user.save()
 
     def _record_user_traffic(self, ut_data_len: int, dt_data_len: int):
+        # TODO 写db的地方挪到队列里去做
         self.access_user and self.access_user.record_traffic(ut_data_len, dt_data_len)
         NETWORK_TRANSMIT_BYTES.inc(ut_data_len + dt_data_len)
 

@@ -9,32 +9,7 @@ from shadowsocks.metrics import ACTIVE_CONNECTION_COUNT, CONNECTION_MADE_COUNT
 from shadowsocks.utils import parse_header
 
 
-class TimeoutMixin:
-    TIMEOUT = 20
-
-    def __init__(self):
-        self.loop = asyncio.get_running_loop()
-        self.timeout_handle = self.loop.call_later(self.TIMEOUT, self._timeout)
-
-        self._need_clean = False
-
-    def close(self):
-        raise NotImplementedError
-
-    def _timeout(self):
-        self._need_clean = True
-        self.close()
-
-    def keep_alive(self):
-        self.timeout_handle.cancel()
-        self.timeout_handle = self.loop.call_later(self.TIMEOUT, self._timeout)
-
-    @property
-    def need_clean(self):
-        return self._need_clean
-
-
-class LocalHandler(TimeoutMixin):
+class LocalHandler:
     """
     事件循环一共处理五个状态
 
@@ -88,6 +63,7 @@ class LocalHandler(TimeoutMixin):
         if self._transport_protocol == flag.TRANSPORT_TCP:
             self._transport and self._transport.close()
             self.cipher and self.cipher.incr_user_tcp_num(-1)
+        self._remote and self._remote.close()
         ACTIVE_CONNECTION_COUNT.inc(-1)
 
     def write(self, data):
@@ -122,8 +98,6 @@ class LocalHandler(TimeoutMixin):
         if not data:
             return
 
-        self.keep_alive()
-
         if self._stage == self.STAGE_INIT:
             asyncio.create_task(self._handle_stage_init(data))
         elif self._stage == self.STAGE_CONNECT:
@@ -149,11 +123,12 @@ class LocalHandler(TimeoutMixin):
             f"HEADER: {addr_type} - {dst_addr} - {dst_port} - {self._transport_protocol}"
         )
 
+        loop = asyncio.get_running_loop()
         if self._transport_protocol == flag.TRANSPORT_TCP:
             self._stage = self.STAGE_CONNECT
             self._handle_stage_connect(payload)
             try:
-                _, remote_tcp = await self.loop.create_connection(
+                _, remote_tcp = await loop.create_connection(
                     lambda: RemoteTCP(self), dst_addr, dst_port
                 )
             except Exception as e:
@@ -165,7 +140,7 @@ class LocalHandler(TimeoutMixin):
                 self.cipher.record_user_ip(self._peername)
         else:
             try:
-                await self.loop.create_datagram_endpoint(
+                await self.create_datagram_endpoint(
                     lambda: RemoteUDP(dst_addr, dst_port, payload, self),
                     remote_addr=(dst_addr, dst_port),
                 )
@@ -225,6 +200,51 @@ class LocalTCP(asyncio.Protocol):
         self._handler.handle_connection_lost(exc)
 
 
+class RemoteTCP(asyncio.Protocol):
+    def __init__(self, local_handler):
+        super().__init__()
+
+        self.local = local_handler
+        self.peername = None
+        self._transport = None
+        self.cipher = CipherMan(access_user=local_handler.cipher.access_user)
+        self.ready = False
+
+        self._is_closing = False
+
+    def write(self, data):
+        self._transport.write(data)
+
+    def close(self):
+        if self._is_closing:
+            return
+        self._is_closing = True
+
+        self._transport and self._transport.close()
+        self.local.close()
+
+    def connection_made(self, transport: asyncio.Transport):
+        self._transport = transport
+        self.peername = self._transport.get_extra_info("peername")
+        transport.write(self.local._connect_buffer)
+        self.ready = True
+
+    def data_received(self, data):
+        self.local.write(self.cipher.encrypt(data))
+
+    def pause_reading(self):
+        self.local._transport.pause_reading()
+
+    def resume_reading(self):
+        self.local._transport.resume_reading()
+
+    def eof_received(self):
+        self.close()
+
+    def connection_lost(self, exc):
+        self.close()
+
+
 class LocalUDP(asyncio.DatagramProtocol):
     """
     Local Udp Factory
@@ -251,70 +271,14 @@ class LocalUDP(asyncio.DatagramProtocol):
             handler.handle_connection_made(
                 flag.TRANSPORT_UDP, self._transport, peername
             )
-
         handler.handle_data_received(data)
-        self._clear_closed_handlers()
 
     def error_received(self, exc):
+        # TODO clean udp conn
         pass
 
-    def _clear_closed_handlers(self):
-        logging.debug(f"now udp handler {len(self._protocols)}")
-        need_clear_peers = []
-        for peername, handler in self._protocols.items():
-            if handler.need_clean:
-                need_clear_peers.append(peername)
-        for peer in need_clear_peers:
-            del self._protocols[peer]
-        logging.debug(f"after clear {len(self._protocols)}")
 
-
-class RemoteTCP(asyncio.Protocol, TimeoutMixin):
-    def __init__(self, local_handler):
-        super().__init__()
-
-        self.local = local_handler
-        self.peername = None
-        self._transport = None
-        self.cipher = CipherMan(access_user=local_handler.cipher.access_user)
-        self.ready = False
-
-        self._is_closing = False
-
-    def write(self, data):
-        self._transport.write(data)
-
-    def close(self):
-        if self._is_closing:
-            return
-        self._is_closing = True
-
-        self._transport and self._transport.close()
-
-    def connection_made(self, transport: asyncio.Transport):
-        self._transport = transport
-        self.peername = self._transport.get_extra_info("peername")
-        transport.write(self.local._connect_buffer)
-        self.ready = True
-
-    def data_received(self, data):
-        self.keep_alive()
-        self.local.write(self.cipher.encrypt(data))
-
-    def pause_reading(self):
-        self.local._transport.pause_reading()
-
-    def resume_reading(self):
-        self.local._transport.resume_reading()
-
-    def eof_received(self):
-        self.close()
-
-    def connection_lost(self, exc):
-        self.close()
-
-
-class RemoteUDP(asyncio.DatagramProtocol, TimeoutMixin):
+class RemoteUDP(asyncio.DatagramProtocol):
     def __init__(self, addr, port, data, local_hander):
         super().__init__()
         self.data = data
@@ -345,7 +309,6 @@ class RemoteUDP(asyncio.DatagramProtocol, TimeoutMixin):
         self.write(self.data)
 
     def datagram_received(self, data, peername, *arg):
-        self.keep_alive()
 
         assert self.peername == peername
         # 源地址和端口
