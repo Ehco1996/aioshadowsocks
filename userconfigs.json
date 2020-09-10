@@ -3,7 +3,7 @@
         {
             "user_id": 1,
             "port": 2345,
-            "method": "aes-256-cfb",
+            "method": "none",
             "password": "hellotheworld1",
             "transfer": 104857600,
             "speed_limit": 0
