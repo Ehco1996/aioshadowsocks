@@ -1,7 +1,7 @@
 import abc
 import hashlib
-import os
 import logging
+import os
 
 import hkdf
 from Crypto.Cipher import AES, ChaCha20_Poly1305

@@ -7,8 +7,8 @@ from shadowsocks.protos.aioshadowsocks_pb2 import (
     HealthCheckRes,
     User,
     UserIdReq,
-    UserReq,
     UserList,
+    UserReq,
 )
 
 

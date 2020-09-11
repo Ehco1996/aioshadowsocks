@@ -2,15 +2,14 @@ import asyncio
 
 from grpclib.client import Channel
 
-
+from shadowsocks.protos.aioshadowsocks_grpc import ssStub
 from shadowsocks.protos.aioshadowsocks_pb2 import (
-    UserIdReq,
-    UserReq,
-    User,
     HealthCheckReq,
     HealthCheckRes,
+    User,
+    UserIdReq,
+    UserReq,
 )
-from shadowsocks.protos.aioshadowsocks_grpc import ssStub
 
 
 class Client:

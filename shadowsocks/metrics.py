@@ -1,5 +1,6 @@
-from prometheus_client import Counter, Gauge, Histogram, Info
 import socket
+
+from prometheus_client import Counter, Gauge, Histogram, Info
 
 # METRICS
 NODE_HOST_NAME = socket.gethostname()
@@ -24,7 +25,9 @@ ACTIVE_CONNECTION_COUNT = ACTIVE_CONNECTION_COUNT.labels(ss_node=NODE_HOST_NAME)
 
 
 NETWORK_TRANSMIT_BYTES = Counter(
-    "network_transmit_bytes", "shadowsocks network transmit bytes", labelnames=["ss_node",]
+    "network_transmit_bytes",
+    "shadowsocks network transmit bytes",
+    labelnames=["ss_node",],
 )
 NETWORK_TRANSMIT_BYTES = NETWORK_TRANSMIT_BYTES.labels(ss_node=NODE_HOST_NAME)
 

@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import time
 from typing import List
+
 from shadowsocks import protocol_flag as flag
 from shadowsocks.ciphers import (
     AES128GCM,
@@ -95,12 +96,11 @@ class CipherMan:
                     else:
                         cipher.unpack(d)
                     self.access_user = user
+                    self.cipher = cipher
                     break
             except ValueError as e:
                 if e.args[0] != "MAC check failed":
                     raise e
-                del cipher
-
         logging.info(
             f"用户:{self.access_user} 一共寻找了{ cnt }个user,共花费{(time.time()-t1)*1000}ms"
         )
@@ -144,18 +144,24 @@ class CipherMan:
 
     @DECRYPT_DATA_TIME.time()
     def decrypt(self, data: bytes):
-        if len(data) + len(self._buffer) < self._first_data_len:
+        if (
+            self.access_user is None
+            and len(data) + len(self._buffer) < self._first_data_len
+        ):
             self._buffer.extend(data)
             return
-        else:
-            data = bytes(self._buffer) + data
-            del self._buffer[:]
 
         if not self.access_user:
-            self.find_access_user_by_data(data)
+            self._buffer.extend(data)
+            first_data, self._buffer = (
+                self._buffer[: self._first_data_len],
+                self._buffer[self._first_data_len :],
+            )
+            self.find_access_user_by_data(first_data)
+            data = bytes(self._buffer)
+            del self._buffer
 
         self._record_user_traffic(len(data), 0)
-
         if self.ts_protocol == flag.TRANSPORT_TCP:
             if not self.cipher:
                 self.cipher = self.cipher_cls(self.access_user.password)
