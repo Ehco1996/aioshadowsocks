@@ -1,6 +1,5 @@
 import asyncio
 import logging
-
 from collections import defaultdict
 
 from shadowsocks.core import LocalTCP, LocalUDP

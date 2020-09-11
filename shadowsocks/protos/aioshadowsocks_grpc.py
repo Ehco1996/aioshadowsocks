@@ -4,8 +4,8 @@
 import abc
 import typing
 
-import grpclib.const
 import grpclib.client
+import grpclib.const
 
 if typing.TYPE_CHECKING:
     import grpclib.server

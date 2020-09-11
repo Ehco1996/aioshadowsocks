@@ -27,6 +27,22 @@
 * 流量统计
 * 速率控制
 * 开放了grpc接口(类似ss-manager)
+* **单端口多用户（利用AEAD加密在不破坏协议的情况下实现）**
+
+## 性能测试
+
+> Shadowsocks本身是一个IO密集行的应用，但是由于加入了AEAD加密，使得SS本身变成了CPU密集行的应用
+> 而Python本身是不太适合CPU密集的场景的，所以在AEAD模式中的表现不佳
+> PS: 当然，其实是我代码写的烂，python不背锅
+
+* Steam-Cipher-None(不加密 高IO)
+
+![](images/stream-none.png)
+
+* AEAD-Cipher-CHACHA-20(加密 高CPU)
+
+![](images/aead-chacha-20-ietf-poly-1305.png)
+
 
 ## rpc proto
 
