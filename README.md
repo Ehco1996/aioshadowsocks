@@ -28,6 +28,15 @@
 * 速率控制
 * 开放了grpc接口(类似ss-manager)
 * **单端口多用户（利用AEAD加密在不破坏协议的情况下实现）**
+* **prometheus/grafana metrics监控** （dashboard在项目的grafana/文件夹下）
+
+## 监控dashboard
+
+![](images/1.png)
+
+![](images/2.png)
+
+![](images/3.png)
 
 ## 性能测试
 
