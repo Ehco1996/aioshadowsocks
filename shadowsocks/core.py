@@ -68,6 +68,8 @@ class LocalHandler:
 
     def write(self, data):
         if self._transport_protocol == flag.TRANSPORT_TCP:
+            if self._transport.is_closing():
+                return
             self._transport.write(data)
         else:
             self._transport.sendto(data, self._peername)
@@ -214,7 +216,8 @@ class RemoteTCP(asyncio.Protocol):
         self._is_closing = False
 
     def write(self, data):
-        self._transport.write(data)
+        if not self._transport.is_closing():
+            self._transport.write(data)
 
     def close(self):
         if self._is_closing:
