@@ -59,12 +59,12 @@ class LocalHandler:
         if self._is_closing:
             return
         self._is_closing = True
+        ACTIVE_CONNECTION_COUNT.inc(-1)
 
         if self._transport_protocol == flag.TRANSPORT_TCP:
             self._transport and self._transport.close()
             self.cipher and self.cipher.incr_user_tcp_num(-1)
         self._remote and self._remote.close()
-        ACTIVE_CONNECTION_COUNT.inc(-1)
 
     def write(self, data):
         if self._transport_protocol == flag.TRANSPORT_TCP:
@@ -77,8 +77,6 @@ class LocalHandler:
     def handle_connection_made(self, transport_protocol, transport, peername):
         self._init_transport(transport, peername, transport_protocol)
         self._init_cipher()
-        ACTIVE_CONNECTION_COUNT.inc()
-        CONNECTION_MADE_COUNT.inc()
 
     def handle_eof_received(self):
         self.close()
@@ -192,6 +190,8 @@ class LocalTCP(asyncio.Protocol):
         self._transport = transport
         peername = self._transport.get_extra_info("peername")
         self._handler.handle_connection_made(flag.TRANSPORT_TCP, transport, peername)
+        CONNECTION_MADE_COUNT.inc()
+        ACTIVE_CONNECTION_COUNT.inc()
 
     def data_received(self, data):
         self._handler.handle_data_received(data)
@@ -223,6 +223,7 @@ class RemoteTCP(asyncio.Protocol):
         if self._is_closing:
             return
         self._is_closing = True
+        ACTIVE_CONNECTION_COUNT.inc(-1)
 
         self._transport and self._transport.close()
         self.local.close()
@@ -232,6 +233,8 @@ class RemoteTCP(asyncio.Protocol):
         self.peername = self._transport.get_extra_info("peername")
         transport.write(self.local._connect_buffer)
         self.ready = True
+        CONNECTION_MADE_COUNT.inc()
+        ACTIVE_CONNECTION_COUNT.inc()
 
     def data_received(self, data):
         self.local.write(self.cipher.encrypt(data))
