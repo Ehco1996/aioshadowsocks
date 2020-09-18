@@ -1,13 +1,12 @@
-import asyncio
 import json
-import logging
 from typing import Set
 
 import peewee as pw
 import requests
 from playhouse import shortcuts
 
-db = pw.SqliteDatabase(":memory:")
+# NOTE 需要自己做线程安全
+db = pw.SqliteDatabase(":memory:", thread_safe=False, check_same_thread=False)
 
 
 class BaseModel(pw.Model):
@@ -65,14 +64,6 @@ class HttpSession:
     def request(self, method, url, **kw):
         req_method = getattr(self.session, method)
         return req_method(url, **kw)
-        try:
-            logging.debug(f"url: {url},method: {method},kw: {kw}")
-            return req_method(url, **kw)
-        except (requests.exceptions.HTTPError, requests.exceptions.MissingSchema) as e:
-            logging.warning(f"请求错误 url:{url} error: {e}")
-
-    async def async_request(self, method, url, **kw):
-        self.request(method, url, **kw)
 
 
 class HttpSessionMixin:

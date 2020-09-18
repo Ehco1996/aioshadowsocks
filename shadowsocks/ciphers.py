@@ -1,12 +1,9 @@
 import abc
 import hashlib
-import logging
 import os
 
 import hkdf
 from Crypto.Cipher import AES, ChaCha20_Poly1305
-
-from shadowsocks.metrics import DECRYPT_DATA_TIME, ENCRYPT_DATA_TIME
 
 
 def evp_bytestokey(password: bytes, key_size: int):

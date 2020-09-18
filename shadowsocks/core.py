@@ -96,7 +96,6 @@ class LocalHandler:
             return
 
         if not data:
-            print("iniinini")
             return
 
         if self._stage == self.STAGE_INIT:

@@ -1,15 +1,7 @@
-import typing
-
 from shadowsocks.mdb import models as m
 from shadowsocks.protos import aioshadowsocks_grpc
-from shadowsocks.protos.aioshadowsocks_pb2 import (
-    HealthCheckReq,
-    HealthCheckRes,
-    User,
-    UserIdReq,
-    UserList,
-    UserReq,
-)
+from shadowsocks.protos.aioshadowsocks_pb2 import (HealthCheckRes, User,
+                                                   UserList)
 
 
 class AioShadowsocksServicer(aioshadowsocks_grpc.ssBase):
