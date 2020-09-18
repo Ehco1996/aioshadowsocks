@@ -40,7 +40,7 @@ class ProxyMan:
             except Exception as e:
                 logging.warning(f"sync user error {e}")
 
-        self.loop.run_in_executor(None, blocking_io_task, self)
+        await self.loop.run_in_executor(None, blocking_io_task, self)
 
         for user in User.select().where(User.enable == True):
             await self.loop.create_task(self.init_server(user))
