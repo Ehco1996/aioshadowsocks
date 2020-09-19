@@ -5,8 +5,7 @@ import peewee as pw
 import requests
 from playhouse import shortcuts
 
-# NOTE 需要自己做线程安全
-db = pw.SqliteDatabase(":memory:", thread_safe=False, check_same_thread=False)
+db = pw.SqliteDatabase(":memory:")
 
 
 class BaseModel(pw.Model):

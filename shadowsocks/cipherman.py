@@ -115,14 +115,9 @@ class CipherMan:
             self.access_user.access_order = self.last_access_user.access_order + 1
             self.access_user.save()
 
-    def _record_user_traffic(self, ut_data_len: int, dt_data_len: int):
-        # TODO 写db的地方挪到队列里去做
-        self.access_user and self.access_user.record_traffic(ut_data_len, dt_data_len)
-        NETWORK_TRANSMIT_BYTES.inc(ut_data_len + dt_data_len)
-
     @ENCRYPT_DATA_TIME.time()
     def encrypt(self, data: bytes):
-        self._record_user_traffic(0, len(data))
+        self.record_user_traffic(0, len(data))
 
         if self.ts_protocol == flag.TRANSPORT_UDP:
             cipher = self.cipher_cls(self.access_user.password)
@@ -151,7 +146,7 @@ class CipherMan:
             data = bytes(self._buffer)
             del self._buffer
 
-        self._record_user_traffic(len(data), 0)
+        self.record_user_traffic(len(data), 0)
         if self.ts_protocol == flag.TRANSPORT_TCP:
             if not self.cipher:
                 self.cipher = self.cipher_cls(self.access_user.password)
@@ -164,3 +159,7 @@ class CipherMan:
 
     def record_user_ip(self, peername):
         self.access_user and self.access_user.record_ip(peername)
+
+    def record_user_traffic(self, ut_data_len: int, dt_data_len: int):
+        self.access_user and self.access_user.record_traffic(ut_data_len, dt_data_len)
+        NETWORK_TRANSMIT_BYTES.inc(ut_data_len + dt_data_len)
