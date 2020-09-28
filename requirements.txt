@@ -3,7 +3,7 @@ dnspython==1.16.0
 grpclib==0.4.1
 peewee==3.13.3
 prometheus-async==19.2.0
-prometheus-client==0.7.1
+prometheus-client==0.8.0
 pycryptodome==3.9.7
 requests==2.23.0
 toml==0.10.0
