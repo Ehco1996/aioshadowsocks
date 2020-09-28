@@ -5,7 +5,7 @@ peewee==3.13.3
 prometheus-async==19.2.0
 prometheus-client==0.7.1
 pycryptodome==3.9.7
-requests==2.23.0
+requests==2.24.0
 toml==0.10.0
 uvloop==0.14.0
 hkdf==0.0.3
