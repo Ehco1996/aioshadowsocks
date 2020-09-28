@@ -1,5 +1,5 @@
 aiohttp==3.6.2
-dnspython==1.16.0
+dnspython==2.0.0
 grpclib==0.4.1
 peewee==3.13.3
 prometheus-async==19.2.0
