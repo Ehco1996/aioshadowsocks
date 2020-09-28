@@ -4,7 +4,7 @@ grpclib==0.4.1
 peewee==3.13.3
 prometheus-async==19.2.0
 prometheus-client==0.7.1
-pycryptodome==3.9.7
+pycryptodome==3.9.8
 requests==2.23.0
 toml==0.10.0
 uvloop==0.14.0
