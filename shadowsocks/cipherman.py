@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-import logging
-import time
+from logging import fatal
 
 from shadowsocks import protocol_flag as flag
 from shadowsocks.ciphers import (
@@ -15,7 +14,6 @@ from shadowsocks.mdb.models import User
 from shadowsocks.metrics import (
     DECRYPT_DATA_TIME,
     ENCRYPT_DATA_TIME,
-    FIND_ACCESS_USER_TIME,
     NETWORK_TRANSMIT_BYTES,
 )
 from shadowsocks.utils import AutoResetBloomFilter
@@ -35,7 +33,10 @@ class CipherMan:
     # TODO 流量、链接数限速
 
     def __init__(
-        self, user_port=None, access_user: User = None, ts_protocol=flag.TRANSPORT_TCP,
+        self,
+        user_port=None,
+        access_user: User = None,
+        ts_protocol=flag.TRANSPORT_TCP,
     ):
         self.user_port = user_port
         self.access_user = access_user
@@ -53,11 +54,8 @@ class CipherMan:
             )  # NOTE 所有的user用的加密方式必须是一种
 
         self.cipher_cls = self.SUPPORT_METHODS.get(self.method)
-        if self.cipher_cls.AEAD_CIPHER:
-            if self.ts_protocol == flag.TRANSPORT_TCP:
-                self._first_data_len = self.cipher_cls.tcp_first_data_len()
-            else:
-                self._first_data_len = self.cipher_cls.udp_first_data_len()
+        if self.cipher_cls.AEAD_CIPHER and self.ts_protocol == flag.TRANSPORT_TCP:
+            self._first_data_len = self.cipher_cls.tcp_first_data_len()
         else:
             self._first_data_len = 0
 
@@ -69,61 +67,6 @@ class CipherMan:
         else:
             access_user = None
         return cls(port, access_user=access_user, ts_protocol=ts_protocol)
-
-    @FIND_ACCESS_USER_TIME.time()
-    def _find_access_user(self, first_data: bytes):
-        """通过auth校验来找到正确的user"""
-
-        with memoryview(first_data) as d:
-            salt = first_data[: self.cipher_cls.SALT_SIZE]
-            if salt in self.bf:
-                raise RuntimeError("repeated salt founded!")
-            else:
-                self.bf.add(salt)
-
-        t1 = time.time()
-        cnt = 0
-        for user in User.list_by_port(self.user_port).iterator():
-            if not self.last_access_user:
-                self.last_access_user = user
-            try:
-                cnt += 1
-                cipher = self.cipher_cls(user.password)
-                with memoryview(first_data) as d:
-                    if self.ts_protocol == flag.TRANSPORT_TCP:
-                        cipher.decrypt(d)
-                    else:
-                        cipher.unpack(d)
-                    self.access_user = user
-                    self.cipher = cipher
-                    break
-            except ValueError as e:
-                if e.args[0] != "MAC check failed":
-                    raise e
-        logging.info(
-            f"用户:{self.access_user} 一共寻找了{ cnt }个user,共花费{(time.time()-t1)*1000}ms"
-        )
-
-    def find_access_user_by_data(self, data):
-
-        self._find_access_user(data)
-        if self.access_user and self.access_user.enable is False:
-            self.access_user = None
-        if not self.access_user:
-            raise RuntimeError("没有找到合法的用户")
-        else:
-            self.incr_user_tcp_num(1)
-
-        if not self.access_user.enable:
-            raise RuntimeError(f"用户: {self.access_user} enable = False")
-
-        if (
-            self.access_user
-            and self.last_access_user
-            and self.access_user != self.last_access_user
-        ):
-            self.access_user.access_order = self.last_access_user.access_order + 1
-            self.access_user.save()
 
     @ENCRYPT_DATA_TIME.time()
     def encrypt(self, data: bytes):
@@ -148,18 +91,26 @@ class CipherMan:
 
         if not self.access_user:
             self._buffer.extend(data)
-            first_data, self._buffer = (
-                self._buffer[: self._first_data_len],
-                self._buffer[self._first_data_len :],
+            if self.ts_protocol == flag.TRANSPORT_TCP:
+                first_data, self._buffer = (
+                    self._buffer[: self._first_data_len],
+                    self._buffer[self._first_data_len :],
+                )
+            else:
+                first_data = self._buffer
+            salt = first_data[: self.cipher_cls.SALT_SIZE]
+            if salt in self.bf:
+                raise RuntimeError("repeated salt founded!")
+            else:
+                self.bf.add(salt)
+
+            self.access_user, self.cipher = User.find_access_user_and_cipher_by_data(
+                self.user_port, self.cipher_cls, self.ts_protocol, first_data
             )
-            self.find_access_user_by_data(first_data)
             data = bytes(self._buffer)
-            del self._buffer
 
         self.record_user_traffic(len(data), 0)
         if self.ts_protocol == flag.TRANSPORT_TCP:
-            if not self.cipher:
-                self.cipher = self.cipher_cls(self.access_user.password)
             return self.cipher.decrypt(data)
         else:
             return self.cipher_cls(self.access_user.password).unpack(data)

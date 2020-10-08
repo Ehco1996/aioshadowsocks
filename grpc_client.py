@@ -3,13 +3,12 @@ import asyncio
 from grpclib.client import Channel
 
 from shadowsocks.protos.aioshadowsocks_grpc import ssStub
-from shadowsocks.protos.aioshadowsocks_pb2 import (HealthCheckReq, UserIdReq,
-                                                   UserReq)
+from shadowsocks.protos.aioshadowsocks_pb2 import HealthCheckReq, UserIdReq, UserReq
 
 
 class Client:
-    def __init__(self, loop):
-        self.channel = Channel("127.0.0.1", 5000, loop=loop)
+    def __init__(self):
+        self.channel = Channel("127.0.0.1", 5000)
         self.stub = ssStub(self.channel)
 
     async def get_user(self, user_id: int):
@@ -30,8 +29,8 @@ class Client:
 
 if __name__ == "__main__":
     loop = asyncio.get_event_loop()
-    client = Client(loop)
-    url = "https://www.zhihu.com/"
+    client = Client()
+    # url = "https://www.zhihu.com/"
 
     # job  = loop.create_task(client.healcheck(url))
     job = loop.create_task(client.get_user(1))

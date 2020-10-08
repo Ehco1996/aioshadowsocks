@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import abc
 import hashlib
 import os
@@ -26,11 +28,27 @@ def evp_bytestokey(password: bytes, key_size: int):
 class BaseCipher(metaclass=abc.ABCMeta):
     KEY_SIZE = -1
 
-    def __init__(self, password: str):
+    def __init__(self, password: str) -> BaseCipher:
         self.key = evp_bytestokey(password.encode(), self.KEY_SIZE)
 
     @abc.abstractmethod
     def new_cipher(self, *arg, **kwargs):
+        return
+
+    @abc.abstractmethod
+    def encrypt(self, data: bytes):
+        return
+
+    @abc.abstractmethod
+    def decrypt(self, data: bytes):
+        return
+
+    @abc.abstractmethod
+    def unpack(self, data: bytes) -> bytes:
+        return
+
+    @abc.abstractmethod
+    def pack(self, data: bytes) -> bytes:
         return
 
 
@@ -227,10 +245,6 @@ class BaseAEADCipher(BaseCipher):
     @classmethod
     def tcp_first_data_len(cls):
         return cls.SALT_SIZE + 2 + cls.TAG_SIZE
-
-    @classmethod
-    def udp_first_data_len(cls):
-        return cls.tcp_first_data_len() - 2
 
 
 class AESCipher(BaseStreamCipher):

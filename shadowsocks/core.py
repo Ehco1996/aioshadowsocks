@@ -51,9 +51,6 @@ class LocalHandler:
         else:
             self._transport_protocol_human = "udp"
 
-    def _init_cipher(self):
-        self.cipher = CipherMan.get_cipher_by_port(self.port, self._transport_protocol)
-
     def close(self):
         self._stage = self.STAGE_DESTROY
         if self._is_closing:
@@ -76,7 +73,6 @@ class LocalHandler:
 
     def handle_connection_made(self, transport_protocol, transport, peername):
         self._init_transport(transport, peername, transport_protocol)
-        self._init_cipher()
 
     def handle_eof_received(self):
         self.close()
@@ -85,7 +81,10 @@ class LocalHandler:
         self.close()
 
     def handle_data_received(self, data):
-
+        if not self.cipher:
+            self.cipher = CipherMan.get_cipher_by_port(
+                self.port, self._transport_protocol
+            )
         try:
             data = self.cipher.decrypt(data)
         except Exception as e:
@@ -140,7 +139,7 @@ class LocalHandler:
                 self.cipher.record_user_ip(self._peername)
         else:
             try:
-                await self.create_datagram_endpoint(
+                await loop.create_datagram_endpoint(
                     lambda: RemoteUDP(dst_addr, dst_port, payload, self),
                     remote_addr=(dst_addr, dst_port),
                 )
