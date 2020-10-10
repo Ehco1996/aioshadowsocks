@@ -3,19 +3,11 @@ from __future__ import annotations
 from logging import fatal
 
 from shadowsocks import protocol_flag as flag
-from shadowsocks.ciphers import (
-    AES128GCM,
-    AES256CFB,
-    AES256GCM,
-    CHACHA20IETFPOLY1305,
-    NONE,
-)
+from shadowsocks.ciphers import (AES128GCM, AES256CFB, AES256GCM,
+                                 CHACHA20IETFPOLY1305, NONE)
 from shadowsocks.mdb.models import User
-from shadowsocks.metrics import (
-    DECRYPT_DATA_TIME,
-    ENCRYPT_DATA_TIME,
-    NETWORK_TRANSMIT_BYTES,
-)
+from shadowsocks.metrics import (DECRYPT_DATA_TIME, ENCRYPT_DATA_TIME,
+                                 NETWORK_TRANSMIT_BYTES)
 from shadowsocks.utils import AutoResetBloomFilter
 
 

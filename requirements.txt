@@ -12,3 +12,4 @@ hkdf==0.0.3
 protobuf==3.12.2
 bloom-filter==1.3
 sentry-sdk==0.14.4
+fire==0.3.1

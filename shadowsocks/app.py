@@ -22,15 +22,6 @@ async def logging_grpc_request(event: RecvRequest) -> None:
 
 
 class App:
-    def __init__(self, debug=False):
-        self.debug = debug
-        if not self.debug:
-            uvloop.install()
-
-        self.loop = asyncio.get_event_loop()
-        self._prepare()
-        self.proxyman = ProxyMan(self.listen_host)
-
     def _init_config(self):
         self.config = {
             "LISTEN_HOST": os.getenv("SS_LISTEN_HOST", "0.0.0.0"),
@@ -56,8 +47,8 @@ class App:
         self.timeout_limit = self.config["TIME_OUT_LIMIT"]
         self.stream_dns_server = self.config["STREAM_DNS_SERVER"]
         self.user_tcp_conn_limit = self.config["USER_TCP_CONN_LIMIT"]
-
         self.metrics_port = self.config["METRICS_PORT"]
+
         self.use_sentry = True if self.sentry_dsn else False
         self.use_json = False if self.api_endpoint else True
         self.use_grpc = True if self.grpc_host and self.grpc_port else False
@@ -73,10 +64,7 @@ class App:
             "INFO": 20,
             "DEBUG": 10,
         }
-        if self.debug:
-            level = 10
-        else:
-            level = log_levels.get(self.log_level.upper(), 10)
+        level = log_levels.get(self.log_level.upper(), 10)
         logging.basicConfig(
             format="[%(levelname)s]%(asctime)s - %(filename)s - %(funcName)s "
             "line:%(lineno)d: - %(message)s",
@@ -97,11 +85,14 @@ class App:
         logging.info("Init Sentry Client...")
 
     def _prepare(self):
+        uvloop.install()
+        self.loop = asyncio.get_event_loop()
         self._init_config()
         self._init_logger()
         self._init_memory_db()
         self._init_sentry()
         self.loop.add_signal_handler(signal.SIGTERM, self.shutdown)
+        self.proxyman = ProxyMan(self.listen_host)
 
     async def start_grpc_server(self):
 
@@ -121,7 +112,9 @@ class App:
             f"Start Metrics Server At: http://0.0.0.0:{self.metrics_port}/metrics"
         )
 
-    def run(self):
+    def run_ss_server(self):
+        """启动ss server"""
+        self._prepare()
 
         if self.use_json:
             self.loop.create_task(self.proxyman.start_ss_json_server())
