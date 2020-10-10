@@ -8,13 +8,6 @@ from bloom_filter import BloomFilter
 from shadowsocks import protocol_flag as flag
 
 
-def is_stream_domain(domain):
-    # 目前只匹配 netflix、hulu、HBO
-    if STREAM_HOST_PATTERN.search(domain):
-        return True
-    return False
-
-
 def logging_cahce_info():
     def wrapper(func):
         def decorated(*args, **kwargs):

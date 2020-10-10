@@ -6,4 +6,4 @@ WORKDIR /src/aioshadowsocks
 
 COPY . /src/aioshadowsocks
 
-CMD ["python", "server.py"]
+CMD ["python", "-m", "shadowsocks run_ss_server"]
