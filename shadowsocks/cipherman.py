@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from logging import fatal
-
 from shadowsocks import protocol_flag as flag
 from shadowsocks.ciphers import (
     AES128GCM,

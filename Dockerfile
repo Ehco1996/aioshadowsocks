@@ -4,7 +4,8 @@ FROM python:3.8.5-alpine as base
 
 LABEL Name="aio-shadowsocks" Maintainer="Ehco1996"
 
-COPY requirements.txt /tmp/requirements.txt
+COPY README.md poetry.lock pyproject.toml ./
+COPY shadowsocks ./shadowsocks
 
 RUN set -e; \
     apk update \
@@ -15,5 +16,7 @@ RUN set -e; \
     && apk del openssl-dev \
     && apk add libressl-dev \
     # TODO workaround end
-    && pip install --no-cache-dir -r /tmp/requirements.txt \
+    && pip install poetry \
+    && poetry install --no-dev \
+    && rm -rf ~/.cache \
     && apk del .build-deps

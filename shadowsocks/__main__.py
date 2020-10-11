@@ -2,5 +2,10 @@ import fire
 
 from shadowsocks.app import App
 
-if __name__ == "__main__":
+
+def main():
     fire.Fire(App)
+
+
+if __name__ == "__main__":
+    main()

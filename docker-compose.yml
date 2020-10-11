@@ -20,4 +20,4 @@ services:
     # volumes:
     # - .:/src/aioshadowsocks
     working_dir: /src/aioshadowsocks
-    command: python server.py
+    command: python -m shadowsocks run_ss_server

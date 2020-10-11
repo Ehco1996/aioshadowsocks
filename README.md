@@ -13,6 +13,72 @@
 * 隧道对接视频教程: [地址](https://youtu.be/R4U0NZaMUeY)
 
 
+## 使用
+
+* 安装
+
+``` sh
+pip install aioshadowsocks
+```
+
+* 多用户配置
+
+aioshadowsocks 将json作为配置文件,会读取当前目录下`userconfigs.json`作为默认的配置文件
+
+```json
+{
+    "users": [
+        {
+            "user_id": 1,
+            "port": 2345,
+            "method": "aes-256-cfb",
+            "password": "hellotheworld1",
+            "transfer": 104857600,
+            "speed_limit": 0
+        }
+    ]
+}
+```
+
+同时也支持从http服务器读取配置文件，这时需要注入环境变量`SS_API_ENDPOINT`作为读取配置的api地址
+* 注入环境变量
+
+`export SS_API_ENDPOINT="https://xxx/com"`
+
+
+* 启动ss服务器
+
+```bash
+aioss run_ss_server
+```
+
+## Docker Version
+
+1. install docker
+
+``` sh
+curl -sSL https://get.docker.com/ | sh
+```
+
+2. install docker-compose
+
+``` sh
+sudo curl -L "https://github.com/docker/compose/releases/download/1.23.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+```
+
+3. apply executable permissions
+
+``` sh
+sudo chmod +x /usr/local/bin/docker-compose
+```
+
+4. run server
+
+``` sh
+docker-compose up
+```
+
+
 ## 为什么要重写shadowsocks
 
 主要想通过这个项目的推进来深入了解 `asyncio` 
@@ -97,58 +163,4 @@ service ss {
   rpc GetUser(UserIdReq) returns (User) {}
   rpc DeleteUser(UserIdReq) returns (Empty) {}
 }
-```
-
-## 编译protos
-
-`pip3 install grpcio-tools` 
-
-`python3 -m grpc_tools.protoc -I. --python_out=. --python_grpc_out=. shadowsocks/protos/aioshadowsocks.proto` 
-
-## 使用
-
-* 安装依赖
-
-``` sh
-wget https://bootstrap.pypa.io/get-pip.py
-
-python3 get-pip.py
-
-pip3 install -r requirements.txt
-```
-
-* 注入环境变量
-
-`export SS_API_ENDPOINT="https://xxx/com"`
-
-* 使用
-
-``` python
-python -m shadowsocks run_ss_server
-```
-
-## Docker Version
-
-1. install docker
-
-``` sh
-curl -sSL https://get.docker.com/ | sh
-```
-
-2. install docker-compose
-
-``` sh
-sudo curl -L "https://github.com/docker/compose/releases/download/1.23.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-```
-
-3. apply executable permissions
-
-``` sh
-sudo chmod +x /usr/local/bin/docker-compose
-```
-
-4. run server
-
-``` sh
-docker-compose up
 ```
