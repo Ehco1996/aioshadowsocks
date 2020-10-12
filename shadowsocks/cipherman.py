@@ -90,7 +90,7 @@ class CipherMan:
                 self.bf.add(salt)
 
             access_user = User.find_access_user(
-                self.user_port, self.cipher_cls, self.ts_protocol, first_data
+                self.user_port, self.method, self.ts_protocol, first_data
             )
 
             if not access_user or access_user.enable is False:
