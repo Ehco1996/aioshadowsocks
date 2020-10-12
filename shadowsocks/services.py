@@ -50,3 +50,12 @@ class AioShadowsocksServicer(aioshadowsocks_grpc.ssBase):
         request = await stream.recv_message()
         url = request.url
         await stream.send_message(HealthCheckRes(status_code="200", duration=100))
+
+    async def FindAccessUser(self, stream):
+        request = await stream.recv_message()
+        user = m.User.find_access_user(
+            request.port, request.method, request.ts_protocol, request.data
+        )
+        if not user:
+            raise Exception("not find")
+        await stream.send_message(User(**user.to_dict()))

@@ -56,6 +56,13 @@ class ssBase(abc.ABC):
     ) -> None:
         pass
 
+    @abc.abstractmethod
+    async def FindAccessUser(
+        self,
+        stream: "grpclib.server.Stream[shadowsocks.protos.aioshadowsocks_pb2.FindAccessUserReq, shadowsocks.protos.aioshadowsocks_pb2.User]",
+    ) -> None:
+        pass
+
     def __mapping__(self) -> typing.Dict[str, grpclib.const.Handler]:
         return {
             "/aioshadowsocks.ss/CreateUser": grpclib.const.Handler(
@@ -90,9 +97,15 @@ class ssBase(abc.ABC):
             ),
             "/aioshadowsocks.ss/HealthCheck": grpclib.const.Handler(
                 self.HealthCheck,
-                grpclib.const.Cardinality.UNARY_UNARY,
+                grpclib.const.Cardinality.UNARY_STREAM,
                 shadowsocks.protos.aioshadowsocks_pb2.HealthCheckReq,
                 shadowsocks.protos.aioshadowsocks_pb2.HealthCheckRes,
+            ),
+            "/aioshadowsocks.ss/FindAccessUser": grpclib.const.Handler(
+                self.FindAccessUser,
+                grpclib.const.Cardinality.UNARY_UNARY,
+                shadowsocks.protos.aioshadowsocks_pb2.FindAccessUserReq,
+                shadowsocks.protos.aioshadowsocks_pb2.User,
             ),
         }
 
@@ -129,9 +142,15 @@ class ssStub:
             shadowsocks.protos.aioshadowsocks_pb2.UserReq,
             shadowsocks.protos.aioshadowsocks_pb2.UserList,
         )
-        self.HealthCheck = grpclib.client.UnaryUnaryMethod(
+        self.HealthCheck = grpclib.client.UnaryStreamMethod(
             channel,
             "/aioshadowsocks.ss/HealthCheck",
             shadowsocks.protos.aioshadowsocks_pb2.HealthCheckReq,
             shadowsocks.protos.aioshadowsocks_pb2.HealthCheckRes,
+        )
+        self.FindAccessUser = grpclib.client.UnaryUnaryMethod(
+            channel,
+            "/aioshadowsocks.ss/FindAccessUser",
+            shadowsocks.protos.aioshadowsocks_pb2.FindAccessUserReq,
+            shadowsocks.protos.aioshadowsocks_pb2.User,
         )

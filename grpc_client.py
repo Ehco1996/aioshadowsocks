@@ -3,7 +3,12 @@ import asyncio
 from grpclib.client import Channel
 
 from shadowsocks.protos.aioshadowsocks_grpc import ssStub
-from shadowsocks.protos.aioshadowsocks_pb2 import HealthCheckReq, UserIdReq, UserReq
+from shadowsocks.protos.aioshadowsocks_pb2 import (
+    FindAccessUserReq,
+    HealthCheckReq,
+    UserIdReq,
+    UserReq,
+)
 
 
 class Client:
@@ -23,6 +28,12 @@ class Client:
         res = await self.stub.HealthCheck(HealthCheckReq(url=url))
         print(f"health: {res}")
 
+    async def find_access_user(self):
+        res = await self.stub.FindAccessUser(
+            FindAccessUserReq(method="chacha20-ietf-poly1305")
+        )
+        print(f"health: {res}")
+
     def close(self):
         self.channel.close()
 
@@ -33,7 +44,7 @@ if __name__ == "__main__":
     # url = "https://www.zhihu.com/"
 
     # job  = loop.create_task(client.healcheck(url))
-    job = loop.create_task(client.get_user(1))
+    job = loop.create_task(client.find_access_user())
     # job = loop.create_task(client.list_user(0))
     loop.run_until_complete(job)
     client.close()

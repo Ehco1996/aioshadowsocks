@@ -1,13 +1,7 @@
 from __future__ import annotations
 
 from shadowsocks import protocol_flag as flag
-from shadowsocks.ciphers import (
-    AES128GCM,
-    AES256CFB,
-    AES256GCM,
-    CHACHA20IETFPOLY1305,
-    NONE,
-)
+from shadowsocks.ciphers import SUPPORT_METHODS
 from shadowsocks.mdb.models import User
 from shadowsocks.metrics import (
     DECRYPT_DATA_TIME,
@@ -19,13 +13,7 @@ from shadowsocks.utils import AutoResetBloomFilter
 
 class CipherMan:
 
-    SUPPORT_METHODS = {
-        "none": NONE,
-        "aes-256-cfb": AES256CFB,
-        "aes-128-gcm": AES128GCM,
-        "aes-256-gcm": AES256GCM,
-        "chacha20-ietf-poly1305": CHACHA20IETFPOLY1305,
-    }
+    SUPPORT_METHODS = SUPPORT_METHODS
     bf = AutoResetBloomFilter()
 
     # TODO 流量、链接数限速
@@ -52,6 +40,8 @@ class CipherMan:
             )  # NOTE 所有的user用的加密方式必须是一种
 
         self.cipher_cls = self.SUPPORT_METHODS.get(self.method)
+        if not self.cipher_cls:
+            raise Exception(f"暂时不支持这种加密方式:{self.method}")
         if self.cipher_cls.AEAD_CIPHER and self.ts_protocol == flag.TRANSPORT_TCP:
             self._first_data_len = self.cipher_cls.tcp_first_data_len()
         else:
@@ -90,10 +80,7 @@ class CipherMan:
         if not self.access_user:
             self._buffer.extend(data)
             if self.ts_protocol == flag.TRANSPORT_TCP:
-                first_data, self._buffer = (
-                    self._buffer[: self._first_data_len],
-                    self._buffer[self._first_data_len :],
-                )
+                first_data = self._buffer[: self._first_data_len]
             else:
                 first_data = self._buffer
             salt = first_data[: self.cipher_cls.SALT_SIZE]
@@ -102,9 +89,16 @@ class CipherMan:
             else:
                 self.bf.add(salt)
 
-            self.access_user, self.cipher = User.find_access_user_and_cipher_by_data(
+            access_user = User.find_access_user(
                 self.user_port, self.cipher_cls, self.ts_protocol, first_data
             )
+
+            if not access_user or access_user.enable is False:
+                raise RuntimeError(
+                    f"can not find enable access user: {self.port}-{self.ts_protocol}-{self.cipher_cls}"
+                )
+            self.access_user = access_user
+            self.cipher = self.cipher_cls(self.access_user.password)
             data = bytes(self._buffer)
 
         self.record_user_traffic(len(data), 0)

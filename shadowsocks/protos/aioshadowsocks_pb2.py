@@ -18,7 +18,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
     syntax="proto3",
     serialized_options=None,
     create_key=_descriptor._internal_create_key,
-    serialized_pb=b'\n\'shadowsocks/protos/aioshadowsocks.proto\x12\x0e\x61ioshadowsocks"\x1c\n\tUserIdReq\x12\x0f\n\x07user_id\x18\x01 \x01(\x05"\x17\n\x07PortReq\x12\x0c\n\x04port\x18\x01 \x01(\x05"p\n\x07UserReq\x12\x0f\n\x07user_id\x18\x01 \x01(\x05\x12\x0c\n\x04port\x18\x02 \x01(\x05\x12\x0e\n\x06method\x18\x03 \x01(\t\x12\x10\n\x08password\x18\x04 \x01(\t\x12\x0e\n\x06\x65nable\x18\x05 \x01(\x08\x12\x14\n\x0ctcp_conn_num\x18\x06 \x01(\x05"\x1d\n\x0eHealthCheckReq\x12\x0b\n\x03url\x18\x01 \x01(\t"7\n\x0eHealthCheckRes\x12\x13\n\x0bstatus_code\x18\x01 \x01(\t\x12\x10\n\x08\x64uration\x18\x02 \x01(\x05"\x07\n\x05\x45mpty"\xee\x01\n\x04User\x12\x0f\n\x07user_id\x18\x01 \x01(\x05\x12\x0c\n\x04port\x18\x02 \x01(\x05\x12\x0e\n\x06method\x18\x03 \x01(\t\x12\x10\n\x08password\x18\x04 \x01(\t\x12\x0e\n\x06\x65nable\x18\x05 \x01(\x08\x12\x13\n\x0bspeed_limit\x18\x06 \x01(\x05\x12\x14\n\x0c\x61\x63\x63\x65ss_order\x18\x07 \x01(\x05\x12\x11\n\tneed_sync\x18\x08 \x01(\x08\x12\x0f\n\x07ip_list\x18\t \x03(\t\x12\x14\n\x0ctcp_conn_num\x18\n \x01(\x05\x12\x16\n\x0eupload_traffic\x18\x0b \x01(\x03\x12\x18\n\x10\x64ownload_traffic\x18\x0c \x01(\x03".\n\x08UserList\x12"\n\x04\x64\x61ta\x18\x01 \x03(\x0b\x32\x14.aioshadowsocks.User2\x94\x03\n\x02ss\x12=\n\nCreateUser\x12\x17.aioshadowsocks.UserReq\x1a\x14.aioshadowsocks.User"\x00\x12=\n\nUpdateUser\x12\x17.aioshadowsocks.UserReq\x1a\x14.aioshadowsocks.User"\x00\x12<\n\x07GetUser\x12\x19.aioshadowsocks.UserIdReq\x1a\x14.aioshadowsocks.User"\x00\x12@\n\nDeleteUser\x12\x19.aioshadowsocks.UserIdReq\x1a\x15.aioshadowsocks.Empty"\x00\x12?\n\x08ListUser\x12\x17.aioshadowsocks.UserReq\x1a\x18.aioshadowsocks.UserList"\x00\x12O\n\x0bHealthCheck\x12\x1e.aioshadowsocks.HealthCheckReq\x1a\x1e.aioshadowsocks.HealthCheckRes"\x00\x62\x06proto3',
+    serialized_pb=b'\n\'shadowsocks/protos/aioshadowsocks.proto\x12\x0e\x61ioshadowsocks"\x1c\n\tUserIdReq\x12\x0f\n\x07user_id\x18\x01 \x01(\x05"\x17\n\x07PortReq\x12\x0c\n\x04port\x18\x01 \x01(\x05"p\n\x07UserReq\x12\x0f\n\x07user_id\x18\x01 \x01(\x05\x12\x0c\n\x04port\x18\x02 \x01(\x05\x12\x0e\n\x06method\x18\x03 \x01(\t\x12\x10\n\x08password\x18\x04 \x01(\t\x12\x0e\n\x06\x65nable\x18\x05 \x01(\x08\x12\x14\n\x0ctcp_conn_num\x18\x06 \x01(\x05"\x1d\n\x0eHealthCheckReq\x12\x0b\n\x03url\x18\x01 \x01(\t"7\n\x0eHealthCheckRes\x12\x13\n\x0bstatus_code\x18\x01 \x01(\t\x12\x10\n\x08\x64uration\x18\x02 \x01(\x05"\x07\n\x05\x45mpty"\xee\x01\n\x04User\x12\x0f\n\x07user_id\x18\x01 \x01(\x05\x12\x0c\n\x04port\x18\x02 \x01(\x05\x12\x0e\n\x06method\x18\x03 \x01(\t\x12\x10\n\x08password\x18\x04 \x01(\t\x12\x0e\n\x06\x65nable\x18\x05 \x01(\x08\x12\x13\n\x0bspeed_limit\x18\x06 \x01(\x05\x12\x14\n\x0c\x61\x63\x63\x65ss_order\x18\x07 \x01(\x05\x12\x11\n\tneed_sync\x18\x08 \x01(\x08\x12\x0f\n\x07ip_list\x18\t \x03(\t\x12\x14\n\x0ctcp_conn_num\x18\n \x01(\x05\x12\x16\n\x0eupload_traffic\x18\x0b \x01(\x03\x12\x18\n\x10\x64ownload_traffic\x18\x0c \x01(\x03".\n\x08UserList\x12"\n\x04\x64\x61ta\x18\x01 \x03(\x0b\x32\x14.aioshadowsocks.User"T\n\x11\x46indAccessUserReq\x12\x0c\n\x04port\x18\x01 \x01(\x05\x12\x0e\n\x06method\x18\x02 \x01(\t\x12\x13\n\x0bts_protocol\x18\x03 \x01(\x05\x12\x0c\n\x04\x64\x61ta\x18\x04 \x01(\x0c\x32\xe3\x03\n\x02ss\x12=\n\nCreateUser\x12\x17.aioshadowsocks.UserReq\x1a\x14.aioshadowsocks.User"\x00\x12=\n\nUpdateUser\x12\x17.aioshadowsocks.UserReq\x1a\x14.aioshadowsocks.User"\x00\x12<\n\x07GetUser\x12\x19.aioshadowsocks.UserIdReq\x1a\x14.aioshadowsocks.User"\x00\x12@\n\nDeleteUser\x12\x19.aioshadowsocks.UserIdReq\x1a\x15.aioshadowsocks.Empty"\x00\x12?\n\x08ListUser\x12\x17.aioshadowsocks.UserReq\x1a\x18.aioshadowsocks.UserList"\x00\x12Q\n\x0bHealthCheck\x12\x1e.aioshadowsocks.HealthCheckReq\x1a\x1e.aioshadowsocks.HealthCheckRes"\x00\x30\x01\x12K\n\x0e\x46indAccessUser\x12!.aioshadowsocks.FindAccessUserReq\x1a\x14.aioshadowsocks.User"\x00\x62\x06proto3',
 )
 
 
@@ -652,6 +652,104 @@ _USERLIST = _descriptor.Descriptor(
     serialized_end=612,
 )
 
+
+_FINDACCESSUSERREQ = _descriptor.Descriptor(
+    name="FindAccessUserReq",
+    full_name="aioshadowsocks.FindAccessUserReq",
+    filename=None,
+    file=DESCRIPTOR,
+    containing_type=None,
+    create_key=_descriptor._internal_create_key,
+    fields=[
+        _descriptor.FieldDescriptor(
+            name="port",
+            full_name="aioshadowsocks.FindAccessUserReq.port",
+            index=0,
+            number=1,
+            type=5,
+            cpp_type=1,
+            label=1,
+            has_default_value=False,
+            default_value=0,
+            message_type=None,
+            enum_type=None,
+            containing_type=None,
+            is_extension=False,
+            extension_scope=None,
+            serialized_options=None,
+            file=DESCRIPTOR,
+            create_key=_descriptor._internal_create_key,
+        ),
+        _descriptor.FieldDescriptor(
+            name="method",
+            full_name="aioshadowsocks.FindAccessUserReq.method",
+            index=1,
+            number=2,
+            type=9,
+            cpp_type=9,
+            label=1,
+            has_default_value=False,
+            default_value=b"".decode("utf-8"),
+            message_type=None,
+            enum_type=None,
+            containing_type=None,
+            is_extension=False,
+            extension_scope=None,
+            serialized_options=None,
+            file=DESCRIPTOR,
+            create_key=_descriptor._internal_create_key,
+        ),
+        _descriptor.FieldDescriptor(
+            name="ts_protocol",
+            full_name="aioshadowsocks.FindAccessUserReq.ts_protocol",
+            index=2,
+            number=3,
+            type=5,
+            cpp_type=1,
+            label=1,
+            has_default_value=False,
+            default_value=0,
+            message_type=None,
+            enum_type=None,
+            containing_type=None,
+            is_extension=False,
+            extension_scope=None,
+            serialized_options=None,
+            file=DESCRIPTOR,
+            create_key=_descriptor._internal_create_key,
+        ),
+        _descriptor.FieldDescriptor(
+            name="data",
+            full_name="aioshadowsocks.FindAccessUserReq.data",
+            index=3,
+            number=4,
+            type=12,
+            cpp_type=9,
+            label=1,
+            has_default_value=False,
+            default_value=b"",
+            message_type=None,
+            enum_type=None,
+            containing_type=None,
+            is_extension=False,
+            extension_scope=None,
+            serialized_options=None,
+            file=DESCRIPTOR,
+            create_key=_descriptor._internal_create_key,
+        ),
+    ],
+    extensions=[],
+    nested_types=[],
+    enum_types=[],
+    serialized_options=None,
+    is_extendable=False,
+    syntax="proto3",
+    extension_ranges=[],
+    oneofs=[],
+    serialized_start=614,
+    serialized_end=698,
+)
+
 _USERLIST.fields_by_name["data"].message_type = _USER
 DESCRIPTOR.message_types_by_name["UserIdReq"] = _USERIDREQ
 DESCRIPTOR.message_types_by_name["PortReq"] = _PORTREQ
@@ -661,6 +759,7 @@ DESCRIPTOR.message_types_by_name["HealthCheckRes"] = _HEALTHCHECKRES
 DESCRIPTOR.message_types_by_name["Empty"] = _EMPTY
 DESCRIPTOR.message_types_by_name["User"] = _USER
 DESCRIPTOR.message_types_by_name["UserList"] = _USERLIST
+DESCRIPTOR.message_types_by_name["FindAccessUserReq"] = _FINDACCESSUSERREQ
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
 
 UserIdReq = _reflection.GeneratedProtocolMessageType(
@@ -751,6 +850,17 @@ UserList = _reflection.GeneratedProtocolMessageType(
 )
 _sym_db.RegisterMessage(UserList)
 
+FindAccessUserReq = _reflection.GeneratedProtocolMessageType(
+    "FindAccessUserReq",
+    (_message.Message,),
+    {
+        "DESCRIPTOR": _FINDACCESSUSERREQ,
+        "__module__": "shadowsocks.protos.aioshadowsocks_pb2"
+        # @@protoc_insertion_point(class_scope:aioshadowsocks.FindAccessUserReq)
+    },
+)
+_sym_db.RegisterMessage(FindAccessUserReq)
+
 
 _SS = _descriptor.ServiceDescriptor(
     name="ss",
@@ -759,8 +869,8 @@ _SS = _descriptor.ServiceDescriptor(
     index=0,
     serialized_options=None,
     create_key=_descriptor._internal_create_key,
-    serialized_start=615,
-    serialized_end=1019,
+    serialized_start=701,
+    serialized_end=1184,
     methods=[
         _descriptor.MethodDescriptor(
             name="CreateUser",
@@ -819,6 +929,16 @@ _SS = _descriptor.ServiceDescriptor(
             containing_service=None,
             input_type=_HEALTHCHECKREQ,
             output_type=_HEALTHCHECKRES,
+            serialized_options=None,
+            create_key=_descriptor._internal_create_key,
+        ),
+        _descriptor.MethodDescriptor(
+            name="FindAccessUser",
+            full_name="aioshadowsocks.ss.FindAccessUser",
+            index=6,
+            containing_service=None,
+            input_type=_FINDACCESSUSERREQ,
+            output_type=_USER,
             serialized_options=None,
             create_key=_descriptor._internal_create_key,
         ),

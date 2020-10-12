@@ -2,12 +2,11 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import Tuple
 
 import peewee as pw
 
 from shadowsocks import protocol_flag as flag
-from shadowsocks.ciphers import BaseCipher
+from shadowsocks.ciphers import SUPPORT_METHODS
 from shadowsocks.mdb import BaseModel, HttpSessionMixin, IPSetField, db
 from shadowsocks.metrics import FIND_ACCESS_USER_TIME
 
@@ -126,11 +125,9 @@ class User(BaseModel, HttpSessionMixin):
 
     @classmethod
     @FIND_ACCESS_USER_TIME.time()
-    def find_access_user_and_cipher_by_data(
-        cls, port, cipher_cls, ts_protocol, first_data
-    ) -> Tuple[User, BaseCipher]:
+    def find_access_user(cls, port, method, ts_protocol, first_data) -> User:
+        cipher_cls = SUPPORT_METHODS[method]
         access_user = None
-        cipher = None
         for user in cls.list_by_port(port).iterator():
             try:
                 cipher = cipher_cls(user.password)
@@ -143,11 +140,8 @@ class User(BaseModel, HttpSessionMixin):
             except ValueError as e:
                 if e.args[0] != "MAC check failed":
                     raise e
-        if not access_user or access_user.enable is False:
-            raise RuntimeError(
-                f"can not find enable access user: {port}-{ts_protocol}-{cipher_cls}"
-            )
-        # NOTE 记下成功访问的用户，下次优先找到他
-        access_user.access_order += 1
-        access_user.save()
-        return access_user, cipher
+        if access_user:
+            # NOTE 记下成功访问的用户，下次优先找到他
+            access_user.access_order += 1
+            access_user.save()
+        return access_user

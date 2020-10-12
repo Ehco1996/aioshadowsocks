@@ -299,3 +299,12 @@ class AES256GCM(AES128GCM):
     SALT_SIZE = 32
     NONCE_SIZE = 12
     TAG_SIZE = 16
+
+
+SUPPORT_METHODS = {
+    "none": NONE,
+    "aes-256-cfb": AES256CFB,
+    "aes-128-gcm": AES128GCM,
+    "aes-256-gcm": AES256GCM,
+    "chacha20-ietf-poly1305": CHACHA20IETFPOLY1305,
+}

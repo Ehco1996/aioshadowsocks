@@ -41,6 +41,13 @@ message User {
 
 message UserList { repeated User data = 1; }
 
+message FindAccessUserReq {
+  int32 port = 1;
+  string method = 2;
+  int32 ts_protocol =3;
+  bytes data = 4;
+}
+
 // service
 service ss {
   rpc CreateUser(UserReq) returns (User) {}
@@ -48,5 +55,6 @@ service ss {
   rpc GetUser(UserIdReq) returns (User) {}
   rpc DeleteUser(UserIdReq) returns (Empty) {}
   rpc ListUser(UserReq) returns (UserList) {}
-  rpc HealthCheck(HealthCheckReq) returns (HealthCheckRes) {}
+  rpc HealthCheck(HealthCheckReq) returns (stream HealthCheckRes) {}
+  rpc FindAccessUser(FindAccessUserReq) returns (User) {}
 }
