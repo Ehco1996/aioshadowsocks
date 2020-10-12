@@ -44,9 +44,19 @@ message UserList { repeated User data = 1; }
 message FindAccessUserReq {
   int32 port = 1;
   string method = 2;
-  int32 ts_protocol =3;
+  int32 ts_protocol = 3;
   bytes data = 4;
 }
+
+message DecryptDataReq {
+  int32 user_id = 1;
+  string uuid = 2;
+  string password = 3;
+  string method = 4;
+  bytes data = 5;
+}
+
+message DecryptDataRes { bytes data = 1; }
 
 // service
 service ss {
@@ -57,4 +67,5 @@ service ss {
   rpc ListUser(UserReq) returns (UserList) {}
   rpc HealthCheck(HealthCheckReq) returns (stream HealthCheckRes) {}
   rpc FindAccessUser(FindAccessUserReq) returns (User) {}
+  rpc DecryptData(DecryptDataReq) returns (DecryptDataRes) {}
 }

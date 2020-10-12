@@ -18,10 +18,14 @@ from shadowsocks.services import AioShadowsocksServicer
 
 
 async def logging_grpc_request(event: RecvRequest) -> None:
-    logging.info(f"{event.method_name} called!")
+    # logging.info(f"{event.method_name} called!")
+    return
 
 
 class App:
+    def __init__(self) -> None:
+        self._prepared = False
+
     def _init_config(self):
         self.config = {
             "LISTEN_HOST": os.getenv("SS_LISTEN_HOST", "0.0.0.0"),
@@ -51,7 +55,8 @@ class App:
 
         self.use_sentry = True if self.sentry_dsn else False
         self.use_json = False if self.api_endpoint else True
-        self.use_grpc = True if self.grpc_host and self.grpc_port else False
+        self.metrics_server = None
+        self.grpc_server = None
 
     def _init_logger(self):
         """
@@ -64,7 +69,7 @@ class App:
             "INFO": 20,
             "DEBUG": 10,
         }
-        level = log_levels.get(self.log_level.upper(), 10)
+        level = log_levels[self.log_level.upper()]
         logging.basicConfig(
             format="[%(levelname)s]%(asctime)s - %(filename)s - %(funcName)s "
             "line:%(lineno)d: - %(message)s",
@@ -85,23 +90,50 @@ class App:
         logging.info("Init Sentry Client...")
 
     def _prepare(self):
+        if self._prepared:
+            return
         uvloop.install()
         self.loop = asyncio.get_event_loop()
         self._init_config()
         self._init_logger()
         self._init_memory_db()
         self._init_sentry()
-        self.loop.add_signal_handler(signal.SIGTERM, self.shutdown)
+        self.loop.add_signal_handler(signal.SIGTERM, self._shutdown)
         self.proxyman = ProxyMan(self.listen_host)
+        if self.use_json:
+            self.loop.create_task(models.User.sync_from_json_cron(self.sync_time))
+        else:
+            self.loop.create_task(
+                models.User.sync_from_remote_cron(self.api_endpoint, self.sync_time)
+            )
+        self._prepared = True
 
-    async def start_grpc_server(self):
+    def _shutdown(self):
+        logging.info("正在关闭所有ss server")
+        self.proxyman.close_server()
+        if self.grpc_server:
+            self.grpc_server.close()
+            logging.info(f"grpc server closed!")
+        if self.metrics_server:
+            self.loop.create_task(self.metrics_server.stop())
+            logging.info(f"metrics server closed!")
+        self.loop.stop()
+
+    def _run_loop(self):
+
+        try:
+            self.loop.run_forever()
+        except KeyboardInterrupt:
+            self._shutdown()
+
+    async def _start_grpc_server(self):
 
         self.grpc_server = Server([AioShadowsocksServicer()], loop=self.loop)
         listen(self.grpc_server, RecvRequest, logging_grpc_request)
         await self.grpc_server.start(self.grpc_host, self.grpc_port)
         logging.info(f"Start grpc Server on {self.grpc_host}:{self.grpc_port}")
 
-    async def start_metrics_server(self):
+    async def _start_metrics_server(self):
         app = web.Application()
         app.router.add_get("/metrics", aio.web.server_stats)
         runner = web.AppRunner(app)
@@ -113,36 +145,18 @@ class App:
         )
 
     def run_ss_server(self):
-        """启动ss server"""
+        self._prepare()
+        self.loop.create_task(self.proxyman.start_ss_server())
+        if self.metrics_port:
+            self.loop.create_task(self._start_metrics_server())
+        self._run_loop()
+
+    def run_grpc_server(self):
         self._prepare()
 
-        if self.use_json:
-            self.loop.create_task(self.proxyman.start_ss_json_server())
+        if self.grpc_host and self.grpc_port:
+            self.loop.create_task(self._start_grpc_server())
         else:
-            self.loop.create_task(
-                self.proxyman.start_remote_sync_server(
-                    self.api_endpoint, self.sync_time
-                )
-            )
+            raise Exception("grpc server not config")
 
-        if self.use_grpc:
-            self.loop.create_task(self.start_grpc_server())
-
-        if self.metrics_port:
-            self.loop.create_task(self.start_metrics_server())
-
-        try:
-            self.loop.run_forever()
-        except KeyboardInterrupt:
-            self.shutdown()
-
-    def shutdown(self):
-        logging.info("正在关闭所有ss server")
-        self.proxyman.close_server()
-        if self.use_grpc:
-            self.grpc_server.close()
-            logging.info(f"grpc server closed!")
-        if self.metrics_port:
-            self.loop.create_task(self.metrics_server.stop())
-            logging.info(f"metrics server closed!")
-        self.loop.stop()
+        self._run_loop()
