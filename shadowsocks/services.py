@@ -1,9 +1,21 @@
+from grpc import RpcError
+
+from shadowsocks.ciphers import SUPPORT_METHODS
+from shadowsocks.gen.async_protos import aioshadowsocks_grpc
+from shadowsocks.gen.async_protos.aioshadowsocks_pb2 import (
+    DecryptDataRes,
+    Empty,
+    HealthCheckRes,
+    User,
+    UserList,
+)
 from shadowsocks.mdb import models as m
-from shadowsocks.protos import aioshadowsocks_grpc
-from shadowsocks.protos.aioshadowsocks_pb2 import HealthCheckRes, User, UserList
 
 
 class AioShadowsocksServicer(aioshadowsocks_grpc.ssBase):
+    def __init__(self) -> None:
+        self.cipher_map = {}
+
     async def CreateUser(self, stream):
         request = await stream.recv_message()
         data = {
@@ -38,7 +50,7 @@ class AioShadowsocksServicer(aioshadowsocks_grpc.ssBase):
         user = m.User.get_by_id(request.user_id)
         user.server.close_server()
         user.delete_instance()
-        await stream.send_message(aioshadowsocks_pb2.Empty())
+        await stream.send_message(Empty())
 
     async def ListUser(self, stream):
         request = await stream.recv_message()
@@ -57,5 +69,13 @@ class AioShadowsocksServicer(aioshadowsocks_grpc.ssBase):
             request.port, request.method, request.ts_protocol, request.data
         )
         if not user:
-            raise Exception("not find")
+            raise RpcError("not find")
         await stream.send_message(User(**user.to_dict()))
+
+    async def DecryptData(self, stream):
+        request = await stream.recv_message()
+        cipher = self.cipher_map.get(request.uuid)
+        if not cipher:
+            cipher = SUPPORT_METHODS[request.method](request.password)
+            self.cipher_map[request.uuid] = cipher
+        await stream.send_message(DecryptDataRes(data=cipher.decrypt(request.data)))

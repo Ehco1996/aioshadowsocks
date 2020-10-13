@@ -81,18 +81,21 @@ class LocalHandler:
         self.close()
 
     def handle_data_received(self, data):
+
         if not self.cipher:
             self.cipher = CipherMan.get_cipher_by_port(
                 self.port, self._transport_protocol
             )
-        try:
-            data = self.cipher.decrypt(data)
-        except Exception as e:
-            self.close()
-            logging.warning(
-                f"decrypt data error:{e} remote:{self._peername},type:{self._transport_protocol_human} closing..."
-            )
-            return
+
+        data = self.cipher.decrypt(data)
+        # try:
+        #     data = self.cipher.decrypt(data)
+        # except Exception as e:
+        #     self.close()
+        #     logging.warning(
+        #         f"decrypt data error:{e} remote:{self._peername},type:{self._transport_protocol_human} closing..."
+        #     )
+        #     return
 
         if not data:
             return

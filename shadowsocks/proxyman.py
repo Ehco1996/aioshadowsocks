@@ -32,29 +32,11 @@ class ProxyMan:
     def get_server_by_port(self, port):
         return self.__running_servers__.get(port)
 
-    async def sync_from_remote(self):
-        try:
-            User.flush_metrics_to_remote(self.api_endpoint)
-            User.create_or_update_from_remote(self.api_endpoint)
-        except Exception as e:
-            logging.warning(f"sync user error {e}")
+    async def start_ss_server(self):
         for user in User.select().where(User.enable == True):
             await self.loop.create_task(self.init_server(user))
         for user in User.select().where(User.enable == False):
             self.close_user_server(user)
-        self.loop.call_later(
-            self.sync_time, self.loop.create_task, self.sync_from_remote()
-        )
-
-    async def start_ss_json_server(self):
-        User.create_or_update_from_json("userconfigs.json")
-        for user in User.select().where(User.enable == True):
-            await self.loop.create_task(self.init_server(user))
-
-    async def start_remote_sync_server(self, api_endpoint, sync_time):
-        self.api_endpoint = api_endpoint
-        self.sync_time = sync_time
-        await self.sync_from_remote()
 
     async def init_server(self, user: User):
 

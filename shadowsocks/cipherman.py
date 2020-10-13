@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import uuid
+
 from shadowsocks import protocol_flag as flag
 from shadowsocks.ciphers import SUPPORT_METHODS
 from shadowsocks.mdb.models import User
@@ -12,8 +14,6 @@ from shadowsocks.utils import AutoResetBloomFilter
 
 
 class CipherMan:
-
-    SUPPORT_METHODS = SUPPORT_METHODS
     bf = AutoResetBloomFilter()
 
     # TODO 流量、链接数限速
@@ -31,6 +31,7 @@ class CipherMan:
         self.cipher = None
         self._buffer = bytearray()
         self.last_access_user = None
+        self.uuid = uuid.uuid4().hex
 
         if self.access_user:
             self.method = access_user.method
@@ -39,7 +40,7 @@ class CipherMan:
                 User.list_by_port(self.user_port).first().method
             )  # NOTE 所有的user用的加密方式必须是一种
 
-        self.cipher_cls = self.SUPPORT_METHODS.get(self.method)
+        self.cipher_cls = SUPPORT_METHODS.get(self.method)
         if not self.cipher_cls:
             raise Exception(f"暂时不支持这种加密方式:{self.method}")
         if self.cipher_cls.AEAD_CIPHER and self.ts_protocol == flag.TRANSPORT_TCP:
@@ -98,8 +99,9 @@ class CipherMan:
                     f"can not find enable access user: {self.port}-{self.ts_protocol}-{self.cipher_cls}"
                 )
             self.access_user = access_user
-            self.cipher = self.cipher_cls(self.access_user.password)
             data = bytes(self._buffer)
+        if not self.cipher:
+            self.cipher = self.cipher_cls(self.access_user.password)
 
         self.record_user_traffic(len(data), 0)
         if self.ts_protocol == flag.TRANSPORT_TCP:

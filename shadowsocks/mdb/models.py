@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 
@@ -71,6 +72,33 @@ class User(BaseModel, HttpSessionMixin):
         res = cls.http_session.request("get", url)
         for user_data in res.json()["users"]:
             cls._create_or_update_user_from_data(user_data)
+
+    @classmethod
+    async def sync_from_remote_cron(cls, api_endpoint, sync_time):
+        loop = asyncio.get_running_loop()
+        try:
+            cls.flush_metrics_to_remote(api_endpoint)
+            cls.create_or_update_from_remote(api_endpoint)
+        except Exception as e:
+            logging.warning(f"sync user error {e}")
+        loop.call_later(
+            sync_time,
+            loop.create_task,
+            cls.sync_from_remote_cron(api_endpoint, sync_time),
+        )
+
+    @classmethod
+    async def sync_from_json_cron(cls, sync_time):
+        loop = asyncio.get_running_loop()
+        try:
+            User.create_or_update_from_json("userconfigs.json")
+        except Exception as e:
+            logging.warning(f"sync user error {e}")
+        loop.call_later(
+            sync_time,
+            loop.create_task,
+            cls.sync_from_json_cron(sync_time),
+        )
 
     @classmethod
     def flush_metrics_to_remote(cls, url):
