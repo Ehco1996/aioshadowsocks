@@ -1,7 +1,5 @@
-from grpc import RpcError
-
 from shadowsocks.ciphers import SUPPORT_METHODS
-from shadowsocks.gen.async_protos import aioshadowsocks_grpc
+from shadowsocks.gen.async_protos.aioshadowsocks_grpc import ssBase
 from shadowsocks.gen.async_protos.aioshadowsocks_pb2 import (
     DecryptDataRes,
     Empty,
@@ -12,7 +10,7 @@ from shadowsocks.gen.async_protos.aioshadowsocks_pb2 import (
 from shadowsocks.mdb import models as m
 
 
-class AioShadowsocksServicer(aioshadowsocks_grpc.ssBase):
+class AioShadowsocksServicer(ssBase):
     def __init__(self) -> None:
         self.cipher_map = {}
 
@@ -69,7 +67,7 @@ class AioShadowsocksServicer(aioshadowsocks_grpc.ssBase):
             request.port, request.method, request.ts_protocol, request.data
         )
         if not user:
-            raise RpcError("not find")
+            raise Exception("not find")
         await stream.send_message(User(**user.to_dict()))
 
     async def DecryptData(self, stream):

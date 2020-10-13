@@ -114,6 +114,7 @@ class LocalHandler:
             logging.warning(f"unknown stage:{self._stage}")
 
     async def _handle_stage_init(self, data):
+        self.cipher.incr_user_tcp_num(1)
         addr_type, dst_addr, dst_port, header_length = parse_header(data)
         if not all([addr_type, dst_addr, dst_port, header_length]):
             logging.warning(f"parse error addr_type: {addr_type} port: {self.port}")
