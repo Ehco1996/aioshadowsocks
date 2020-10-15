@@ -17,6 +17,7 @@ RUN set -e; \
     && apk add libressl-dev \
     # TODO workaround end
     && pip install poetry \
-    && poetry install --no-dev \
+    && poetry config virtualenvs.create false \
+    && poetry install --no-dev --no-interaction --no-ansi \
     && rm -rf ~/.cache \
     && apk del .build-deps
