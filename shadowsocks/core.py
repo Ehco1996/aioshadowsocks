@@ -87,15 +87,14 @@ class LocalHandler:
                 self.port, self._transport_protocol
             )
 
-        data = self.cipher.decrypt(data)
-        # try:
-        #     data = self.cipher.decrypt(data)
-        # except Exception as e:
-        #     self.close()
-        #     logging.warning(
-        #         f"decrypt data error:{e} remote:{self._peername},type:{self._transport_protocol_human} closing..."
-        #     )
-        #     return
+        try:
+            data = self.cipher.decrypt(data)
+        except Exception as e:
+            self.close()
+            logging.warning(
+                f"decrypt data error:{e} remote:{self._peername},type:{self._transport_protocol_human} closing..."
+            )
+            return
 
         if not data:
             return

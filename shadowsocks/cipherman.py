@@ -96,7 +96,7 @@ class CipherMan:
 
             if not access_user or access_user.enable is False:
                 raise RuntimeError(
-                    f"can not find enable access user: {self.port}-{self.ts_protocol}-{self.cipher_cls}"
+                    f"can not find enable access user: {self.user_port}-{self.ts_protocol}-{self.cipher_cls}"
                 )
             self.access_user = access_user
             data = bytes(self._buffer)
