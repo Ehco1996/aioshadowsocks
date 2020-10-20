@@ -27,7 +27,7 @@ protobuf = "==3.13.0"
 pycryptodome = "==3.9.8"
 python = ">=3.8.0, <3.9.0"
 requests = "==2.24.0"
-sentry-sdk = "==0.18.0"
+sentry-sdk = "==0.19.1"
 uvloop = "==0.14.0"
 
 [tool.poetry.dev-dependencies]
