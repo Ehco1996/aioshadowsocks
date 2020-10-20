@@ -128,9 +128,8 @@ class BaseAEADCipher(BaseCipher):
         super().__init__(password)
         self._buffer = bytearray()
         self._payload_len = None
-
-        self.encrypt_func = None
-        self.decrypt_func = None
+        self._subkey = None
+        self._counter = 0
 
     def _derive_subkey(self, salt: bytes):
         return hkdf.Hkdf(salt, self.key, hashlib.sha1).expand(self.INFO, self.KEY_SIZE)
@@ -138,52 +137,40 @@ class BaseAEADCipher(BaseCipher):
     def _make_random_salt(self):
         return os.urandom(self.SALT_SIZE)
 
-    def _init_encrypt_func(self, salt: bytes):
-        counter = 0
-        salt = salt if salt is not None else self._make_random_salt()
-        subkey = self._derive_subkey(salt)
+    def _encrypt(self, plaintext: bytes):
+        cipher = self.new_cipher(self._subkey, self.nonce)
+        return cipher.encrypt_and_digest(plaintext)
 
-        def encrypt(plaintext: bytes):
-            nonlocal counter
-            nonce = counter.to_bytes(self.NONCE_SIZE, "little")
-            counter += 1
-            cipher = self.new_cipher(subkey, nonce)
-            return cipher.encrypt_and_digest(plaintext)
+    def _decrypt(self, ciphertext: bytes, tag: bytes):
+        cipher = self.new_cipher(self._subkey, self.nonce)
+        return cipher.decrypt_and_verify(ciphertext, tag)
 
-        return salt, encrypt
-
-    def _init_decrypt_func(self, salt: bytes):
-        counter = 0
-        subkey = self._derive_subkey(salt)
-
-        def decrypt(ciphertext: bytes, tag: bytes):
-            nonlocal counter
-            nonce = counter.to_bytes(self.NONCE_SIZE, "little")
-            counter += 1
-            cipher = self.new_cipher(subkey, nonce)
-            return cipher.decrypt_and_verify(ciphertext, tag)
-
-        return decrypt
+    @property
+    def nonce(self):
+        ret = self._counter.to_bytes(self.NONCE_SIZE, "little")
+        self._counter += 1
+        return ret
 
     def encrypt(self, data: bytes):
         ret = bytearray()
-        if not self.encrypt_func:
-            salt, self.encrypt_func = self._init_encrypt_func(None)
+        if self._subkey is None:
+            salt = self._make_random_salt()
+            self._subkey = self._derive_subkey(salt)
             ret.extend(salt)
 
         for i in range(0, len(data), self.PACKET_LIMIT):
             buf = data[i : i + self.PACKET_LIMIT]
-            len_chunk, len_tag = self.encrypt_func(len(buf).to_bytes(2, "big"))
-            body_chunk, body_tag = self.encrypt_func(buf)
+            len_chunk, len_tag = self._encrypt(len(buf).to_bytes(2, "big"))
+            body_chunk, body_tag = self._encrypt(buf)
             ret.extend(len_chunk + len_tag + body_chunk + body_tag)
 
         return bytes(ret)
 
     def decrypt(self, data: bytes):
         ret = bytearray()
-        if not self.decrypt_func:
+        if self._subkey is None:
             salt, data = data[: self.SALT_SIZE], data[self.SALT_SIZE :]
-            self.decrypt_func = self._init_decrypt_func(salt)
+            self._subkey = self._derive_subkey(salt)
 
         self._buffer.extend(data)
 
@@ -194,7 +181,7 @@ class BaseAEADCipher(BaseCipher):
                     break
                 else:
                     self._payload_len = int.from_bytes(
-                        self.decrypt_func(
+                        self._decrypt(
                             self._buffer[:2], self._buffer[2 : 2 + self.TAG_SIZE]
                         ),
                         "big",
@@ -207,7 +194,7 @@ class BaseAEADCipher(BaseCipher):
                 if len(self._buffer) < self._payload_len + self.TAG_SIZE:
                     break
                 ret.extend(
-                    self.decrypt_func(
+                    self._decrypt(
                         self._buffer[: self._payload_len],
                         self._buffer[
                             self._payload_len : self._payload_len + self.TAG_SIZE
