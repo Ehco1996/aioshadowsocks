@@ -60,7 +60,7 @@ class LocalHandler:
 
         if self._transport_protocol == flag.TRANSPORT_TCP:
             self._transport and self._transport.close()
-            self.cipher and self.cipher.incr_user_tcp_num(-1)
+            self.cipher.close()
         self._remote and self._remote.close()
 
     def write(self, data):
@@ -84,7 +84,7 @@ class LocalHandler:
 
         if not self.cipher:
             self.cipher = CipherMan.get_cipher_by_port(
-                self.port, self._transport_protocol
+                self.port, self._transport_protocol, self._peername
             )
 
         try:
@@ -113,7 +113,6 @@ class LocalHandler:
             logging.warning(f"unknown stage:{self._stage}")
 
     async def _handle_stage_init(self, data):
-        self.cipher.incr_user_tcp_num(1)
         addr_type, dst_addr, dst_port, header_length = parse_header(data)
         if not all([addr_type, dst_addr, dst_port, header_length]):
             logging.warning(f"parse error addr_type: {addr_type} port: {self.port}")
@@ -139,7 +138,6 @@ class LocalHandler:
                 logging.warning(f"connection failed, {type(e)} e: {e}")
             else:
                 self._remote = remote_tcp
-                self.cipher.record_user_ip(self._peername)
         else:
             try:
                 await loop.create_datagram_endpoint(
