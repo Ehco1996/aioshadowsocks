@@ -60,7 +60,7 @@ class LocalHandler:
 
         if self._transport_protocol == flag.TRANSPORT_TCP:
             self._transport and self._transport.close()
-            self.cipher.close()
+            self.cipher and self.cipher.close()
         self._remote and self._remote.close()
 
     def write(self, data):
