@@ -1,11 +1,9 @@
-from __future__ import annotations
-
 import abc
 import hashlib
 import os
 
 import hkdf
-from Crypto.Cipher import AES, ChaCha20_Poly1305
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM, ChaCha20Poly1305
 
 
 def evp_bytestokey(password: bytes, key_size: int):
@@ -27,8 +25,9 @@ def evp_bytestokey(password: bytes, key_size: int):
 
 class BaseCipher(metaclass=abc.ABCMeta):
     KEY_SIZE = -1
+    AEAD_CIPHER = False
 
-    def __init__(self, password: str) -> BaseCipher:
+    def __init__(self, password: str):
         self.key = evp_bytestokey(password.encode(), self.KEY_SIZE)
 
     @abc.abstractmethod
@@ -52,70 +51,6 @@ class BaseCipher(metaclass=abc.ABCMeta):
         return
 
 
-class BaseStreamCipher(BaseCipher, metaclass=abc.ABCMeta):
-    """Shadowsocks Stream cipher
-    spec: https://shadowsocks.org/en/spec/Stream-Ciphers.html
-    """
-
-    AEAD_CIPHER = False
-    IV_SIZE = 0
-
-    def __init__(self, password: str):
-        super().__init__(password)
-
-        self.encrypt_func = None
-        self.decrypt_func = None
-
-    def make_random_iv(self):
-        return os.urandom(self.IV_SIZE)
-
-    @abc.abstractmethod
-    def new_cipher(self, key: bytes, iv: bytes):
-        return
-
-    def _init_encrypt_func(self):
-        first_package = True
-        iv = self.make_random_iv()
-        cipher = self.new_cipher(self.key, iv)
-
-        def encrypt(plaintext: bytes) -> bytes:
-            nonlocal first_package
-            ciphertext = cipher.encrypt(plaintext)
-            if first_package:
-                first_package = False
-                return iv + ciphertext
-            return ciphertext
-
-        return encrypt
-
-    def _init_decrypt_func(self, iv: bytes):
-        cipher = self.new_cipher(self.key, iv)
-
-        def decrypt(ciphertext: bytes) -> bytes:
-            return cipher.decrypt(ciphertext)
-
-        return decrypt
-
-    def encrypt(self, data: bytes):
-        if not self.encrypt_func:
-            self.encrypt_func = self._init_encrypt_func()
-        return self.encrypt_func(data)
-
-    def decrypt(self, data: bytes):
-        if not self.decrypt_func:
-            iv, data = data[: self.IV_SIZE], data[self.IV_SIZE :]
-            self.decrypt_func = self._init_decrypt_func(iv)
-        return self.decrypt_func(data)
-
-    def unpack(self, data: bytes) -> bytes:
-        """解包udp"""
-        return self.decrypt(data)
-
-    def pack(self, data: bytes) -> bytes:
-        """压udp包"""
-        return self.encrypt(data)
-
-
 class BaseAEADCipher(BaseCipher):
     INFO = b"ss-subkey"
     PACKET_LIMIT = 16 * 1024 - 1
@@ -130,6 +65,7 @@ class BaseAEADCipher(BaseCipher):
         self._payload_len = None
         self._subkey = None
         self._counter = 0
+        self._cipher = None
 
     def _derive_subkey(self, salt: bytes):
         return hkdf.Hkdf(salt, self.key, hashlib.sha1).expand(self.INFO, self.KEY_SIZE)
@@ -138,12 +74,14 @@ class BaseAEADCipher(BaseCipher):
         return os.urandom(self.SALT_SIZE)
 
     def _encrypt(self, plaintext: bytes):
-        cipher = self.new_cipher(self._subkey, self.nonce)
-        return cipher.encrypt_and_digest(plaintext)
+        if not self._cipher:
+            self._cipher = self.new_cipher(self._subkey)
+        return self._cipher.encrypt(self.nonce, plaintext, None)
 
     def _decrypt(self, ciphertext: bytes, tag: bytes):
-        cipher = self.new_cipher(self._subkey, self.nonce)
-        return cipher.decrypt_and_verify(ciphertext, tag)
+        if not self._cipher:
+            self._cipher = self.new_cipher(self._subkey)
+        return self._cipher.decrypt(self.nonce, bytes(ciphertext + tag), None)
 
     @property
     def nonce(self):
@@ -151,22 +89,19 @@ class BaseAEADCipher(BaseCipher):
         self._counter += 1
         return ret
 
-    def encrypt(self, data: bytes):
+    def encrypt(self, data: bytes) -> bytes:
         ret = bytearray()
         if self._subkey is None:
             salt = self._make_random_salt()
             self._subkey = self._derive_subkey(salt)
             ret.extend(salt)
-
         for i in range(0, len(data), self.PACKET_LIMIT):
             buf = data[i : i + self.PACKET_LIMIT]
-            len_chunk, len_tag = self._encrypt(len(buf).to_bytes(2, "big"))
-            body_chunk, body_tag = self._encrypt(buf)
-            ret.extend(len_chunk + len_tag + body_chunk + body_tag)
-
+            #  len_chunk, len_tag  + body_chunk + body_tag
+            ret.extend(self._encrypt(len(buf).to_bytes(2, "big")) + self._encrypt(buf))
         return bytes(ret)
 
-    def decrypt(self, data: bytes):
+    def decrypt(self, data: bytes) -> bytes:
         ret = bytearray()
         if self._subkey is None:
             salt, data = data[: self.SALT_SIZE], data[self.SALT_SIZE :]
@@ -234,31 +169,21 @@ class BaseAEADCipher(BaseCipher):
         return cls.SALT_SIZE + 2 + cls.TAG_SIZE
 
 
-class AESCipher(BaseStreamCipher):
-    def new_cipher(self, key: bytes, iv: bytes):
-        return AES.new(key, mode=AES.MODE_CFB, iv=iv, segment_size=128)
-
-
-class NONE(BaseStreamCipher):
+class NONE(BaseCipher):
     def new_cipher(self, key: bytes, iv: bytes):
         return
 
-    def _init_encrypt_func(self):
-        def encrypt(plaintext: bytes) -> bytes:
-            return plaintext
+    def encrypt(self, data: bytes):
+        return data
 
-        return encrypt
+    def decrypt(self, data: bytes):
+        return data
 
-    def _init_decrypt_func(self, iv: bytes):
-        def decrypt(ciphertext: bytes) -> bytes:
-            return ciphertext
+    def unpack(self, data: bytes) -> bytes:
+        return data
 
-        return decrypt
-
-
-class AES256CFB(AESCipher):
-    KEY_SIZE = 32
-    IV_SIZE = 16
+    def pack(self, data: bytes) -> bytes:
+        return data
 
 
 class CHACHA20IETFPOLY1305(BaseAEADCipher):
@@ -267,8 +192,8 @@ class CHACHA20IETFPOLY1305(BaseAEADCipher):
     NONCE_SIZE = 12
     TAG_SIZE = 16
 
-    def new_cipher(self, subkey: bytes, nonce: bytes):
-        return ChaCha20_Poly1305.new(key=subkey, nonce=nonce)
+    def new_cipher(self, subkey: bytes):
+        return ChaCha20Poly1305(key=subkey)
 
 
 class AES128GCM(BaseAEADCipher):
@@ -277,8 +202,8 @@ class AES128GCM(BaseAEADCipher):
     NONCE_SIZE = 12
     TAG_SIZE = 16
 
-    def new_cipher(self, subkey: bytes, nonce: bytes):
-        return AES.new(subkey, AES.MODE_GCM, nonce=nonce, mac_len=self.TAG_SIZE)
+    def new_cipher(self, subkey: bytes):
+        return AESGCM(subkey)
 
 
 class AES256GCM(AES128GCM):
@@ -288,9 +213,10 @@ class AES256GCM(AES128GCM):
     TAG_SIZE = 16
 
 
+# NOTE 目前提供所有AEAD的加密方式，流式加密只提供None（不加密）
+# 但是所有流式加密的方式都不推荐使用了，生产环境请一律使用AEAD加密
 SUPPORT_METHODS = {
     "none": NONE,
-    "aes-256-cfb": AES256CFB,
     "aes-128-gcm": AES128GCM,
     "aes-256-gcm": AES256GCM,
     "chacha20-ietf-poly1305": CHACHA20IETFPOLY1305,

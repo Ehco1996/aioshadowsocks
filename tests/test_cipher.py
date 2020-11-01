@@ -4,7 +4,7 @@ import time
 from shadowsocks.ciphers import SUPPORT_METHODS
 
 
-def test_cipher(cipher_cls, size=32 * 1024, repeat=128):
+def _test_cipher(cipher_cls, size=32 * 1024, repeat=128):
     for i in range(repeat):
         password = "i am password"
         enc = cipher_cls(password)
@@ -18,8 +18,8 @@ def test_cipher(cipher_cls, size=32 * 1024, repeat=128):
         assert dep_text == plain_text
 
 
-if __name__ == "__main__":
-    for key, cipher_cls in SUPPORT_METHODS.items():
+def test_cipher():
+    for _, cipher_cls in SUPPORT_METHODS.items():
         t = time.perf_counter()
-        test_cipher(cipher_cls, size=256000)
+        _test_cipher(cipher_cls, size=256000)
         print(cipher_cls, time.perf_counter() - t)

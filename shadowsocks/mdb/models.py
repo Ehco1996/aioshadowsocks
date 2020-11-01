@@ -5,6 +5,7 @@ import json
 import logging
 
 import peewee as pw
+from cryptography.exceptions import InvalidTag
 
 from shadowsocks import protocol_flag as flag
 from shadowsocks.ciphers import SUPPORT_METHODS
@@ -165,9 +166,8 @@ class User(BaseModel, HttpSessionMixin):
                     cipher.unpack(first_data)
                 access_user = user
                 break
-            except ValueError as e:
-                if e.args[0] != "MAC check failed":
-                    raise e
+            except InvalidTag:
+                pass
         if access_user:
             # NOTE 记下成功访问的用户，下次优先找到他
             access_user.access_order += 1

@@ -12,7 +12,6 @@
 
 * 隧道对接视频教程: [地址](https://youtu.be/R4U0NZaMUeY)
 
-
 ## 使用
 
 * 安装
@@ -23,32 +22,40 @@ pip install aioshadowsocks
 
 * 多用户配置
 
-aioshadowsocks 将json作为配置文件,会读取当前目录下`userconfigs.json`作为默认的配置文件
+aioshadowsocks 将json作为配置文件, 会读取当前目录下 `userconfigs.json` 作为默认的配置文件
 
-```json
+``` json
 {
     "users": [
         {
             "user_id": 1,
             "port": 2345,
-            "method": "aes-256-cfb",
+            "method": "none",
             "password": "hellotheworld1",
             "transfer": 104857600,
             "speed_limit": 0
+        },
+        {
+            "user_id": 2,
+            "port": 2346,
+            "method": "chacha20-ietf-poly1305",
+            "password": "hellotheworld2",
+            "transfer": 104857600,
+            "speed_limit": 384000
         }
     ]
 }
 ```
 
-同时也支持从http服务器读取配置文件，这时需要注入环境变量`SS_API_ENDPOINT`作为读取配置的api地址
+同时也支持从http服务器读取配置文件，这时需要注入环境变量 `SS_API_ENDPOINT` 作为读取配置的api地址
+
 * 注入环境变量
 
-`export SS_API_ENDPOINT="https://xxx/com"`
-
+ `export SS_API_ENDPOINT="https://xxx/com"`
 
 * 启动ss服务器
 
-```bash
+``` bash
 aioss run_ss_server
 ```
 
@@ -78,12 +85,11 @@ sudo chmod +x /usr/local/bin/docker-compose
 docker-compose up
 ```
 
-
 ## 为什么要重写shadowsocks
 
-主要想通过这个项目的推进来深入了解 `asyncio` 
+主要想通过这个项目的推进来深入了解 `asyncio`
 
-另外我的一个项目: [django-sspanel](https://github.com/Ehco1996/django-sspanel) 依赖 `shadowsocksr` 
+另外我的一个项目: [django-sspanel](https://github.com/Ehco1996/django-sspanel) 依赖 `shadowsocksr`
 
 但该项目已经停止开发了，所以决定重新造个轮子
 
@@ -117,7 +123,6 @@ docker-compose up
 * AEAD-Cipher-CHACHA-20(加密 高CPU)
 
 ![](static/images/aead-chacha-20-ietf-poly-1305.png)
-
 
 ## rpc proto
 
