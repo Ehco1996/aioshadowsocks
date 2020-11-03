@@ -1,23 +1,15 @@
-
-FROM python:3.8.5-alpine as base
-# FROM ehco1996/aioshadowsocks:runtime as base
-
+FROM python:3.8-slim-buster as base
 LABEL Name="aio-shadowsocks" Maintainer="Ehco1996"
 
-COPY README.md poetry.lock pyproject.toml ./
-COPY shadowsocks ./shadowsocks
+COPY . .
 
+# Note to install cryptography check this  https://github.com/pyca/cryptography/blob/1340c00/docs/installation.rst#building-cryptography-on-linux
 RUN set -e; \
-    apk update \
-    && apk add --virtual .build-deps libffi-dev build-base \
-    # TODO workaround start
-    && apk del libressl-dev \
-    && apk add openssl-dev \
-    && apk del openssl-dev \
-    && apk add libressl-dev \
-    # TODO workaround end
-    && pip install poetry \
+    # apk update \
+    # && apk add gcc musl-dev python3-dev libffi-dev openssl-dev \
+    pip install poetry \
     && poetry config virtualenvs.create false \
     && poetry install --no-dev --no-interaction --no-ansi \
-    && rm -rf ~/.cache \
-    && apk del .build-deps
+    && rm -rf ~/.cache
+
+CMD ["aioss", "run_ss_server"]

@@ -5,7 +5,6 @@ import os
 import signal
 
 import sentry_sdk
-import uvloop
 from aiohttp import web
 from grpclib.events import RecvRequest, listen
 from grpclib.server import Server
@@ -92,7 +91,6 @@ class App:
     def _prepare(self):
         if self._prepared:
             return
-        uvloop.install()
         self.loop = asyncio.get_event_loop()
         self._init_config()
         self._init_logger()
