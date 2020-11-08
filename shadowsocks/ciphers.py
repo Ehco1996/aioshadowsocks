@@ -4,6 +4,7 @@ import os
 
 import hkdf
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM, ChaCha20Poly1305
+from viztracer.decorator import log_sparse
 
 
 def evp_bytestokey(password: bytes, key_size: int):
@@ -78,6 +79,7 @@ class BaseAEADCipher(BaseCipher):
             self._cipher = self.new_cipher(self._subkey)
         return self._cipher.encrypt(self.nonce, plaintext, None)
 
+    @log_sparse
     def _decrypt(self, ciphertext: bytes, tag: bytes):
         if not self._cipher:
             self._cipher = self.new_cipher(self._subkey)
@@ -101,6 +103,7 @@ class BaseAEADCipher(BaseCipher):
             ret.extend(self._encrypt(len(buf).to_bytes(2, "big")) + self._encrypt(buf))
         return bytes(ret)
 
+    @log_sparse
     def decrypt(self, data: bytes) -> bytes:
         ret = bytearray()
         if self._subkey is None:

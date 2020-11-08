@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import uuid
 
+from viztracer import log_sparse
+
 from shadowsocks import protocol_flag as flag
 from shadowsocks.ciphers import SUPPORT_METHODS
 from shadowsocks.mdb.models import User
@@ -74,6 +76,7 @@ class CipherMan:
         return self.cipher.encrypt(data)
 
     @DECRYPT_DATA_TIME.time()
+    @log_sparse
     def decrypt(self, data: bytes):
         if (
             self.access_user is None
@@ -121,7 +124,9 @@ class CipherMan:
     def record_user_ip(self, peername):
         self.access_user and self.access_user.record_ip(peername)
 
+    @log_sparse
     def record_user_traffic(self, ut_data_len: int, dt_data_len: int):
+        return
         self.access_user and self.access_user.record_traffic(ut_data_len, dt_data_len)
         NETWORK_TRANSMIT_BYTES.inc(ut_data_len + dt_data_len)
 

@@ -3,6 +3,8 @@ import logging
 import socket
 import struct
 
+from viztracer import log_sparse
+
 from shadowsocks import protocol_flag as flag
 from shadowsocks.cipherman import CipherMan
 from shadowsocks.metrics import ACTIVE_CONNECTION_COUNT, CONNECTION_MADE_COUNT
@@ -80,6 +82,7 @@ class LocalHandler:
     def handle_connection_lost(self, exc):
         self.close()
 
+    @log_sparse
     def handle_data_received(self, data):
 
         if not self.cipher:
@@ -112,6 +115,7 @@ class LocalHandler:
         else:
             logging.warning(f"unknown stage:{self._stage}")
 
+    @log_sparse
     async def _handle_stage_init(self, data):
         addr_type, dst_addr, dst_port, header_length = parse_header(data)
         if not all([addr_type, dst_addr, dst_port, header_length]):
@@ -149,6 +153,7 @@ class LocalHandler:
                 self.close()
                 logging.warning(f"connection failed, {type(e)} e: {e}")
 
+    @log_sparse
     def _handle_stage_connect(self, data):
         # 在握手之后，会耗费一定时间来来和remote建立连接,但是ss-client并不会等这个时间
         if not self._remote or self._remote.ready == False:

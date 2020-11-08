@@ -6,6 +6,7 @@ import logging
 
 import peewee as pw
 from cryptography.exceptions import InvalidTag
+from viztracer import log_sparse
 
 from shadowsocks import protocol_flag as flag
 from shadowsocks.ciphers import SUPPORT_METHODS
@@ -139,6 +140,7 @@ class User(BaseModel, HttpSessionMixin):
         ).execute()
 
     @db.atomic("EXCLUSIVE")
+    @log_sparse
     def record_traffic(self, used_u, used_d):
         User.update(
             download_traffic=User.download_traffic + used_d,
@@ -154,6 +156,7 @@ class User(BaseModel, HttpSessionMixin):
 
     @classmethod
     @FIND_ACCESS_USER_TIME.time()
+    @log_sparse
     def find_access_user(cls, port, method, ts_protocol, first_data) -> User:
         cipher_cls = SUPPORT_METHODS[method]
         access_user = None
