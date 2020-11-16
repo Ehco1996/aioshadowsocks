@@ -17,8 +17,7 @@ from shadowsocks.services import AioShadowsocksServicer
 
 
 async def logging_grpc_request(event: RecvRequest) -> None:
-    # logging.info(f"{event.method_name} called!")
-    return
+    logging.info(f"{event.method_name} called!")
 
 
 class App:

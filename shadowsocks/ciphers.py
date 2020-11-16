@@ -151,17 +151,18 @@ class BaseAEADCipher(BaseCipher):
             data[self.SALT_SIZE : tag_idx],
             data[tag_idx:],
         )
-        decrypt_func = self._init_decrypt_func(salt)
-        return decrypt_func(payload, tag)
+        self._subkey = self._derive_subkey(salt)
+
+        return self._decrypt(payload, tag)
 
     def pack(self, data: bytes) -> bytes:
         """压udp包"""
         ret = bytearray()
-        salt, encrypt_func = self._init_encrypt_func(None)
-        ret.extend(salt)
-        chunk, tag = encrypt_func(data)
-        ret.extend(chunk)
-        ret.extend(tag)
+        if self._subkey is None:
+            salt = self._make_random_salt()
+            self._subkey = self._derive_subkey(salt)
+            ret.extend(salt)
+        ret.extend(self._encrypt(len(data).to_bytes(2, "big")) + self._encrypt(data))
         return bytes(ret)
 
     @classmethod
