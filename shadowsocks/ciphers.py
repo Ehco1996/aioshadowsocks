@@ -143,27 +143,11 @@ class BaseAEADCipher(BaseCipher):
 
     def unpack(self, data: bytes) -> bytes:
         """解包udp"""
-
-        data_len = len(data)
-        tag_idx = data_len - self.TAG_SIZE
-        salt, payload, tag = (
-            data[: self.SALT_SIZE],
-            data[self.SALT_SIZE : tag_idx],
-            data[tag_idx:],
-        )
-        self._subkey = self._derive_subkey(salt)
-
-        return self._decrypt(payload, tag)
+        return self.decrypt(data)
 
     def pack(self, data: bytes) -> bytes:
         """压udp包"""
-        ret = bytearray()
-        if self._subkey is None:
-            salt = self._make_random_salt()
-            self._subkey = self._derive_subkey(salt)
-            ret.extend(salt)
-        ret.extend(self._encrypt(len(data).to_bytes(2, "big")) + self._encrypt(data))
-        return bytes(ret)
+        return self.encrypt(data)
 
     @classmethod
     def tcp_first_data_len(cls):
