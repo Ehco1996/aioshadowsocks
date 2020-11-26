@@ -20,4 +20,10 @@ services:
     # volumes:
     # - .:/src/aioshadowsocks
     working_dir: /src/aioshadowsocks
-    command:  python -m shadowsocks run_ss_server
+    command: ["python", "-m", "shadowsocks", "run_ss_server"]
+  ehco:
+    container_name: ehco
+    image: ehco1996/ehco:latest
+    network_mode: host
+    restart: always
+    command: ["ehco", "-c", ""]
