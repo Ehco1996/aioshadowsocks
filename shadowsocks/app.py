@@ -69,8 +69,7 @@ class App:
         }
         level = log_levels[self.log_level.upper()]
         logging.basicConfig(
-            format="[%(levelname)s]%(asctime)s - %(filename)s - %(funcName)s "
-            "line:%(lineno)d: - %(message)s",
+            format="[%(levelname)s]%(asctime)s %(funcName)s line:%(lineno)d %(message)s",
             level=level,
         )
 

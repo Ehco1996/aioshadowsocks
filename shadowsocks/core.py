@@ -50,6 +50,7 @@ class LocalHandler:
             self._transport_protocol_human = "tcp"
         else:
             self._transport_protocol_human = "udp"
+        logging.warning(f"init tansport:{peername[0]},{self._transport_protocol_human}")
 
     def close(self):
         self._stage = self.STAGE_DESTROY
@@ -90,10 +91,10 @@ class LocalHandler:
         try:
             data = self.cipher.decrypt(data)
         except Exception as e:
-            self.close()
             logging.warning(
                 f"decrypt data error:{e} remote:{self._peername},type:{self._transport_protocol_human} closing..."
             )
+            self.close()
             return
 
         if not data:
@@ -120,9 +121,6 @@ class LocalHandler:
             return
         else:
             payload = data[header_length:]
-        logging.debug(
-            f"HEADER: {addr_type} - {dst_addr} - {dst_port} - {self._transport_protocol}"
-        )
 
         loop = asyncio.get_running_loop()
         if self._transport_protocol == flag.TRANSPORT_TCP:
@@ -159,7 +157,6 @@ class LocalHandler:
 
     def _handle_stage_stream(self, data):
         self._remote.write(data)
-        logging.debug(f"relay data length {len(data)}")
 
 
 class LocalTCP(asyncio.Protocol):

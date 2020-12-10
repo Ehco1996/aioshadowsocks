@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import uuid
-
 from shadowsocks import protocol_flag as flag
 from shadowsocks.ciphers import SUPPORT_METHODS
 from shadowsocks.mdb.models import User
@@ -32,8 +30,6 @@ class CipherMan:
 
         self.cipher = None
         self._buffer = bytearray()
-        self.last_access_user = None
-        self.uuid = uuid.uuid4().hex
 
         if self.access_user:
             self.method = access_user.method
@@ -90,7 +86,9 @@ class CipherMan:
                 first_data = self._buffer
             salt = first_data[: self.cipher_cls.SALT_SIZE]
             if salt in self.bf:
-                raise RuntimeError(f"repeated salt founded!,peer:{self.peername}")
+                raise RuntimeError(
+                    f"repeated salt founded!,peer:{self.peername},{salt}"
+                )
             else:
                 self.bf.add(salt)
 
