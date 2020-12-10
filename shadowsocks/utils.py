@@ -1,26 +1,12 @@
 import logging
 import socket
 import struct
-from functools import lru_cache
 
 from bloom_filter import BloomFilter
 
 from shadowsocks import protocol_flag as flag
 
 
-def logging_cahce_info():
-    def wrapper(func):
-        def decorated(*args, **kwargs):
-            logging.debug(f"domain:{args[0]} cache_info: {func.cache_info()}")
-            return func(*args, **kwargs)
-
-        return decorated
-
-    return wrapper
-
-
-@logging_cahce_info()
-@lru_cache(2 ** 8)
 def get_ip_from_domain(domain):
     try:
         return socket.gethostbyname(domain.encode())
@@ -31,7 +17,7 @@ def get_ip_from_domain(domain):
 
 def parse_header(data):
     # shadowsocks protocol https://shadowsocks.org/en/spec/Protocol.html
-    atype, dst_addr, dst_port, header_length = data[0], None, None, 0
+    atype, dst_addr, dst_port, header_length, domain = data[0], None, None, 0, ""
     if atype == flag.ATYPE_IPV4:
         if len(data) >= 7:
             dst_addr = socket.inet_ntop(socket.AF_INET, data[1:5])
@@ -50,8 +36,8 @@ def parse_header(data):
         if len(data) > 2:
             addrlen = data[1]
             if len(data) >= 4 + addrlen:
-                dst_addr = data[2 : 2 + addrlen]
-                dst_addr = get_ip_from_domain(dst_addr.decode())
+                domain = data[2 : 2 + addrlen]
+                dst_addr = get_ip_from_domain(domain.decode())
                 dst_port = struct.unpack("!H", data[2 + addrlen : addrlen + 4])[0]
                 header_length = 4 + addrlen
             else:
@@ -60,7 +46,9 @@ def parse_header(data):
             logging.warning("header is too short")
     else:
         logging.warning(f"unknown atype: {atype}")
-    logging.warning(f"type:{flag.get_atype_for_human(atype)} dst:{dst_addr}:{dst_port}")
+    logging.warning(
+        f"{flag.get_atype_for_human(atype)}: dst:{dst_addr}:{dst_port},{domain}"
+    )
     return atype, dst_addr, dst_port, header_length
 
 
