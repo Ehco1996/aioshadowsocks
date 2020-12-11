@@ -52,7 +52,11 @@ class BaseCipher(metaclass=abc.ABCMeta):
 
 
 class BaseAEADCipher(BaseCipher):
-    "https://shadowsocks.org/en/wiki/AEAD-Ciphers"
+    """DOC: https://shadowsocks.org/en/wiki/AEAD-Ciphers
+    TCP: [encrypted payload length][length tag][encrypted payload][payload tag]
+    UDP: [salt][encrypted payload][tag]
+    """
+
     INFO = b"ss-subkey"
     PACKET_LIMIT = 16 * 1024 - 1
     SALT_SIZE = -1
@@ -144,11 +148,25 @@ class BaseAEADCipher(BaseCipher):
 
     def unpack(self, data: bytes) -> bytes:
         """解包udp"""
-        return self.decrypt(data)
+        ret = bytearray()
+        data_len = len(data)
+        salt, data, tag = (
+            data[: self.SALT_SIZE],
+            data[self.SALT_SIZE : data_len - self.TAG_SIZE],
+            data[data_len - self.TAG_SIZE :],
+        )
+        self._subkey = self._derive_subkey(salt)
+        ret.extend(self._decrypt(data, tag))
+        return bytes(ret)
 
     def pack(self, data: bytes) -> bytes:
         """压udp包"""
-        return self.encrypt(data)
+        ret = bytearray()
+        salt = self._make_random_salt()
+        self._subkey = self._derive_subkey(salt)
+        ret.extend(salt)
+        ret.extend(self._encrypt(data))
+        return bytes(ret)
 
     @classmethod
     def tcp_first_data_len(cls):
