@@ -34,7 +34,11 @@ class ProxyMan:
 
     async def start_ss_server(self):
         for user in User.select().where(User.enable == True):
-            await self.loop.create_task(self.init_server(user))
+            try:
+                await self.init_server(user)
+            except Exception as e:
+                logging.error(e)
+                self.loop.stop()
         for user in User.select().where(User.enable == False):
             self.close_user_server(user)
 

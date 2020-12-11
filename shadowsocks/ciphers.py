@@ -52,6 +52,7 @@ class BaseCipher(metaclass=abc.ABCMeta):
 
 
 class BaseAEADCipher(BaseCipher):
+    "https://shadowsocks.org/en/wiki/AEAD-Ciphers"
     INFO = b"ss-subkey"
     PACKET_LIMIT = 16 * 1024 - 1
     SALT_SIZE = -1

@@ -50,7 +50,7 @@ class LocalHandler:
             self._transport_protocol_human = "tcp"
         else:
             self._transport_protocol_human = "udp"
-        logging.warning(f"init tansport:{peername[0]},{self._transport_protocol_human}")
+        logging.info(f"init tansport:{peername[0]},{self._transport_protocol_human}")
 
     def close(self):
         self._stage = self.STAGE_DESTROY
@@ -127,9 +127,10 @@ class LocalHandler:
             self._stage = self.STAGE_CONNECT
             self._handle_stage_connect(payload)
             try:
-                _, remote_tcp = await loop.create_connection(
+                task = loop.create_connection(
                     lambda: RemoteTCP(self), dst_addr, dst_port
                 )
+                _, remote_tcp = await asyncio.wait_for(task, 5)
             except Exception as e:
                 self._stage = self.STAGE_ERROR
                 self.close()
