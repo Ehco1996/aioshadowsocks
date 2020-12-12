@@ -1,18 +1,19 @@
-name: Build-Runtime
+name: code
 on:
   push:
     branches:
-      - build
+      - master
 jobs:
-  build-runtime:
+  build-code-image:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@master
-      - name: Publish Runtime to Registry
+      - name: build code image
         uses: elgohr/Publish-Docker-Github-Action@master
         with:
           name: ehco1996/aioshadowsocks
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
-          tags: "runtime"
-          dockerfile: Dockerfile
+          tags: "latest,code"
+          tag_names: true
+          dockerfile: Dockerfile.code
