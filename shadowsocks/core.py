@@ -207,7 +207,6 @@ class RemoteTCP(asyncio.Protocol):
         self.local = local_handler
         self.peername = None
         self._transport = None
-        self.cipher = CipherMan(access_user=local_handler.cipher.access_user)
         self.ready = False
 
         self._is_closing = False
@@ -228,6 +227,9 @@ class RemoteTCP(asyncio.Protocol):
     def connection_made(self, transport: asyncio.Transport):
         self._transport = transport
         self.peername = self._transport.get_extra_info("peername")
+        self.cipher = CipherMan(
+            access_user=self.local.cipher.access_user, peername=self.peername
+        )
         transport.write(self.local._connect_buffer)
         self.ready = True
         CONNECTION_MADE_COUNT.inc()

@@ -27,6 +27,7 @@ class CipherMan:
         self.access_user = access_user
         self.ts_protocol = ts_protocol
         self.peername = peername
+        self.access_user_ip = self.peername[0]
 
         self.cipher = None
         self._buffer = bytearray()
@@ -93,7 +94,11 @@ class CipherMan:
                 self.bf.add(salt)
 
             access_user = User.find_access_user(
-                self.user_port, self.method, self.ts_protocol, first_data
+                self.user_port,
+                self.method,
+                self.ts_protocol,
+                first_data,
+                self.access_user_ip,
             )
 
             if not access_user or access_user.enable is False:

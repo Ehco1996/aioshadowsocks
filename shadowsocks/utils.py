@@ -7,17 +7,9 @@ from bloom_filter import BloomFilter
 from shadowsocks import protocol_flag as flag
 
 
-def get_ip_from_domain(domain):
-    try:
-        return socket.gethostbyname(domain.encode())
-    except Exception:
-        logging.warning(f"Failed to query DNS: {domain}")
-        return domain
-
-
 def parse_header(data):
     # shadowsocks protocol https://shadowsocks.org/en/spec/Protocol.html
-    atype, dst_addr, dst_port, header_length, domain = data[0], None, None, 0, ""
+    atype, dst_addr, dst_port, header_length = data[0], None, None, 0
     if atype == flag.ATYPE_IPV4:
         if len(data) >= 7:
             dst_addr = socket.inet_ntop(socket.AF_INET, data[1:5])
@@ -37,7 +29,7 @@ def parse_header(data):
             addrlen = data[1]
             if len(data) >= 4 + addrlen:
                 domain = data[2 : 2 + addrlen]
-                dst_addr = get_ip_from_domain(domain.decode())
+                dst_addr = domain.decode()
                 dst_port = struct.unpack("!H", data[2 + addrlen : addrlen + 4])[0]
                 header_length = 4 + addrlen
             else:
@@ -46,9 +38,7 @@ def parse_header(data):
             logging.warning("header is too short")
     else:
         logging.warning(f"unknown atype: {atype}")
-    logging.info(
-        f"{flag.get_atype_for_human(atype)}: dst:{dst_addr}:{dst_port},{domain}"
-    )
+    logging.info(f"{flag.get_atype_for_human(atype)}: dst:{dst_addr}:{dst_port}")
     return atype, dst_addr, dst_port, header_length
 
 

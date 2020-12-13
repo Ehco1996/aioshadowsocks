@@ -154,7 +154,8 @@ class User(BaseModel, HttpSessionMixin):
 
     @classmethod
     @FIND_ACCESS_USER_TIME.time()
-    def find_access_user(cls, port, method, ts_protocol, first_data) -> User:
+    def find_access_user(cls, port, method, ts_protocol, first_data, ip) -> User:
+        """先从访问的cache里寻找，找不到在去db里"""
         cipher_cls = SUPPORT_METHODS[method]
         access_user = None
         for user in cls.list_by_port(port).iterator():
