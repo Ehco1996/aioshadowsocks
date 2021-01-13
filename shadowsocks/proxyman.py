@@ -39,8 +39,6 @@ class ProxyMan:
             except Exception as e:
                 logging.error(e)
                 self.loop.stop()
-        for user in User.select().where(User.enable == False):
-            self.close_user_server(user)
 
     async def init_server(self, user: User):
 
@@ -63,14 +61,6 @@ class ProxyMan:
                 user, user.method, user.password, self.listen_host, user.port
             )
         )
-
-    def close_user_server(self, user):
-        running_server = self.get_server_by_port(user.port)
-        if running_server and user.method not in self.AEAD_METHOD_LIST:
-            running_server["tcp"].close()
-            running_server["udp"].close()
-            self.__running_servers__.pop(user.port)
-            logging.info(f"user {user} 已关闭!")
 
     def close_server(self):
         for port, server_data in self.__running_servers__.items():

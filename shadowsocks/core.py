@@ -114,16 +114,16 @@ class LocalHandler:
             logging.warning(f"unknown stage:{self._stage}")
 
     async def _handle_stage_init(self, data):
-        addr_type, dst_addr, dst_port, header_length = parse_header(data)
-        if not all([addr_type, dst_addr, dst_port, header_length]):
+        atype, dst_addr, dst_port, header_length = parse_header(data)
+        if not all([atype, dst_addr, dst_port, header_length]):
             logging.warning(
-                f"parse_header_error addr_type: {addr_type} port: {self.port}"
+                f"parse_header_error {flag.get_atype_for_human(atype)} port: {self.port}"
             )
             self.close()
             return
         else:
             logging.info(
-                f"parse_header_success addr_type: {flag.get_atype_for_human(addr_type)} dst:{dst_addr}:{dst_port}"
+                f"parse_header_success {flag.get_atype_for_human(atype)} dst:{dst_addr}:{dst_port}"
             )
             payload = data[header_length:]
 

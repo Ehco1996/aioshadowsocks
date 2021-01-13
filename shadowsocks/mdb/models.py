@@ -62,17 +62,25 @@ class User(BaseModel, HttpSessionMixin):
         )
 
     @classmethod
+    def _create_or_update_by_user_data_list(cls, user_data_list):
+        user_ids = []
+        for user_data in user_data_list:
+            user_ids.append(user_data["user_id"])
+            cls._create_or_update_user_from_data(user_data)
+        cnt = cls.delete().where(cls.user_id.not_in(user_ids)).execute()
+        if cnt:
+            logging.info(f"delete out of traffic user cnt: {cnt}")
+
+    @classmethod
     def create_or_update_from_json(cls, path):
         with open(path, "r") as f:
             data = json.load(f)
-        for user_data in data["users"]:
-            cls._create_or_update_user_from_data(user_data)
+        cls._create_or_update_by_user_data_list(data["users"])
 
     @classmethod
     def create_or_update_from_remote(cls, url):
         res = cls.http_session.request("get", url)
-        for user_data in res.json()["users"]:
-            cls._create_or_update_user_from_data(user_data)
+        cls._create_or_update_by_user_data_list(res.json()["users"])
 
     @classmethod
     async def sync_from_remote_cron(cls, api_endpoint, sync_time):

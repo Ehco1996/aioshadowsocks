@@ -99,10 +99,12 @@ class CipherMan:
                 first_data,
             )
 
-            if not access_user or access_user.enable is False:
+            if not access_user:
                 raise RuntimeError(
                     f"can not find enable access user: {self.user_port}-{self.ts_protocol}-{self.cipher_cls}"
                 )
+            if not access_user.enable:
+                raise RuntimeError(f"access user not have traffic: {access_user}")
             self.access_user = access_user
             self.record_user_ip(self.peername)
             self.incr_user_tcp_num(1)
