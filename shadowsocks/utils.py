@@ -38,7 +38,6 @@ def parse_header(data):
             logging.warning("header is too short")
     else:
         logging.warning(f"unknown atype: {atype}")
-    logging.info(f"{flag.get_atype_for_human(atype)}: dst:{dst_addr}:{dst_port}")
     return atype, dst_addr, dst_port, header_length
 
 

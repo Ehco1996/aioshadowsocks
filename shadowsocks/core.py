@@ -50,7 +50,7 @@ class LocalHandler:
             self._transport_protocol_human = "tcp"
         else:
             self._transport_protocol_human = "udp"
-        logging.info(f"init tansport:{peername[0]},{self._transport_protocol_human}")
+        logging.info(f"connection_made: {peername[0]},{self._transport_protocol_human}")
 
     def close(self):
         self._stage = self.STAGE_DESTROY
@@ -116,10 +116,15 @@ class LocalHandler:
     async def _handle_stage_init(self, data):
         addr_type, dst_addr, dst_port, header_length = parse_header(data)
         if not all([addr_type, dst_addr, dst_port, header_length]):
-            logging.warning(f"parse error addr_type: {addr_type} port: {self.port}")
+            logging.warning(
+                f"parse_header_error addr_type: {addr_type} port: {self.port}"
+            )
             self.close()
             return
         else:
+            logging.info(
+                f"parse_header_success addr_type: {flag.get_atype_for_human(addr_type)} dst:{dst_addr}:{dst_port}"
+            )
             payload = data[header_length:]
 
         loop = asyncio.get_running_loop()
@@ -134,19 +139,24 @@ class LocalHandler:
             except Exception as e:
                 self._stage = self.STAGE_ERROR
                 self.close()
-                logging.warning(f"connection failed, {type(e)} e: {e}")
+                logging.warning(
+                    f"connection failed, {type(e)} e: {dst_addr}:{dst_port}"
+                )
             else:
                 self._remote = remote_tcp
         else:
             try:
-                await loop.create_datagram_endpoint(
+                task = loop.create_datagram_endpoint(
                     lambda: RemoteUDP(dst_addr, dst_port, payload, self),
                     remote_addr=(dst_addr, dst_port),
                 )
+                await asyncio.wait_for(task, 5)
             except Exception as e:
                 self._stage = self.STAGE_ERROR
                 self.close()
-                logging.warning(f"connection failed, {type(e)} e: {e}")
+                logging.warning(
+                    f"connection failed, {type(e)} e: {dst_addr}:{dst_port}"
+                )
 
     def _handle_stage_connect(self, data):
         # 在握手之后，会耗费一定时间来来和remote建立连接,但是ss-client并不会等这个时间
