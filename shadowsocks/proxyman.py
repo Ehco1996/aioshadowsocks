@@ -49,10 +49,10 @@ class ProxyMan:
             return
 
         tcp_server = await self.loop.create_server(
-            LocalTCP(user.port), self.listen_host, user.port
+            LocalTCP(user.port), self.listen_host, user.port, reuse_port=True
         )
         udp_server, _ = await self.loop.create_datagram_endpoint(
-            LocalUDP(user.port), (self.listen_host, user.port)
+            LocalUDP(user.port), (self.listen_host, user.port), reuse_port=True
         )
         self.__running_servers__[user.port] = {
             "tcp": tcp_server,
