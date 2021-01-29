@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import asyncio
-import json
 import logging
 
 import peewee as pw
@@ -9,11 +7,11 @@ from cryptography.exceptions import InvalidTag
 
 from shadowsocks import protocol_flag as flag
 from shadowsocks.ciphers import SUPPORT_METHODS
-from shadowsocks.mdb import BaseModel, HttpSessionMixin, IPSetField, db
+from shadowsocks.mdb import BaseModel, IPSetField, db
 from shadowsocks.metrics import FIND_ACCESS_USER_TIME
 
 
-class User(BaseModel, HttpSessionMixin):
+class User(BaseModel):
 
     __attr_protected__ = {"user_id"}
     __attr_accessible__ = {"port", "method", "password", "enable", "speed_limit"}
@@ -35,7 +33,6 @@ class User(BaseModel, HttpSessionMixin):
     download_traffic = pw.BigIntegerField(default=0)
 
     @classmethod
-    @db.atomic("EXCLUSIVE")
     def _create_or_update_user_from_data(cls, data):
         user_id = data.pop("user_id")
         user, created = cls.get_or_create(user_id=user_id, defaults=data)
@@ -62,7 +59,8 @@ class User(BaseModel, HttpSessionMixin):
         )
 
     @classmethod
-    def _create_or_update_by_user_data_list(cls, user_data_list):
+    @db.atomic("EXCLUSIVE")
+    def create_or_update_by_user_data_list(cls, user_data_list):
         user_ids = []
         for user_data in user_data_list:
             user_ids.append(user_data["user_id"])
@@ -70,72 +68,6 @@ class User(BaseModel, HttpSessionMixin):
         cnt = cls.delete().where(cls.user_id.not_in(user_ids)).execute()
         if cnt:
             logging.info(f"delete out of traffic user cnt: {cnt}")
-
-    @classmethod
-    def create_or_update_from_json(cls, path):
-        with open(path, "r") as f:
-            data = json.load(f)
-        cls._create_or_update_by_user_data_list(data["users"])
-
-    @classmethod
-    def create_or_update_from_remote(cls, url):
-        res = cls.http_session.request("get", url)
-        cls._create_or_update_by_user_data_list(res.json()["users"])
-
-    @classmethod
-    async def sync_from_remote_cron(cls, api_endpoint, sync_time):
-        loop = asyncio.get_running_loop()
-        try:
-            cls.flush_metrics_to_remote(api_endpoint)
-            cls.create_or_update_from_remote(api_endpoint)
-        except Exception as e:
-            logging.warning(f"sync user error {e}")
-        loop.call_later(
-            sync_time,
-            loop.create_task,
-            cls.sync_from_remote_cron(api_endpoint, sync_time),
-        )
-
-    @classmethod
-    async def sync_from_json_cron(cls, sync_time):
-        loop = asyncio.get_running_loop()
-        try:
-            User.create_or_update_from_json("userconfigs.json")
-        except Exception as e:
-            logging.warning(f"sync user error {e}")
-        loop.call_later(
-            sync_time,
-            loop.create_task,
-            cls.sync_from_json_cron(sync_time),
-        )
-
-    @classmethod
-    def flush_metrics_to_remote(cls, url):
-        fields = [
-            cls.user_id,
-            cls.ip_list,
-            cls.tcp_conn_num,
-            cls.upload_traffic,
-            cls.download_traffic,
-        ]
-        with db.atomic("EXCLUSIVE"):
-            users = list(cls.select(*fields).where(cls.need_sync == True))
-            cls.update(
-                ip_list=set(), upload_traffic=0, download_traffic=0, need_sync=False
-            ).where(cls.need_sync == True).execute()
-
-        data = []
-        for user in users:
-            data.append(
-                {
-                    "user_id": user.user_id,
-                    "ip_list": list(user.ip_list),
-                    "tcp_conn_num": user.tcp_conn_num,
-                    "upload_traffic": user.upload_traffic,
-                    "download_traffic": user.download_traffic,
-                }
-            )
-        cls.http_session.request("post", url, json={"data": data})
 
     @db.atomic("EXCLUSIVE")
     def record_ip(self, peername):

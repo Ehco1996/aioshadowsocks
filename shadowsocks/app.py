@@ -95,13 +95,9 @@ class App:
         self._init_memory_db()
         self._init_sentry()
         self.loop.add_signal_handler(signal.SIGTERM, self._shutdown)
-        self.proxyman = ProxyMan(self.listen_host)
-        if self.use_json:
-            self.loop.create_task(models.User.sync_from_json_cron(self.sync_time))
-        else:
-            self.loop.create_task(
-                models.User.sync_from_remote_cron(self.api_endpoint, self.sync_time)
-            )
+        self.proxyman = ProxyMan(
+            self.use_json, self.sync_time, self.listen_host, self.api_endpoint
+        )
         self._prepared = True
 
     def _shutdown(self):
@@ -142,7 +138,7 @@ class App:
 
     def run_ss_server(self):
         self._prepare()
-        self.loop.create_task(self.proxyman.start_ss_server())
+        self.loop.create_task(self.proxyman.start_and_check_ss_server())
         if self.metrics_port:
             self.loop.create_task(self._start_metrics_server())
         self._run_loop()

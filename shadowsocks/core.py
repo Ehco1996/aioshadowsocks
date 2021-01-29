@@ -50,7 +50,6 @@ class LocalHandler:
             self._transport_protocol_human = "tcp"
         else:
             self._transport_protocol_human = "udp"
-        logging.info(f"connection_made: {peername[0]},{self._transport_protocol_human}")
 
     def close(self):
         self._stage = self.STAGE_DESTROY
@@ -117,13 +116,18 @@ class LocalHandler:
         atype, dst_addr, dst_port, header_length = parse_header(data)
         if not all([atype, dst_addr, dst_port, header_length]):
             logging.warning(
-                f"parse_header_error {flag.get_atype_for_human(atype)} port: {self.port}"
+                f"parse_header_error atype: {flag.get_atype_for_human(atype)} port: {self.port}"
             )
             self.close()
             return
         else:
             logging.info(
-                f"parse_header_success {flag.get_atype_for_human(atype)} dst:{dst_addr}:{dst_port}"
+                "parse_header_success atype: {} {} dst:{}:{}".format(
+                    self._transport_protocol_human,
+                    flag.get_atype_for_human(atype),
+                    dst_addr,
+                    dst_port,
+                )
             )
             payload = data[header_length:]
 
@@ -140,7 +144,7 @@ class LocalHandler:
                 self._stage = self.STAGE_ERROR
                 self.close()
                 logging.warning(
-                    f"connection failed, {type(e)} e: {dst_addr}:{dst_port}"
+                    f"connection_failed, {type(e)} e: {dst_addr}:{dst_port}"
                 )
             else:
                 self._remote = remote_tcp
@@ -155,7 +159,7 @@ class LocalHandler:
                 self._stage = self.STAGE_ERROR
                 self.close()
                 logging.warning(
-                    f"connection failed, {type(e)} e: {dst_addr}:{dst_port}"
+                    f"connection_failed, {type(e)} e: {dst_addr}:{dst_port}"
                 )
 
     def _handle_stage_connect(self, data):

@@ -2,7 +2,6 @@ import json
 from typing import Set
 
 import peewee as pw
-import requests
 from playhouse import shortcuts
 
 db = pw.SqliteDatabase(":memory:")
@@ -54,17 +53,3 @@ class IPSetField(pw.CharField):
             return value
         l = json.loads(value)
         return set(l)
-
-
-class HttpSession:
-    def __init__(self):
-        self.session = requests.Session()
-
-    def request(self, method, url, **kw):
-        req_method = getattr(self.session, method)
-        return req_method(url, **kw)
-
-
-class HttpSessionMixin:
-
-    http_session = HttpSession()
