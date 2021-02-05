@@ -13,6 +13,7 @@ from sentry_sdk.integrations.aiohttp import AioHttpIntegration
 
 from shadowsocks.mdb import BaseModel, models
 from shadowsocks.proxyman import ProxyMan
+from shadowsocks.rpc_clients import SSClient
 from shadowsocks.services import AioShadowsocksServicer
 
 
@@ -22,6 +23,8 @@ async def logging_grpc_request(event: RecvRequest) -> None:
 
 class App:
     def __init__(self) -> None:
+        self._init_config()
+        self._init_logger()
         self._prepared = False
 
     def _init_config(self):
@@ -90,8 +93,6 @@ class App:
         if self._prepared:
             return
         self.loop = asyncio.get_event_loop()
-        self._init_config()
-        self._init_logger()
         self._init_memory_db()
         self._init_sentry()
         self.loop.add_signal_handler(signal.SIGTERM, self._shutdown)
@@ -141,6 +142,10 @@ class App:
         self.loop.create_task(self.proxyman.start_and_check_ss_server())
         if self.metrics_port:
             self.loop.create_task(self._start_metrics_server())
+
+        if self.grpc_host and self.grpc_port:
+            self.loop.create_task(self._start_grpc_server())
+
         self._run_loop()
 
     def run_grpc_server(self):
@@ -152,3 +157,7 @@ class App:
             raise Exception("grpc server not config")
 
         self._run_loop()
+
+    def get_user(self, user_id):
+        c = SSClient(f"{self.grpc_host}:{self.grpc_port}")
+        return c.get_user(user_id)

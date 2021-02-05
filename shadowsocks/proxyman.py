@@ -79,10 +79,9 @@ class ProxyMan:
         except Exception as e:
             logging.warning(f"sync user from remote error {e}")
 
-    @classmethod
-    async def sync_from_json_cron(self, sync_time):
+    async def sync_from_json_cron(self):
         try:
-            User.create_or_update_from_json("userconfigs.json")
+            self.create_or_update_from_json("userconfigs.json")
         except Exception as e:
             logging.warning(f"sync user from json error {e}")
 

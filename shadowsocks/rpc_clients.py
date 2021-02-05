@@ -16,7 +16,6 @@ class SSClient:
 
     def get_user(self, user_id: int) -> User:
         user = self.stub.GetUser(UserIdReq(user_id=user_id))
-        print(f"user: {user}")
         return user
 
     def find_access_user(self, port, method, ts_protocol, data):
