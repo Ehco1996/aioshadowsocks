@@ -351,7 +351,7 @@ python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
 
 [[package]]
 name = "peewee"
-version = "3.14.0"
+version = "3.14.1"
 description = "a little orm"
 category = "main"
 optional = false
@@ -597,7 +597,7 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.8.0, <3.9.0"
-content-hash = "4bb8a99f69230701545be5a0606363beb8602905aa22a6be530f0f575d80ba89"
+content-hash = "1e8832e99d287baff3725cf7fe0b99b77716d9d9774605fc29dd9debe1280e6e"
 
 [metadata.files]
 aiohttp = [
@@ -876,7 +876,7 @@ pathspec = [
     {file = "pathspec-0.8.0.tar.gz", hash = "sha256:da45173eb3a6f2a5a487efba21f050af2b41948be6ab52b6a1e3ff22bb8b7061"},
 ]
 peewee = [
-    {file = "peewee-3.14.0.tar.gz", hash = "sha256:59c5ef43877029b9133d87001dcc425525de231d1f983cece8828197fb4b84fa"},
+    {file = "peewee-3.14.1.tar.gz", hash = "sha256:4a795dd30fc0e68f8da66bf03ec54e669a24ab7ce35c2c12a2e77fea7bcc21ce"},
 ]
 pluggy = [
     {file = "pluggy-0.13.1-py2.py3-none-any.whl", hash = "sha256:966c145cd83c96502c3c3868f50408687b38434af77734af1e9ca461a4081d2d"},
