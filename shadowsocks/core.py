@@ -193,7 +193,11 @@ class LocalTCP(asyncio.Protocol):
         return local
 
     def pause_writing(self):
-        self._handler._remote._transport.pause_reading()
+        # NOTE remote may not init
+        try:
+            self._handler._remote._transport.pause_reading()
+        except AttributeError:
+            pass
 
     def resume_writing(self):
         self._handler._remote._transport.resume_reading()
