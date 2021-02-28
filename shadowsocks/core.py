@@ -125,7 +125,7 @@ class LocalHandler:
                 "parse_header_success atype: {} {} from: {} dst: {}:{}".format(
                     self._transport_protocol_human,
                     flag.get_atype_for_human(atype),
-                    self._peername[0],
+                    f"{self._peername[0]}:{self._peername[1]}",
                     dst_addr,
                     dst_port,
                 )
