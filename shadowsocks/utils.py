@@ -9,7 +9,7 @@ from shadowsocks import protocol_flag as flag
 
 def parse_header(data):
     # shadowsocks protocol https://shadowsocks.org/en/spec/Protocol.html
-    atype, dst_addr, dst_port, header_length = data[0], None, None, 0
+    atype, dst_addr, dst_port, header_length = data[0], None, None, None
     if atype == flag.ATYPE_IPV4:
         if len(data) >= 7:
             dst_addr = socket.inet_ntop(socket.AF_INET, data[1:5])

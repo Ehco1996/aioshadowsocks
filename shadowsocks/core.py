@@ -56,11 +56,12 @@ class LocalHandler:
         if self._is_closing:
             return
         self._is_closing = True
-        ACTIVE_CONNECTION_COUNT.inc(-1)
 
         if self._transport_protocol == flag.TRANSPORT_TCP:
-            self._transport and self._transport.close()
+            ACTIVE_CONNECTION_COUNT.inc(-1)
             self.cipher and self.cipher.close()
+            self._transport and self._transport.close()
+
         self._remote and self._remote.close()
 
     def write(self, data):
@@ -81,8 +82,7 @@ class LocalHandler:
         self.close()
 
     def handle_data_received(self, data):
-
-        if not self.cipher:
+        if not self.cipher or self._transport_protocol == flag.TRANSPORT_UDP:
             self.cipher = CipherMan.get_cipher_by_port(
                 self.port, self._transport_protocol, self._peername
             )
@@ -155,13 +155,16 @@ class LocalHandler:
                     lambda: RemoteUDP(dst_addr, dst_port, payload, self),
                     remote_addr=(dst_addr, dst_port),
                 )
-                await asyncio.wait_for(task, 5)
+                _, remote_udp = await asyncio.wait_for(task, 5)
             except Exception as e:
                 self._stage = self.STAGE_ERROR
                 self.close()
                 logging.warning(
                     f"connection_failed, {type(e)} e: {dst_addr}:{dst_port}"
                 )
+            else:
+                self._remote = remote_udp
+                self._stage = self.STAGE_STREAM
 
     def _handle_stage_connect(self, data):
         # 在握手之后，会耗费一定时间来来和remote建立连接,但是ss-client并不会等这个时间
@@ -172,6 +175,13 @@ class LocalHandler:
             self._handle_stage_stream(data)
 
     def _handle_stage_stream(self, data):
+        if self._transport_protocol == flag.TRANSPORT_UDP:
+            # NOTE 区分udp和tcp，tcp的可以直接转发，udp的需要去掉header
+            _, _, _, header_length = parse_header(data)
+            if header_length:
+                data = data[header_length:]
+            else:
+                logging.warning(f"udp not have header: {data[:20]}")
         self._remote.write(data)
 
 
@@ -277,7 +287,7 @@ class LocalUDP(asyncio.DatagramProtocol):
 
     def __init__(self, port):
         self.port = port
-        self._protocols = {}
+        self.udpmap = {}  # TODO 用lru
         self._transport = None
 
     def __call__(self):
@@ -288,19 +298,21 @@ class LocalUDP(asyncio.DatagramProtocol):
         self._transport = transport
 
     def datagram_received(self, data, peername):
-        if peername in self._protocols:
-            handler = self._protocols[peername]
+        if peername in self.udpmap:
+            handler = self.udpmap[peername]
         else:
             handler = LocalHandler(self.port)
-            self._protocols[peername] = handler
+            self.udpmap[peername] = handler
             handler.handle_connection_made(
                 flag.TRANSPORT_UDP, self._transport, peername
             )
         handler.handle_data_received(data)
 
-    def error_received(self, exc):
-        # TODO clean udp conn
-        pass
+    def error_received(self, exc) -> None:
+        return super().error_received(exc)
+
+    def connection_lost(self, exc) -> None:
+        return super().connection_lost(exc)
 
 
 class RemoteUDP(asyncio.DatagramProtocol):
@@ -326,7 +338,7 @@ class RemoteUDP(asyncio.DatagramProtocol):
         self._is_closing = True
 
         self._transport and self._transport.close()
-        del self.local
+        self.local = None
 
     def connection_made(self, transport):
         self._transport = transport
@@ -334,7 +346,6 @@ class RemoteUDP(asyncio.DatagramProtocol):
         self.write(self.data)
 
     def datagram_received(self, data, peername, *arg):
-
         assert self.peername == peername
         # 源地址和端口
         bind_addr = peername[0]
