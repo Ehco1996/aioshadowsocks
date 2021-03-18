@@ -2,6 +2,7 @@ import asyncio
 import logging
 import socket
 import struct
+import time
 
 from shadowsocks import protocol_flag as flag
 from shadowsocks.cipherman import CipherMan
@@ -178,10 +179,7 @@ class LocalHandler:
         if self._transport_protocol == flag.TRANSPORT_UDP:
             # NOTE 区分udp和tcp，tcp的可以直接转发，udp的需要去掉header
             _, _, _, header_length = parse_header(data)
-            if header_length:
-                data = data[header_length:]
-            else:
-                logging.warning(f"udp not have header: {data[:20]}")
+            data = data[header_length:]
         self._remote.write(data)
 
 
@@ -287,7 +285,7 @@ class LocalUDP(asyncio.DatagramProtocol):
 
     def __init__(self, port):
         self.port = port
-        self.udpmap = {}  # TODO 用lru
+        self.udpmap = {}
         self._transport = None
 
     def __call__(self):
@@ -307,6 +305,22 @@ class LocalUDP(asyncio.DatagramProtocol):
                 flag.TRANSPORT_UDP, self._transport, peername
             )
         handler.handle_data_received(data)
+        # NOTE 注入这个udp上次使用的时间
+        handler.last_use_time = time.time()
+        self.clean_udpmap()
+
+    def clean_udpmap(self):
+        now = time.time()
+        need_delete = []
+        for peer, handler in self.udpmap.items():
+            if now - handler.last_use_time > 1:
+                need_delete.append(peer)
+        if not need_delete:
+            return
+        for peer in need_delete:
+            h = self.udpmap.pop(peer)
+            h.close()
+        logging.info(f"clean udpmap peer: {need_delete}")
 
     def error_received(self, exc) -> None:
         return super().error_received(exc)

@@ -9,7 +9,7 @@ from shadowsocks import protocol_flag as flag
 
 def parse_header(data):
     # shadowsocks protocol https://shadowsocks.org/en/spec/Protocol.html
-    atype, dst_addr, dst_port, header_length = data[0], None, None, None
+    atype, dst_addr, dst_port, header_length = data[0], None, None, 0
     if atype == flag.ATYPE_IPV4:
         if len(data) >= 7:
             dst_addr = socket.inet_ntop(socket.AF_INET, data[1:5])
@@ -43,20 +43,22 @@ def parse_header(data):
 
 class AutoResetBloomFilter:
 
-    MAX_ELEMENTS = 10 ** 6
+    MAX_ELEMENTS = 10 ** 5
     ERROR_RATE = 10 ** -6
 
-    def new_bf(self):
-        self.size = self.MAX_ELEMENTS
-        return BloomFilter(max_elements=self.MAX_ELEMENTS, error_rate=self.ERROR_RATE)
+    @classmethod
+    def new_bf(cls):
+        return BloomFilter(max_elements=cls.MAX_ELEMENTS, error_rate=cls.ERROR_RATE)
 
     def __init__(self):
         self.bf = self.new_bf()
+        self.size = self.MAX_ELEMENTS
 
     def add(self, v):
         if self.size <= 0:
             logging.warning("bloom filter reset")
             self.bf = self.new_bf()
+            self.size = self.MAX_ELEMENTS
         self.bf.add(v)
         self.size -= 1
 

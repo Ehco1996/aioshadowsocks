@@ -86,9 +86,7 @@ class CipherMan:
                 first_data = self._buffer
             salt = first_data[: self.cipher_cls.SALT_SIZE]
             if salt in self.bf:
-                raise RuntimeError(
-                    f"repeated salt founded!,peer:{self.peername},{salt}"
-                )
+                raise RuntimeError(f"repeated salt founded!,peer:{self.peername}")
             else:
                 self.bf.add(salt)
 
