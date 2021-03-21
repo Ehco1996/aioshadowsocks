@@ -117,7 +117,9 @@ class CipherMan:
             return self.cipher_cls(self.access_user.password).unpack(data)
 
     def incr_user_tcp_num(self, num: int):
-        self.access_user and self.access_user.incr_tcp_conn_num(num)
+        self.ts_protocol == flag.TRANSPORT_TCP and self.access_user and self.access_user.incr_tcp_conn_num(
+            num
+        )
 
     def record_user_ip(self, peername):
         self.access_user and self.access_user.record_ip(peername)
