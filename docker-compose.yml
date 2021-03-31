@@ -13,10 +13,14 @@ services:
       SS_GRPC_HOST: "127.0.0.1"
       SS_GRPC_PORT: 5000
       SS_METRICS_PORT: 9888
+      PYROSCOPE_SERVER_ADDRESS: ""
+      PYROSCOPE_APPLICATION_NAME: "aioss"
     logging:
       driver: "json-file"
       options:
         max-size: "100k"
+    cap_add:
+      - SYS_PTRACE
     # volumes:
     # - .:/src/aioshadowsocks
     working_dir: /src/aioshadowsocks
