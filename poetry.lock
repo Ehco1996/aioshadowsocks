@@ -400,7 +400,7 @@ twisted = ["twisted"]
 
 [[package]]
 name = "protobuf"
-version = "3.13.0"
+version = "3.15.7"
 description = "Protocol Buffers"
 category = "main"
 optional = false
@@ -596,7 +596,7 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.8.0,<4.0"
-content-hash = "9f907725808a70ef380100f9bdbaddcb27118be07c9c3da5598c57ab0b846c5e"
+content-hash = "f05221eb220bafb41681c76e6b186b0dd9e2d60dcecf79a6dfa39ca0b24deb3a"
 
 [metadata.files]
 aiohttp = [
@@ -896,24 +896,26 @@ prometheus-client = [
     {file = "prometheus_client-0.8.0.tar.gz", hash = "sha256:c6e6b706833a6bd1fd51711299edee907857be10ece535126a158f911ee80915"},
 ]
 protobuf = [
-    {file = "protobuf-3.13.0-cp27-cp27m-macosx_10_9_x86_64.whl", hash = "sha256:9c2e63c1743cba12737169c447374fab3dfeb18111a460a8c1a000e35836b18c"},
-    {file = "protobuf-3.13.0-cp27-cp27mu-manylinux1_x86_64.whl", hash = "sha256:1e834076dfef9e585815757a2c7e4560c7ccc5962b9d09f831214c693a91b463"},
-    {file = "protobuf-3.13.0-cp35-cp35m-macosx_10_9_intel.whl", hash = "sha256:df3932e1834a64b46ebc262e951cd82c3cf0fa936a154f0a42231140d8237060"},
-    {file = "protobuf-3.13.0-cp35-cp35m-manylinux1_x86_64.whl", hash = "sha256:8c35bcbed1c0d29b127c886790e9d37e845ffc2725cc1db4bd06d70f4e8359f4"},
-    {file = "protobuf-3.13.0-cp35-cp35m-win32.whl", hash = "sha256:339c3a003e3c797bc84499fa32e0aac83c768e67b3de4a5d7a5a9aa3b0da634c"},
-    {file = "protobuf-3.13.0-cp35-cp35m-win_amd64.whl", hash = "sha256:361acd76f0ad38c6e38f14d08775514fbd241316cce08deb2ce914c7dfa1184a"},
-    {file = "protobuf-3.13.0-cp36-cp36m-macosx_10_9_x86_64.whl", hash = "sha256:9edfdc679a3669988ec55a989ff62449f670dfa7018df6ad7f04e8dbacb10630"},
-    {file = "protobuf-3.13.0-cp36-cp36m-manylinux1_x86_64.whl", hash = "sha256:5db9d3e12b6ede5e601b8d8684a7f9d90581882925c96acf8495957b4f1b204b"},
-    {file = "protobuf-3.13.0-cp36-cp36m-win32.whl", hash = "sha256:c8abd7605185836f6f11f97b21200f8a864f9cb078a193fe3c9e235711d3ff1e"},
-    {file = "protobuf-3.13.0-cp36-cp36m-win_amd64.whl", hash = "sha256:4d1174c9ed303070ad59553f435846a2f877598f59f9afc1b89757bdf846f2a7"},
-    {file = "protobuf-3.13.0-cp37-cp37m-macosx_10_9_x86_64.whl", hash = "sha256:0bba42f439bf45c0f600c3c5993666fcb88e8441d011fad80a11df6f324eef33"},
-    {file = "protobuf-3.13.0-cp37-cp37m-manylinux1_x86_64.whl", hash = "sha256:c0c5ab9c4b1eac0a9b838f1e46038c3175a95b0f2d944385884af72876bd6bc7"},
-    {file = "protobuf-3.13.0-cp37-cp37m-win32.whl", hash = "sha256:f68eb9d03c7d84bd01c790948320b768de8559761897763731294e3bc316decb"},
-    {file = "protobuf-3.13.0-cp37-cp37m-win_amd64.whl", hash = "sha256:91c2d897da84c62816e2f473ece60ebfeab024a16c1751aaf31100127ccd93ec"},
-    {file = "protobuf-3.13.0-cp38-cp38-macosx_10_9_x86_64.whl", hash = "sha256:3dee442884a18c16d023e52e32dd34a8930a889e511af493f6dc7d4d9bf12e4f"},
-    {file = "protobuf-3.13.0-cp38-cp38-manylinux1_x86_64.whl", hash = "sha256:e7662437ca1e0c51b93cadb988f9b353fa6b8013c0385d63a70c8a77d84da5f9"},
-    {file = "protobuf-3.13.0-py2.py3-none-any.whl", hash = "sha256:d69697acac76d9f250ab745b46c725edf3e98ac24763990b24d58c16c642947a"},
-    {file = "protobuf-3.13.0.tar.gz", hash = "sha256:6a82e0c8bb2bf58f606040cc5814e07715b2094caeba281e2e7d0b0e2e397db5"},
+    {file = "protobuf-3.15.7-cp27-cp27m-macosx_10_9_x86_64.whl", hash = "sha256:a14141d5c967362d2eedff8825d2b69cc36a5b3ed6b1f618557a04e58a3cf787"},
+    {file = "protobuf-3.15.7-cp27-cp27mu-manylinux1_x86_64.whl", hash = "sha256:d54d78f621852ec4fdd1484d1263ca04d4bf5ffdf7abffdbb939e444b6ff3385"},
+    {file = "protobuf-3.15.7-cp35-cp35m-macosx_10_9_intel.whl", hash = "sha256:462085acdb410b06335315fe7e63cb281a1902856e0f4657f341c283cedc1d56"},
+    {file = "protobuf-3.15.7-cp35-cp35m-manylinux1_x86_64.whl", hash = "sha256:849c92ce112e1ef648705c29ce044248e350f71d9d54a2026830623198f0bd38"},
+    {file = "protobuf-3.15.7-cp35-cp35m-win32.whl", hash = "sha256:1f6083382f7714700deadf3014e921711e2f807de7f27e40c32b744701ae5b99"},
+    {file = "protobuf-3.15.7-cp35-cp35m-win_amd64.whl", hash = "sha256:e17f60f00081adcb32068ee0bb51e418f6474acf83424244ff3512ffd2166385"},
+    {file = "protobuf-3.15.7-cp36-cp36m-macosx_10_9_x86_64.whl", hash = "sha256:6c75e563c6fb2ca5b8f21dd75c15659aa2c4a0025b9da3a7711ae661cd6a488d"},
+    {file = "protobuf-3.15.7-cp36-cp36m-manylinux1_x86_64.whl", hash = "sha256:d939f41b4108350841c4790ebbadb61729e1363522fdb8434eb4e6f2065d0db1"},
+    {file = "protobuf-3.15.7-cp36-cp36m-win32.whl", hash = "sha256:24f14c09d4c0a3641f1b0e9b552d026361de65b01686fdd3e5fdf8f9512cd79b"},
+    {file = "protobuf-3.15.7-cp36-cp36m-win_amd64.whl", hash = "sha256:1247170191bcb2a8d978d11a58afe391004ec6c2184e4d961baf8102d43ff500"},
+    {file = "protobuf-3.15.7-cp37-cp37m-macosx_10_9_x86_64.whl", hash = "sha256:364cadaeec0756afdc099cbd88cb5659bd1bb7d547168d063abcb0272ccbb2f6"},
+    {file = "protobuf-3.15.7-cp37-cp37m-manylinux1_x86_64.whl", hash = "sha256:0c3a6941b1e6e6e22d812a8e5c46bfe83082ea60d262a46f2cfb22d9b9fb17db"},
+    {file = "protobuf-3.15.7-cp37-cp37m-win32.whl", hash = "sha256:eb5668f3f6a83b6603ca2e09be5b20de89521ea5914aabe032cce981e4129cc8"},
+    {file = "protobuf-3.15.7-cp37-cp37m-win_amd64.whl", hash = "sha256:1001e671cf8476edce7fb72778358d026390649cc35a79d47b2a291684ccfbb2"},
+    {file = "protobuf-3.15.7-cp38-cp38-macosx_10_9_x86_64.whl", hash = "sha256:a5ba7dd6f97964655aa7b234c95d80886425a31b7010764f042cdeb985314d18"},
+    {file = "protobuf-3.15.7-cp38-cp38-manylinux1_x86_64.whl", hash = "sha256:46674bd6fcf8c63b4b9869ba579685db67cf51ae966443dd6bd9a8fa00fcef62"},
+    {file = "protobuf-3.15.7-cp39-cp39-macosx_10_9_x86_64.whl", hash = "sha256:4c4399156fb27e3768313b7a59352c861a893252bda6fb9f3643beb3ebb7047e"},
+    {file = "protobuf-3.15.7-cp39-cp39-manylinux1_x86_64.whl", hash = "sha256:85cd29faf056036167d87445d5a5059034c298881c044e71a73d3b61a4be1c23"},
+    {file = "protobuf-3.15.7-py2.py3-none-any.whl", hash = "sha256:22054432b923c0086f9cf1e1c0c52d39bf3c6e31014ea42eec2dabc22ee26d78"},
+    {file = "protobuf-3.15.7.tar.gz", hash = "sha256:2d03fc2591543cd2456d0b72230b50c4519546a8d379ac6fd3ecd84c6df61e5d"},
 ]
 py = [
     {file = "py-1.10.0-py2.py3-none-any.whl", hash = "sha256:3b80836aa6d1feeaa108e046da6423ab8f6ceda6468545ae8d02d9d58d18818a"},
