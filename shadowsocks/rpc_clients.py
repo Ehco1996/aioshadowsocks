@@ -15,8 +15,7 @@ class SSClient:
         self.stub = ssStub(self.channel)
 
     def get_user(self, user_id: int) -> User:
-        user = self.stub.GetUser(UserIdReq(user_id=user_id))
-        return user
+        return self.stub.GetUser(UserIdReq(user_id=user_id))
 
     def find_access_user(self, port, method, ts_protocol, data):
         req = FindAccessUserReq(

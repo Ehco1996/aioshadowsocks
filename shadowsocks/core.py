@@ -289,8 +289,7 @@ class LocalUDP(asyncio.DatagramProtocol):
         self._transport = None
 
     def __call__(self):
-        local = LocalUDP(self.port)
-        return local
+        return LocalUDP(self.port)
 
     def connection_made(self, transport):
         self._transport = transport
@@ -311,10 +310,12 @@ class LocalUDP(asyncio.DatagramProtocol):
 
     def clean_udpmap(self):
         now = time.time()
-        need_delete = []
-        for peer, handler in self.udpmap.items():
-            if now - handler.last_use_time > 1:
-                need_delete.append(peer)
+        need_delete = [
+            peer
+            for peer, handler in self.udpmap.items()
+            if now - handler.last_use_time > 1
+        ]
+
         if not need_delete:
             return
         for peer in need_delete:

@@ -49,10 +49,7 @@ class CipherMan:
     @classmethod
     def get_cipher_by_port(cls, port, ts_protocol, peername) -> CipherMan:
         user_query = User.list_by_port(port)
-        if user_query.count() == 1:
-            access_user = user_query.first()
-        else:
-            access_user = None
+        access_user = user_query.first() if user_query.count() == 1 else None
         return cls(
             port, access_user=access_user, ts_protocol=ts_protocol, peername=peername
         )

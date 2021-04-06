@@ -5,8 +5,8 @@ from shadowsocks.ciphers import SUPPORT_METHODS
 
 
 def _test_cipher(cipher_cls, size=32 * 1024, repeat=128):
-    for i in range(repeat):
-        password = "i am password"
+    password = "i am password"
+    for _ in range(repeat):
         enc = cipher_cls(password)
 
         plain_text = os.urandom(size)
