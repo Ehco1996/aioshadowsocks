@@ -27,18 +27,18 @@ class CipherMan:
         self.access_user = access_user
         self.ts_protocol = ts_protocol
         self.peername = peername
-
         self.cipher = None
+
         self._buffer = bytearray()
 
         if self.access_user:
             self.method = access_user.method
         else:
-            self.method = (
-                User.list_by_port(self.user_port).first().method
-            )  # NOTE 所有的user用的加密方式必须是一种
+            self.method = User.list_by_port(self.user_port).first().method
+            # NOTE 所有的user用的加密方式必须是一种
 
         self.cipher_cls = SUPPORT_METHODS.get(self.method)
+
         if not self.cipher_cls:
             raise Exception(f"暂时不支持这种加密方式:{self.method}")
         if self.cipher_cls.AEAD_CIPHER and self.ts_protocol == flag.TRANSPORT_TCP:
@@ -47,12 +47,17 @@ class CipherMan:
             self._first_data_len = 0
 
     @classmethod
-    def get_cipher_by_port(cls, port, ts_protocol, peername) -> CipherMan:
+    async def get_cipher_by_port(cls, port, ts_protocol, peername) -> CipherMan:
         user_query = User.list_by_port(port)
-        access_user = user_query.first() if user_query.count() == 1 else None
-        return cls(
+        user_count = await user_query.count()
+        if user_count == 1:
+            access_user = await user_query.first()
+        else:
+            access_user = None
+        cipher = cls(
             port, access_user=access_user, ts_protocol=ts_protocol, peername=peername
         )
+        return cipher
 
     @ENCRYPT_DATA_TIME.time()
     def encrypt(self, data: bytes):

@@ -6,7 +6,7 @@ from collections import defaultdict
 import httpx
 
 from shadowsocks.core import LocalTCP, LocalUDP
-from shadowsocks.mdb.models import User, db
+from shadowsocks.mdb.models import User
 
 
 class ProxyMan:
@@ -32,33 +32,25 @@ class ProxyMan:
         self.__running_servers__ = defaultdict(dict)
 
     @staticmethod
-    def create_or_update_from_json(path):
+    async def create_or_update_from_json(path):
         with open(path, "r") as f:
             data = json.load(f)
-            User.create_or_update_by_user_data_list(data["users"])
+            await User.create_or_update_by_user_data_list(data["users"])
 
     @staticmethod
     async def get_user_from_remote(url):
         async with httpx.AsyncClient() as client:
             res = await client.get(url)
-            User.create_or_update_by_user_data_list(res.json()["users"])
+            await User.create_or_update_by_user_data_list(res.json()["users"])
 
     @staticmethod
     async def flush_metrics_to_remote(url):
-        fields = [
-            User.user_id,
-            User.ip_list,
-            User.tcp_conn_num,
-            User.upload_traffic,
-            User.download_traffic,
-        ]
-        with db.atomic("EXCLUSIVE"):
-            users = list(User.select(*fields).where(User.need_sync == True))
-            User.update(
-                ip_list=set(), upload_traffic=0, download_traffic=0, need_sync=False
-            ).where(User.need_sync == True).execute()
-
-        data = [{
+        users = await User.list_need_sync_user()
+        await User.reset_need_sync_user_metrics()
+        data = []
+        for user in users:
+            data.append(
+                {
                     "user_id": user.user_id,
                     "ip_list": list(user.ip_list),
                     "tcp_conn_num": user.tcp_conn_num,
@@ -77,25 +69,21 @@ class ProxyMan:
 
     async def sync_from_json_cron(self):
         try:
-            self.create_or_update_from_json("userconfigs.json")
+            await self.create_or_update_from_json("userconfigs.json")
         except Exception as e:
             logging.warning(f"sync user from json error {e}")
-
-    def get_server_by_port(self, port):
-        return self.__running_servers__.get(port)
 
     async def start_and_check_ss_server(self):
         """
         启动ss server并且定期检查是否要开启新的server
         TODO 关闭不需要的server
         """
-
         if self.use_json:
             await self.sync_from_json_cron()
         else:
             await self.sync_from_remote_cron()
 
-        for user in User.select().where(User.enable == True):
+        for user in await User.filter(enable=True):
             try:
                 await self.init_server(user)
             except Exception as e:
@@ -109,7 +97,7 @@ class ProxyMan:
 
     async def init_server(self, user: User):
 
-        running_server = self.get_server_by_port(user.port)
+        running_server = self.__running_servers__.get(user.port)
         if running_server:
             return
 

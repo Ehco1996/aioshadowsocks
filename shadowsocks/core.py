@@ -83,11 +83,13 @@ class LocalHandler:
         self.close()
 
     def handle_data_received(self, data):
+        asyncio.create_task(self._handle_data_received(data=data))
+
+    async def _handle_data_received(self, data):
         if not self.cipher or self._transport_protocol == flag.TRANSPORT_UDP:
-            self.cipher = CipherMan.get_cipher_by_port(
+            self.cipher = await CipherMan.get_cipher_by_port(
                 self.port, self._transport_protocol, self._peername
             )
-
         try:
             data = self.cipher.decrypt(data)
         except Exception as e:
@@ -101,7 +103,7 @@ class LocalHandler:
             return
 
         if self._stage == self.STAGE_INIT:
-            asyncio.create_task(self._handle_stage_init(data))
+            await self._handle_stage_init(data)
         elif self._stage == self.STAGE_CONNECT:
             self._handle_stage_connect(data)
         elif self._stage == self.STAGE_STREAM:
