@@ -58,17 +58,13 @@ class ProxyMan:
                 ip_list=set(), upload_traffic=0, download_traffic=0, need_sync=False
             ).where(User.need_sync == True).execute()
 
-        data = []
-        for user in users:
-            data.append(
-                {
+        data = [{
                     "user_id": user.user_id,
                     "ip_list": list(user.ip_list),
                     "tcp_conn_num": user.tcp_conn_num,
                     "upload_traffic": user.upload_traffic,
                     "download_traffic": user.download_traffic,
-                }
-            )
+                } for user in users]
         async with httpx.AsyncClient() as client:
             await client.post(url, json={"data": data})
 

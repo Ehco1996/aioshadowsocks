@@ -54,8 +54,8 @@ class App:
         self.user_tcp_conn_limit = self.config["USER_TCP_CONN_LIMIT"]
         self.metrics_port = self.config["METRICS_PORT"]
 
-        self.use_sentry = True if self.sentry_dsn else False
-        self.use_json = False if self.api_endpoint else True
+        self.use_sentry = bool(self.sentry_dsn)
+        self.use_json = not self.api_endpoint
         self.metrics_server = None
         self.grpc_server = None
 

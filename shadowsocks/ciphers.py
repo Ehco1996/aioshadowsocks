@@ -13,10 +13,7 @@ def evp_bytestokey(password: bytes, key_size: int):
     """
     m = []
     for i in range(key_size // 16):
-        if i > 0:
-            data = m[i - 1] + password
-        else:
-            data = password
+        data = m[i - 1] + password if i > 0 else password
         md5 = hashlib.md5()
         md5.update(data)
         m.append(md5.digest())
@@ -119,17 +116,16 @@ class BaseAEADCipher(BaseCipher):
                 # 从data里拿出payload_length
                 if len(self._buffer) < 2 + self.TAG_SIZE:
                     break
-                else:
-                    self._payload_len = int.from_bytes(
-                        self._decrypt(
-                            self._buffer[:2], self._buffer[2 : 2 + self.TAG_SIZE]
-                        ),
-                        "big",
-                    )
-                    if self._payload_len > self.PACKET_LIMIT:
-                        raise RuntimeError(f"payload_len too long {self.payload_len}")
+                self._payload_len = int.from_bytes(
+                    self._decrypt(
+                        self._buffer[:2], self._buffer[2 : 2 + self.TAG_SIZE]
+                    ),
+                    "big",
+                )
+                if self._payload_len > self.PACKET_LIMIT:
+                    raise RuntimeError(f"payload_len too long {self.payload_len}")
 
-                    del self._buffer[: 2 + self.TAG_SIZE]
+                del self._buffer[: 2 + self.TAG_SIZE]
             else:
                 if len(self._buffer) < self._payload_len + self.TAG_SIZE:
                     break
