@@ -47,17 +47,13 @@ class ProxyMan:
     async def flush_metrics_to_remote(url):
         users = await User.list_need_sync_user()
         await User.reset_need_sync_user_metrics()
-        data = []
-        for user in users:
-            data.append(
-                {
+        data = [{
                     "user_id": user.user_id,
                     "ip_list": list(user.ip_list),
                     "tcp_conn_num": user.tcp_conn_num,
                     "upload_traffic": user.upload_traffic,
                     "download_traffic": user.download_traffic,
-                }
-            )
+                } for user in users]
         async with httpx.AsyncClient() as client:
             await client.post(url, json={"data": data})
 
