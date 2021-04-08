@@ -61,13 +61,26 @@ class User(BaseModel):
     @classmethod
     @db.atomic("EXCLUSIVE")
     def create_or_update_by_user_data_list(cls, user_data_list):
-        user_ids = []
-        for user_data in user_data_list:
-            user_ids.append(user_data["user_id"])
-            cls._create_or_update_user_from_data(user_data)
-        cnt = cls.delete().where(cls.user_id.not_in(user_ids)).execute()
-        if cnt:
-            logging.info(f"delete out of traffic user cnt: {cnt}")
+        if cls.select().count() == 0:
+            # bulk create
+            users = [
+                cls(
+                    user_id=u["user_id"],
+                    enable=u["enable"],
+                    method=u["method"],
+                    password=u["password"],
+                    port=u["port"],
+                )
+                for u in user_data_list
+            ]
+            cls.bulk_create(users, batch_size=len(users))
+        else:
+            user_ids = []
+            for user_data in user_data_list:
+                user_ids.append(user_data["user_id"])
+                cls._create_or_update_user_from_data(user_data)
+            cnt = cls.delete().where(cls.user_id.not_in(user_ids)).execute()
+            cnt and logging.info(f"delete out of traffic user cnt: {cnt}")
 
     @db.atomic("EXCLUSIVE")
     def record_ip(self, peername):
