@@ -56,7 +56,8 @@ class ProxyMan:
                     "tcp_conn_num": user.tcp_conn_num,
                     "upload_traffic": user.upload_traffic,
                     "download_traffic": user.download_traffic,
-                } for user in users]
+                }
+            )
         async with httpx.AsyncClient() as client:
             await client.post(url, json={"data": data})
 

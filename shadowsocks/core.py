@@ -90,14 +90,16 @@ class LocalHandler:
             self.cipher = await CipherMan.get_cipher_by_port(
                 self.port, self._transport_protocol, self._peername
             )
-        try:
-            data = self.cipher.decrypt(data)
-        except Exception as e:
-            logging.warning(
-                f"decrypt data error:{e} remote:{self._peername},type:{self._transport_protocol_human} closing..."
-            )
-            self.close()
-            return
+        print("=======", self._stage)
+        data = await self.cipher.decrypt(data)
+        # try:
+        #     data = await self.cipher.decrypt(data)
+        # except Exception as e:
+        #     logging.warning(
+        #         f"decrypt data error:{e} remote:{self._peername},type:{self._transport_protocol_human} closing..."
+        #     )
+        #     self.close()
+        #     return
 
         if not data:
             return
@@ -235,9 +237,9 @@ class RemoteTCP(asyncio.Protocol):
 
         self.local = local_handler
         self.peername = None
-        self._transport = None
         self.ready = False
-
+        self.cipher = None
+        self._transport = None
         self._is_closing = False
 
     def write(self, data):
@@ -256,15 +258,23 @@ class RemoteTCP(asyncio.Protocol):
     def connection_made(self, transport: asyncio.Transport):
         self._transport = transport
         self.peername = self._transport.get_extra_info("peername")
-        self.cipher = CipherMan(
-            access_user=self.local.cipher.access_user, peername=self.peername
-        )
         transport.write(self.local._connect_buffer)
         self.ready = True
         CONNECTION_MADE_COUNT.inc()
         ACTIVE_CONNECTION_COUNT.inc()
 
     def data_received(self, data):
+        asyncio.create_task(self.handle_data_received(data))
+
+    async def handle_data_received(self, data):
+        if not self.cipher:
+            access_user = self.local.cipher.access_user
+            self.cipher = await CipherMan.get_cipher_by_port(
+                port=access_user.port,
+                peername=self.peername,
+                access_user=access_user,
+                ts_protocol=flag.TRANSPORT_TCP,
+            )
         self.local.write(self.cipher.encrypt(data))
 
     def pause_reading(self):
@@ -339,9 +349,6 @@ class RemoteUDP(asyncio.DatagramProtocol):
         self.local = local_hander
         self.peername = None
         self._transport = None
-        self.cipher = CipherMan(
-            access_user=self.local.cipher.access_user, ts_protocol=flag.TRANSPORT_UDP
-        )
         self._is_closing = False
 
     def write(self, data):
@@ -372,11 +379,21 @@ class RemoteUDP(asyncio.DatagramProtocol):
         elif ":" in bind_addr:
             addr = socket.inet_pton(socket.AF_INET6, bind_addr)
         else:
-            raise Exception("add not valid")
+            raise Exception("addr not valid")
         port = struct.pack("!H", bind_port)
         # 构造返回的报文结构
         data = b"\x01" + addr + port + data
-        data = self.cipher.encrypt(data)
+        asyncio.create_task(self.handle_datagram_received(data))
+
+    async def handle_datagram_received(self, data):
+        access_user = self.local.cipher.access_user
+        cipher = await CipherMan.get_cipher_by_port(
+            port=access_user.port,
+            peername=self.peername,
+            access_user=access_user,
+            ts_protocol=flag.TRANSPORT_UDP,
+        )
+        data = cipher.encrypt(data)
         self.local.write(data)
 
     def error_received(self, exc):

@@ -8,56 +8,55 @@ from shadowsocks.metrics import (
     ENCRYPT_DATA_TIME,
     NETWORK_TRANSMIT_BYTES,
 )
-from shadowsocks.utils import AutoResetBloomFilter
 
 
 class CipherMan:
-    bf = AutoResetBloomFilter()
-
     # TODO 流量、链接数限速
 
     def __init__(
         self,
+        method=None,
         user_port=None,
+        peername=None,
         access_user: User = None,
         ts_protocol=flag.TRANSPORT_TCP,
-        peername=None,
     ):
+        self.method = method
+        self.peername = peername
         self.user_port = user_port
         self.access_user = access_user
         self.ts_protocol = ts_protocol
-        self.peername = peername
-        self.cipher = None
-
-        self._buffer = bytearray()
-
-        if self.access_user:
-            self.method = access_user.method
-        else:
-            self.method = User.list_by_port(self.user_port).first().method
-            # NOTE 所有的user用的加密方式必须是一种
-
         self.cipher_cls = SUPPORT_METHODS.get(self.method)
-
         if not self.cipher_cls:
             raise Exception(f"暂时不支持这种加密方式:{self.method}")
-        if self.cipher_cls.AEAD_CIPHER and self.ts_protocol == flag.TRANSPORT_TCP:
+
+        if ts_protocol == flag.TRANSPORT_TCP:
             self._first_data_len = self.cipher_cls.tcp_first_data_len()
         else:
             self._first_data_len = 0
+        self.cipher = None
+        self._buffer = bytearray()
 
     @classmethod
-    async def get_cipher_by_port(cls, port, ts_protocol, peername) -> CipherMan:
-        user_query = User.list_by_port(port)
-        user_count = await user_query.count()
-        if user_count == 1:
-            access_user = await user_query.first()
+    async def get_cipher_by_port(
+        cls, port, ts_protocol, peername, access_user=None
+    ) -> CipherMan:
+        if access_user:
+            method = access_user.method
         else:
-            access_user = None
-        cipher = cls(
-            port, access_user=access_user, ts_protocol=ts_protocol, peername=peername
+            same_port_users = User.list_by_port(port)
+            first_user = await same_port_users.first()
+            # NOTE 单端口多用户所有的user用的加密方式必须是一种
+            method = first_user.method
+            if await same_port_users.count() == 1:
+                access_user = first_user
+        return cls(
+            method=method,
+            user_port=port,
+            peername=peername,
+            access_user=access_user,
+            ts_protocol=ts_protocol,
         )
-        return cipher
 
     @ENCRYPT_DATA_TIME.time()
     def encrypt(self, data: bytes):
@@ -72,7 +71,7 @@ class CipherMan:
         return self.cipher.encrypt(data)
 
     @DECRYPT_DATA_TIME.time()
-    def decrypt(self, data: bytes):
+    async def decrypt(self, data: bytes):
         if (
             self.access_user is None
             and len(data) + len(self._buffer) < self._first_data_len
@@ -86,13 +85,7 @@ class CipherMan:
                 first_data = self._buffer[: self._first_data_len]
             else:
                 first_data = self._buffer
-            salt = first_data[: self.cipher_cls.SALT_SIZE]
-            if salt in self.bf:
-                raise RuntimeError(f"repeated salt founded!,peer:{self.peername}")
-            else:
-                self.bf.add(salt)
-
-            access_user = User.find_access_user(
+            access_user = await User.find_access_user(
                 self.user_port,
                 self.method,
                 self.ts_protocol,

@@ -4,6 +4,7 @@ import logging
 
 from cryptography.exceptions import InvalidTag
 from tortoise import fields
+from tortoise.expressions import F
 
 from shadowsocks import protocol_flag as flag
 from shadowsocks.ciphers import SUPPORT_METHODS
@@ -88,10 +89,10 @@ class User(BaseModel):
 
     @classmethod
     @FIND_ACCESS_USER_TIME.time()
-    def find_access_user(cls, port, method, ts_protocol, first_data) -> User:
+    async def find_access_user(cls, port, method, ts_protocol, first_data) -> User:
         cipher_cls = SUPPORT_METHODS[method]
         access_user = None
-        for user in cls.list_by_port(port).iterator():
+        for user in await cls.list_by_port(port):
             try:
                 cipher = cipher_cls(user.password)
                 if ts_protocol == flag.TRANSPORT_TCP:
@@ -105,25 +106,23 @@ class User(BaseModel):
         if access_user:
             # NOTE 记下成功访问的用户，下次优先找到他
             access_user.access_order += 1
-            access_user.save()
+            await access_user.save(update_fields=["access_order"])
         return access_user
 
     def record_ip(self, peername):
         if not peername:
             return
         self.ip_list.add(peername[0])
-        User.update(ip_list=self.ip_list, need_sync=True).where(
-            User.user_id == self.user_id
-        ).execute()
+        User.filter(user_id=self.user_id).update(ip_list=self.ip_list, need_sync=True)
 
     def record_traffic(self, used_u, used_d):
-        User.update(
-            download_traffic=User.download_traffic + used_d,
-            upload_traffic=User.upload_traffic + used_u,
+        User.filter(user_id=self.user_id).update(
+            download_traffic=F("download_traffic") + used_d,
+            upload_traffic=F("upload_traffic") + used_u,
             need_sync=True,
-        ).where(User.user_id == self.user_id).execute()
+        )
 
     def incr_tcp_conn_num(self, num):
-        User.update(tcp_conn_num=User.tcp_conn_num + num, need_sync=True).where(
-            User.user_id == self.user_id
-        ).execute()
+        User.filter(user_id=self.user_id).update(
+            tcp_conn_num=F("tcp_conn_num") + num, need_sync=True
+        )
