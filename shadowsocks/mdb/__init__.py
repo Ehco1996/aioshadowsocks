@@ -18,17 +18,6 @@ class BaseModel(Model):
             blacklist = cls.__attr_protected__ - cls.__attr_accessible__
             return {k: v for k, v in attrs.items() if k not in blacklist}
 
-    @classmethod
-    def get_or_create(cls, **kw):
-        if "defaults" in kw:
-            kw["defaults"] = cls._filter_attrs(kw.pop("defaults"))
-        return super().get_or_create(**kw)
-
-    async def update_from_dict(self, data, use_whitelist=False):
-        cls = type(self)
-        clean_data = cls._filter_attrs(data, use_whitelist)
-        return await super().update_from_dict(clean_data)
-
     def to_dict(self):
         return self.dict()
 

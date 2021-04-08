@@ -41,32 +41,37 @@ class ProxyMan:
     async def get_user_from_remote(url):
         async with httpx.AsyncClient() as client:
             res = await client.get(url)
+            import time
+
+            t1 = time.time()
             await User.create_or_update_by_user_data_list(res.json()["users"])
+            print("done", time.time() - t1)
 
     @staticmethod
     async def flush_metrics_to_remote(url):
-        users = await User.list_need_sync_user()
+        data = [
+            {
+                "user_id": user.user_id,
+                "ip_list": list(user.ip_list),
+                "tcp_conn_num": user.tcp_conn_num,
+                "upload_traffic": user.upload_traffic,
+                "download_traffic": user.download_traffic,
+            }
+            for user in await User.list_need_sync_user()
+        ]
         await User.reset_need_sync_user_metrics()
-        data = []
-        for user in users:
-            data.append(
-                {
-                    "user_id": user.user_id,
-                    "ip_list": list(user.ip_list),
-                    "tcp_conn_num": user.tcp_conn_num,
-                    "upload_traffic": user.upload_traffic,
-                    "download_traffic": user.download_traffic,
-                }
-            )
         async with httpx.AsyncClient() as client:
+            print(data)
             await client.post(url, json={"data": data})
 
     async def sync_from_remote_cron(self):
-        try:
-            await self.flush_metrics_to_remote(self.api_endpoint)
-            await self.get_user_from_remote(self.api_endpoint)
-        except Exception as e:
-            logging.warning(f"sync user from remote error {e}")
+        await self.flush_metrics_to_remote(self.api_endpoint)
+        await self.get_user_from_remote(self.api_endpoint)
+        # try:
+        #     await self.flush_metrics_to_remote(self.api_endpoint)
+        #     await self.get_user_from_remote(self.api_endpoint)
+        # except Exception as e:
+        #     logging.warning(f"sync user from remote error {e}")
 
     async def sync_from_json_cron(self):
         try:

@@ -41,6 +41,7 @@ class LocalHandler:
         self._transport_protocol_human = None
         self._is_closing = False
         self._connect_buffer = bytearray()
+        self._first_task = None
 
     def _init_transport(self, transport: asyncio.Transport, peername, protocol):
         self._stage = self.STAGE_INIT
@@ -83,23 +84,30 @@ class LocalHandler:
         self.close()
 
     def handle_data_received(self, data):
-        asyncio.create_task(self._handle_data_received(data=data))
+        if not self._first_task:
+            self._first_task = asyncio.create_task(
+                self._handle_data_received(data=data)
+            )
+        else:
+            asyncio.create_task(self._handle_data_received(data=data))
 
     async def _handle_data_received(self, data):
+        # NOTE 防止程序跑太快，导致第二个数据包来了，第一个数据包还没解开(这里有耗时任务：find_access_user)
+        if not self._first_task.done() and asyncio.current_task() != self._first_task:
+            await self._first_task
+
         if not self.cipher or self._transport_protocol == flag.TRANSPORT_UDP:
             self.cipher = await CipherMan.get_cipher_by_port(
                 self.port, self._transport_protocol, self._peername
             )
-        print("=======", self._stage)
-        data = await self.cipher.decrypt(data)
-        # try:
-        #     data = await self.cipher.decrypt(data)
-        # except Exception as e:
-        #     logging.warning(
-        #         f"decrypt data error:{e} remote:{self._peername},type:{self._transport_protocol_human} closing..."
-        #     )
-        #     self.close()
-        #     return
+        try:
+            data = await self.cipher.decrypt(data)
+        except Exception:
+            logging.warning(
+                f"decrypt data err {self._peername[0]},type:{self._transport_protocol_human}"
+            )
+            self.close()
+            return
 
         if not data:
             return

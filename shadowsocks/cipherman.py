@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import asyncio
+
 from shadowsocks import protocol_flag as flag
 from shadowsocks.ciphers import SUPPORT_METHODS
 from shadowsocks.mdb.models import User
@@ -8,9 +10,11 @@ from shadowsocks.metrics import (
     ENCRYPT_DATA_TIME,
     NETWORK_TRANSMIT_BYTES,
 )
+from shadowsocks.utils import AutoResetBloomFilter
 
 
 class CipherMan:
+    bf = AutoResetBloomFilter()
     # TODO 流量、链接数限速
 
     def __init__(
@@ -85,6 +89,13 @@ class CipherMan:
                 first_data = self._buffer[: self._first_data_len]
             else:
                 first_data = self._buffer
+
+            salt = first_data[: self.cipher_cls.SALT_SIZE]
+            if salt in self.bf:
+                raise RuntimeError(f"repeated salt founded!,peer:{self.peername}")
+            else:
+                self.bf.add(salt)
+
             access_user = await User.find_access_user(
                 self.user_port,
                 self.method,
@@ -112,15 +123,17 @@ class CipherMan:
             return self.cipher_cls(self.access_user.password).unpack(data)
 
     def incr_user_tcp_num(self, num: int):
-        self.ts_protocol == flag.TRANSPORT_TCP and self.access_user and self.access_user.incr_tcp_conn_num(
-            num
+        self.ts_protocol == flag.TRANSPORT_TCP and self.access_user and asyncio.create_task(
+            self.access_user.incr_tcp_conn_num(num)
         )
 
     def record_user_ip(self, peername):
-        self.access_user and self.access_user.record_ip(peername)
+        self.access_user and asyncio.create_task(self.access_user.record_ip(peername))
 
     def record_user_traffic(self, ut_data_len: int, dt_data_len: int):
-        self.access_user and self.access_user.record_traffic(ut_data_len, dt_data_len)
+        self.access_user and asyncio.create_task(
+            self.access_user.record_traffic(ut_data_len, dt_data_len)
+        )
         NETWORK_TRANSMIT_BYTES.inc(ut_data_len + dt_data_len)
 
     def close(self):
