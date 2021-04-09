@@ -59,8 +59,11 @@ class ProxyMan:
             await client.post(url, json={"data": data})
 
     async def sync_from_remote_cron(self):
-        await self.flush_metrics_to_remote(self.api_endpoint)
-        await self.get_user_from_remote(self.api_endpoint)
+        try:
+            await self.flush_metrics_to_remote(self.api_endpoint)
+            await self.get_user_from_remote(self.api_endpoint)
+        except Exception as e:
+            logging.warning(f"sync error: {e}")
 
     async def sync_from_json_cron(self):
         self.create_or_update_from_json("userconfigs.json")

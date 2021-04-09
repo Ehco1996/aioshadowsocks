@@ -77,7 +77,7 @@ class User(BaseModel):
             for user_data in user_data_list:
                 user_id = user_data["user_id"]
                 enable_user_ids.append(user_id)
-                db_user = db_user_dict[user_id]
+                db_user = db_user_dict.get(user_id)
                 # 找到配置变化了的用户
                 if (
                     not db_user
