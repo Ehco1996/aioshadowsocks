@@ -6,7 +6,7 @@ from collections import defaultdict
 import httpx
 
 from shadowsocks.core import LocalTCP, LocalUDP
-from shadowsocks.mdb.models import User, db
+from shadowsocks.mdb.models import User
 
 
 class ProxyMan:
@@ -45,41 +45,25 @@ class ProxyMan:
 
     @staticmethod
     async def flush_metrics_to_remote(url):
-        fields = [
-            User.user_id,
-            User.ip_list,
-            User.tcp_conn_num,
-            User.upload_traffic,
-            User.download_traffic,
+        data = [
+            {
+                "user_id": user.user_id,
+                "ip_list": list(user.ip_list),
+                "tcp_conn_num": user.tcp_conn_num,
+                "upload_traffic": user.upload_traffic,
+                "download_traffic": user.download_traffic,
+            }
+            for user in User.get_and_reset_need_sync_user_metrics()
         ]
-        with db.atomic("EXCLUSIVE"):
-            users = list(User.select(*fields).where(User.need_sync == True))
-            User.update(
-                ip_list=set(), upload_traffic=0, download_traffic=0, need_sync=False
-            ).where(User.need_sync == True).execute()
-
-        data = [{
-                    "user_id": user.user_id,
-                    "ip_list": list(user.ip_list),
-                    "tcp_conn_num": user.tcp_conn_num,
-                    "upload_traffic": user.upload_traffic,
-                    "download_traffic": user.download_traffic,
-                } for user in users]
         async with httpx.AsyncClient() as client:
             await client.post(url, json={"data": data})
 
     async def sync_from_remote_cron(self):
-        try:
-            await self.flush_metrics_to_remote(self.api_endpoint)
-            await self.get_user_from_remote(self.api_endpoint)
-        except Exception as e:
-            logging.warning(f"sync user from remote error {e}")
+        await self.flush_metrics_to_remote(self.api_endpoint)
+        await self.get_user_from_remote(self.api_endpoint)
 
     async def sync_from_json_cron(self):
-        try:
-            self.create_or_update_from_json("userconfigs.json")
-        except Exception as e:
-            logging.warning(f"sync user from json error {e}")
+        self.create_or_update_from_json("userconfigs.json")
 
     def get_server_by_port(self, port):
         return self.__running_servers__.get(port)

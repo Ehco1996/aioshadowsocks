@@ -32,7 +32,7 @@ class BaseModel(pw.Model):
     def update_from_dict(self, data, ignore_unknown=False, use_whitelist=False):
         """注意值是没有写入数据库的, 需要显式 save"""
         cls = type(self)
-        clean_data = cls._filter_attrs(data)
+        clean_data = cls._filter_attrs(data, use_whitelist)
         return shortcuts.update_model_from_dict(self, clean_data, ignore_unknown)
 
     def to_dict(self, **kw):

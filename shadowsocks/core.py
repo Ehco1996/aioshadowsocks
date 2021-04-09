@@ -92,7 +92,7 @@ class LocalHandler:
             data = self.cipher.decrypt(data)
         except Exception as e:
             logging.warning(
-                f"decrypt data error:{e} remote:{self._peername},type:{self._transport_protocol_human} closing..."
+                f"decrypt data error:{e} remote:{self._peername},type:{self._transport_protocol_human}"
             )
             self.close()
             return

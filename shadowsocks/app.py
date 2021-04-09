@@ -23,9 +23,8 @@ async def logging_grpc_request(event: RecvRequest) -> None:
 
 class App:
     def __init__(self) -> None:
-        self._init_config()
-        self._init_logger()
         self._prepared = False
+        self._prepare()
 
     def _init_config(self):
         self.config = {
@@ -71,10 +70,13 @@ class App:
             "DEBUG": 10,
         }
         level = log_levels[self.log_level.upper()]
-        logging.basicConfig(
-            format="[%(levelname)s]%(asctime)s %(funcName)s line:%(lineno)d %(message)s",
-            level=level,
-        )
+        if level == 20:
+            format = "[%(levelname)s]%(asctime)s --- %(message)s"
+        else:
+            format = (
+                "[%(levelname)s]%(asctime)s %(funcName)s line:%(lineno)d --- %(message)s"
+            )
+        logging.basicConfig(format=format, level=level)
 
     def _init_memory_db(self):
 
@@ -93,31 +95,34 @@ class App:
         if self._prepared:
             return
         self.loop = asyncio.get_event_loop()
+        self._init_config()
+        self._init_logger()
         self._init_memory_db()
         self._init_sentry()
-        self.loop.add_signal_handler(signal.SIGTERM, self._shutdown)
         self.proxyman = ProxyMan(
             self.use_json, self.sync_time, self.listen_host, self.api_endpoint
         )
+
+        signals = (signal.SIGHUP, signal.SIGTERM, signal.SIGINT)
+        for s in signals:
+            self.loop.add_signal_handler(
+                s, lambda s=s: asyncio.create_task(self._shutdown())
+            )
+
         self._prepared = True
 
-    def _shutdown(self):
+    async def _shutdown(self):
         logging.info("正在关闭所有ss server")
+        tasks = [t for t in asyncio.all_tasks() if t is not asyncio.current_task()]
+        [task.cancel() for task in tasks]
         self.proxyman.close_server()
         if self.grpc_server:
             self.grpc_server.close()
             logging.info(f"grpc server closed!")
         if self.metrics_server:
-            self.loop.create_task(self.metrics_server.stop())
+            await self.metrics_server.stop()
             logging.info(f"metrics server closed!")
         self.loop.stop()
-
-    def _run_loop(self):
-
-        try:
-            self.loop.run_forever()
-        except KeyboardInterrupt:
-            self._shutdown()
 
     async def _start_grpc_server(self):
 
@@ -137,26 +142,19 @@ class App:
             f"Start Metrics Server At: http://0.0.0.0:{self.metrics_port}/metrics"
         )
 
-    def run_ss_server(self):
-        self._prepare()
-        self.loop.create_task(self.proxyman.start_and_check_ss_server())
+    async def _start_ss_server(self):
+
         if self.metrics_port:
-            self.loop.create_task(self._start_metrics_server())
+            await self._start_metrics_server()
 
         if self.grpc_host and self.grpc_port:
-            self.loop.create_task(self._start_grpc_server())
+            await self._start_grpc_server()
 
-        self._run_loop()
+        await self.proxyman.start_and_check_ss_server()
 
-    def run_grpc_server(self):
-        self._prepare()
-
-        if self.grpc_host and self.grpc_port:
-            self.loop.create_task(self._start_grpc_server())
-        else:
-            raise Exception("grpc server not config")
-
-        self._run_loop()
+    def run_ss_server(self):
+        self.loop.create_task(self._start_ss_server())
+        self.loop.run_forever()
 
     def get_user(self, user_id):
         c = SSClient(f"{self.grpc_host}:{self.grpc_port}")
