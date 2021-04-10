@@ -64,7 +64,7 @@ class User(BaseModel):
                 )
                 for u in user_data_list
             ]
-            cls.bulk_create(users, batch_size=len(users))
+            cls.bulk_create(users, batch_size=500)
         else:
             db_user_dict = {
                 u.user_id: u
