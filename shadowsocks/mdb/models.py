@@ -33,7 +33,7 @@ class User(BaseModel):
     download_traffic = pw.BigIntegerField(default=0)
 
     def __str__(self):
-        return f"[{self.user_id}-{self.access_order}]"
+        return f"<User{self.user_id}-{self.access_order}>"
 
     @classmethod
     def _create_or_update_user_from_data(cls, data):
@@ -89,7 +89,7 @@ class User(BaseModel):
                     need_update_or_create_users.append(user_data)
             for user_data in need_update_or_create_users:
                 cls._create_or_update_user_from_data(user_data)
-            sync_msg = "sync users: enable_user_cnt: {} updated_user_cnt: {},deleted_user_cnt:{}".format(
+            sync_msg = "sync users: enable_user_cnt={} updated_user_cnt={} deleted_user_cnt={}".format(
                 len(enable_user_ids),
                 len(need_update_or_create_users),
                 cls.delete().where(cls.user_id.not_in(enable_user_ids)).execute(),

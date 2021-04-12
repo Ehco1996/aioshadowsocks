@@ -111,7 +111,7 @@ class ProxyMan:
             "udp": udp_server,
         }
         logging.info(
-            "user:{} method:{} password:{} {}:{} 已启动".format(
+            "user={} method={} password={} host={}:{} 已启动".format(
                 user, user.method, user.password, self.listen_host, user.port
             )
         )
