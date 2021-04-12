@@ -18,7 +18,7 @@ from shadowsocks.services import AioShadowsocksServicer
 
 
 async def logging_grpc_request(event: RecvRequest) -> None:
-    logging.info(f"{event.method_name} called!")
+    logging.info(f"{event.method_name}called!")
 
 
 class App:
@@ -71,12 +71,10 @@ class App:
         }
         level = log_levels[self.log_level.upper()]
         if level == 20:
-            format = "[%(levelname)s]%(asctime)s --- %(message)s"
+            format = "%(message)s"
         else:
-            format = (
-                "[%(levelname)s]%(asctime)s %(funcName)s line:%(lineno)d --- %(message)s"
-            )
-        logging.basicConfig(format=format, level=level)
+            format = "[%(levelname)s]%(asctime)s %(funcName)s line:%(lineno)d --- %(message)s"
+        logging.basicConfig(level=level, format=format)
 
     def _init_memory_db(self):
 

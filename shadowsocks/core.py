@@ -112,18 +112,19 @@ class LocalHandler:
             self.close()
         else:
             logging.warning(f"unknown stage:{self._stage}")
+            self.close()
 
     async def _handle_stage_init(self, data):
         atype, dst_addr, dst_port, header_length = parse_header(data)
         if not all([atype, dst_addr, dst_port, header_length]):
             logging.warning(
-                f"parse_header_error atype: {flag.get_atype_for_human(atype)} port: {self.port}"
+                f"parse_header_error atype={flag.get_atype_for_human(atype)} port={self.port}"
             )
             self.close()
             return
         else:
             logging.info(
-                "parse_header_success atype: {} {} from: {} dst: {}:{}".format(
+                "parse_header_success flag={} atype={} from={} dst={}:{}".format(
                     self._transport_protocol_human,
                     flag.get_atype_for_human(atype),
                     f"{self._peername[0]}:{self._peername[1]}",
@@ -159,10 +160,10 @@ class LocalHandler:
                 _, remote_udp = await asyncio.wait_for(task, 5)
             except Exception as e:
                 self._stage = self.STAGE_ERROR
-                self.close()
                 logging.warning(
                     f"connection_failed, {type(e)} e: {dst_addr}:{dst_port}"
                 )
+                self.close()
             else:
                 self._remote = remote_udp
                 self._stage = self.STAGE_STREAM
@@ -321,7 +322,7 @@ class LocalUDP(asyncio.DatagramProtocol):
         for peer in need_delete:
             h = self.udpmap.pop(peer)
             h.close()
-        logging.info(f"clean udpmap peer: {need_delete}")
+        logging.info(f"clean udpmap peer delete={need_delete}")
 
     def error_received(self, exc) -> None:
         return super().error_received(exc)
