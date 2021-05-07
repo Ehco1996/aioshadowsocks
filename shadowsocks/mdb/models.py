@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import time
 from typing import List
 
 import peewee as pw
@@ -33,7 +34,7 @@ class User(BaseModel):
     download_traffic = pw.BigIntegerField(default=0)
 
     def __str__(self):
-        return f"<User{self.user_id}-{self.access_order}>"
+        return f"<User{self.user_id}>"
 
     @classmethod
     def _create_or_update_user_from_data(cls, data):
@@ -118,7 +119,10 @@ class User(BaseModel):
     def find_access_user(cls, port, method, ts_protocol, first_data) -> User:
         cipher_cls = SUPPORT_METHODS[method]
         access_user = None
+        cnt = 0
+        t1 = time.time()
         for user in cls.list_by_port(port).iterator():
+            cnt += 1
             try:
                 cipher = cipher_cls(user.password)
                 if ts_protocol == flag.TRANSPORT_TCP:
@@ -133,6 +137,9 @@ class User(BaseModel):
             # NOTE 记下成功访问的用户，下次优先找到他
             access_user.access_order += 1
             access_user.save(only=[cls.access_order])
+        logging.info(
+            f"find_access_user user={access_user} cnt={cnt} duration={time.time()-t1}"
+        )
         return access_user
 
     @db.atomic("EXCLUSIVE")

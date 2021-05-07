@@ -88,10 +88,7 @@ class CipherMan:
                 self.bf.add(salt)
 
             access_user = User.find_access_user(
-                self.user_port,
-                self.method,
-                self.ts_protocol,
-                first_data,
+                self.user_port, self.method, self.ts_protocol, first_data
             )
 
             if not access_user:
@@ -102,7 +99,7 @@ class CipherMan:
                 raise RuntimeError(f"access user not have traffic: {access_user}")
             self.access_user = access_user
             self.record_user_ip(self.peername)
-            self.incr_user_tcp_num(1)
+            self.incr_user_tcp_num()
             data = bytes(self._buffer)
         if not self.cipher:
             self.cipher = self.cipher_cls(self.access_user.password)
@@ -113,7 +110,7 @@ class CipherMan:
         else:
             return self.cipher_cls(self.access_user.password).unpack(data)
 
-    def incr_user_tcp_num(self, num: int):
+    def incr_user_tcp_num(self, num: int = 1):
         self.ts_protocol == flag.TRANSPORT_TCP and self.access_user and self.access_user.incr_tcp_conn_num(
             num
         )

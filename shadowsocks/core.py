@@ -38,19 +38,8 @@ class LocalHandler:
         self._remote = None
         self._transport = None
         self._transport_protocol = None
-        self._transport_protocol_human = None
         self._is_closing = False
         self._connect_buffer = bytearray()
-
-    def _init_transport(self, transport: asyncio.Transport, peername, protocol):
-        self._stage = self.STAGE_INIT
-        self._transport = transport
-        self._peername = peername
-        self._transport_protocol = protocol
-        if protocol == flag.TRANSPORT_TCP:
-            self._transport_protocol_human = "tcp"
-        else:
-            self._transport_protocol_human = "udp"
 
     def close(self):
         self._stage = self.STAGE_DESTROY
@@ -73,8 +62,11 @@ class LocalHandler:
         else:
             self._transport.sendto(data, self._peername)
 
-    def handle_connection_made(self, transport_protocol, transport, peername):
-        self._init_transport(transport, peername, transport_protocol)
+    def handle_connection_made(self, transport, peername, protocol):
+        self._stage = self.STAGE_INIT
+        self._transport = transport
+        self._peername = peername
+        self._transport_protocol = protocol
 
     def handle_eof_received(self):
         self.close()
@@ -92,7 +84,7 @@ class LocalHandler:
             data = self.cipher.decrypt(data)
         except Exception as e:
             logging.warning(
-                f"decrypt data error:{e} remote:{self._peername},type:{self._transport_protocol_human}"
+                f"decrypt data error:{e} remote:{self._peername},type:{self._transport_protocol}"
             )
             self.close()
             return
@@ -125,7 +117,7 @@ class LocalHandler:
         else:
             logging.info(
                 "parse_header_success flag={} atype={} from={} dst={}:{}".format(
-                    self._transport_protocol_human,
+                    self._transport_protocol,
                     flag.get_atype_for_human(atype),
                     f"{self._peername[0]}:{self._peername[1]}",
                     dst_addr,
@@ -214,7 +206,7 @@ class LocalTCP(asyncio.Protocol):
     def connection_made(self, transport):
         self._transport = transport
         peername = self._transport.get_extra_info("peername")
-        self._handler.handle_connection_made(flag.TRANSPORT_TCP, transport, peername)
+        self._handler.handle_connection_made(transport, peername, flag.TRANSPORT_TCP)
         CONNECTION_MADE_COUNT.inc()
         ACTIVE_CONNECTION_COUNT.inc()
 
