@@ -138,7 +138,7 @@ class User(BaseModel):
             access_user.access_order += 1
             access_user.save(only=[cls.access_order])
         logging.info(
-            f"find_access_user user={access_user} cnt={cnt} duration={time.time()-t1}"
+            f"find_access_user user={access_user} cnt={cnt} duration={int(round((time.time()-t1) * 1000))}ms"
         )
         return access_user
 
