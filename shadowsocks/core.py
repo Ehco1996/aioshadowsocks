@@ -294,7 +294,7 @@ class LocalUDP(asyncio.DatagramProtocol):
             handler = LocalHandler(self.port)
             self.udpmap[peername] = handler
             handler.handle_connection_made(
-                flag.TRANSPORT_UDP, self._transport, peername
+                self._transport, peername, flag.TRANSPORT_UDP
             )
         handler.handle_data_received(data)
         # NOTE 注入这个udp上次使用的时间
