@@ -53,10 +53,15 @@ class ProxyMan:
                 "upload_traffic": user.upload_traffic,
                 "download_traffic": user.download_traffic,
             }
-            for user in User.get_and_reset_need_sync_user_metrics()
+            for user in User.get_need_sync_user_metrics()
         ]
         async with httpx.AsyncClient() as client:
-            await client.post(url, json={"data": data})
+            try:
+                await client.post(url, json={"data": data})
+            except Exception as e:
+                logging.warning(f"flush_metrics_to_remote error: {e}")
+            else:
+                User.reset_need_sync_user_traffic()
 
     async def sync_from_remote_cron(self):
         try:

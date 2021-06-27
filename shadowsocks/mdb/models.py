@@ -99,7 +99,7 @@ class User(BaseModel):
 
     @classmethod
     @db.atomic("EXCLUSIVE")
-    def get_and_reset_need_sync_user_metrics(cls) -> List[User]:
+    def get_need_sync_user_metrics(cls) -> List[User]:
         fields = [
             User.user_id,
             User.ip_list,
@@ -107,12 +107,14 @@ class User(BaseModel):
             User.upload_traffic,
             User.download_traffic,
         ]
-        users = list(User.select(*fields).where(User.need_sync == True))
+        return list(User.select(*fields).where(User.need_sync == True))
+
+    @classmethod
+    def reset_need_sync_user_traffic(cls):
         empyt_set = set()
         User.update(
             ip_list=empyt_set, upload_traffic=0, download_traffic=0, need_sync=False
         ).where(User.need_sync == True).execute()
-        return users
 
     @classmethod
     @FIND_ACCESS_USER_TIME.time()
