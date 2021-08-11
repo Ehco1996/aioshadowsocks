@@ -111,9 +111,9 @@ class User(BaseModel):
 
     @classmethod
     def reset_need_sync_user_traffic(cls):
-        empyt_set = set()
+        empty_set = set()
         User.update(
-            ip_list=empyt_set, upload_traffic=0, download_traffic=0, need_sync=False
+            ip_list=empty_set, upload_traffic=0, download_traffic=0, need_sync=False
         ).where(User.need_sync == True).execute()
 
     @classmethod

@@ -123,7 +123,7 @@ class BaseAEADCipher(BaseCipher):
                     "big",
                 )
                 if self._payload_len > self.PACKET_LIMIT:
-                    raise RuntimeError(f"payload_len too long {self.payload_len}")
+                    raise RuntimeError(f"payload_len too long {self._payload_len}")
 
                 del self._buffer[: 2 + self.TAG_SIZE]
             else:
