@@ -40,7 +40,7 @@ class TrafficRateLimit:
 
     @property
     def cur_rate(self):
-        return f"now rate is: {round(self._cur_rate / self.MEGABIT, 1)} Mbps"
+        return f"now rate is: {round(self.rate / self.MEGABIT, 1)} Mbps"
 
     @property
     def limited(self):
